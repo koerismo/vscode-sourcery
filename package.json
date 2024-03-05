@@ -1,0 +1,100 @@
+{
+	"name": "sourcery",
+	"publisher": "koerismo",
+	"displayName": "Sourcery",
+	"description": "Provides Source Engine filesystem support.",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.87.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"*"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"commands": [
+			{
+				"command": "sourcery.vpk.open",
+				"title": "Open Vpk as Workspace"
+			},
+			{
+				"command": "sourcery.vpk.commit",
+				"title": "Commit Vpk Changes"
+			},
+			{
+				"command": "sourcery.game.reveal",
+				"when": "resourceScheme == game",
+				"title": "Reveal Original File",
+				"icon": "$(file-symlink-file)"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "sourcery.vpk.open",
+					"when": "true"
+				}
+			],
+			"editor/title": [
+				{
+					"command": "sourcery.game.reveal",
+					"when": "resourceScheme == game",
+					"group": "navigation"
+				}
+			]
+		},
+		"customEditors": [
+			{
+				"viewType": "sourcery.vtf",
+				"displayName": "Valve Texture",
+				"selector": [
+					{
+						"filenamePattern": "**/*.vtf"
+					}
+				]
+			}
+		],
+		"configuration": {
+			"title": "Sourcery",
+			"properties": {
+				"autoMountGame": {
+					"description": "Automatically ount gameinfo.txt on workspace load?",
+					"type": "boolean",
+					"default": "false"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "pnpm run package",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js"
+	},
+	"devDependencies": {
+		"@types/glob": "^8.1.0",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "~16.18.86",
+		"@types/vscode": "^1.87.0",
+		"@typescript-eslint/eslint-plugin": "^5.62.0",
+		"@typescript-eslint/parser": "^5.62.0",
+		"@vscode/test-electron": "^2.3.9",
+		"eslint": "^8.57.0",
+		"fast-vdf": "^1.0.9",
+		"glob": "^8.1.0",
+		"mocha": "^10.3.0",
+		"ts-loader": "^9.5.1",
+		"typescript": "^4.9.5",
+		"vtf-js": "link:../vtf.js",
+		"webpack": "^5.90.3",
+		"webpack-cli": "^5.1.4"
+	}
+}
