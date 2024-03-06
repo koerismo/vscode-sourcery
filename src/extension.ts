@@ -5,6 +5,7 @@ import { VpkFileSystemProvider } from './vpk-provider';
 import { GameFileSystemProvider, gameFileSystemProvider } from './game-provider';
 import { VmtLinkProvider } from './vmt-provider';
 import { ValveTextureEditorProvider } from './vtf-editor';
+import { ValveMaterialEditorProvider } from './vmt-editor';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -16,6 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 		GameFileSystemProvider.register(),
 		VmtLinkProvider.register(),
 		ValveTextureEditorProvider.register(context),
+		ValveMaterialEditorProvider.register(context),
 	);
 
 	// Register VPK open command.
@@ -36,7 +38,6 @@ export function activate(context: vscode.ExtensionContext) {
 		const vpk_root = vscode.Uri.from({ scheme: 'vpk', path: file.path+'/' });
 
 		// Open the new workspace.
-		console.log('Registered. Opening workspace with URI '+vpk_root.toString());
 		vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: vpk_root });
 	});
 
@@ -68,10 +69,17 @@ export function activate(context: vscode.ExtensionContext) {
 		return original_uri;
 	});
 
+	const materialPreviewCommand = vscode.commands.registerCommand('sourcery.vmt.preview', async (uri?: vscode.Uri) => {
+		uri ??= vscode.window.activeTextEditor?.document.uri;
+		if (!uri) return;
+		vscode.commands.executeCommand('vscode.openWith', uri, 'sourcery.vmt', { viewColumn: vscode.ViewColumn.Beside });
+	});
+
 	// Register auto-disposal subscriptions.
 	context.subscriptions.push(
 		vpkOpenCommand,
-		gameRevealCommand
+		gameRevealCommand,
+		materialPreviewCommand
 	);
 
 	// Init message

@@ -29,6 +29,12 @@
 				"when": "resourceScheme == game",
 				"title": "Reveal Original File",
 				"icon": "$(file-symlink-file)"
+			},
+			{
+				"command": "sourcery.vmt.preview",
+				"when": "editorLangId == vmt",
+				"title": "Open Material Preview",
+				"icon": "$(symbol-color)"
 			}
 		],
 		"menus": {
@@ -43,6 +49,11 @@
 					"command": "sourcery.game.reveal",
 					"when": "resourceScheme == game",
 					"group": "navigation"
+				},
+				{
+					"command": "sourcery.vmt.preview",
+					"when": "editorLangId == vmt",
+					"group": "navigation"
 				}
 			]
 		},
@@ -53,6 +64,16 @@
 				"selector": [
 					{
 						"filenamePattern": "**/*.vtf"
+					}
+				]
+			},
+			{
+				"viewType": "sourcery.vmt",
+				"displayName": "Valve Material",
+				"priority": "option",
+				"selector": [
+					{
+						"filenamePattern": "**/*.vmt"
 					}
 				]
 			}
@@ -83,6 +104,7 @@
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "~16.18.86",
+		"@types/three": "^0.162.0",
 		"@types/vscode": "^1.87.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",

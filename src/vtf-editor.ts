@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { Vtf } from 'vtf-js';
 
-class ValveTextureDocument implements vscode.CustomDocument {
+export class ValveTextureDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
 	cache: Vtf|null = null;
 

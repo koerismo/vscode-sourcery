@@ -1,4 +1,4 @@
-console.log('Hello from the webview!');
+console.log('Starting up Vtf preview webview...');
 
 const canvas = document.querySelector('canvas');
 const ctx = canvas.getContext('2d');

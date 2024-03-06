@@ -1,18 +1,18 @@
 import * as vscode from 'vscode';
-import { vpkFileSystemProvider } from './vpk-provider';
-import { parse, KeyV } from 'fast-vdf';
+import { parse, KeyV, KeyVSet } from 'fast-vdf';
 
 export let gameFileSystemProvider!: GameFileSystemProvider;
 
-interface GameMounts {
+export interface GameMounts {
 	filecache: Record<string, vscode.Uri>;				// File --> Uri redirects
 	mountcache: Record<string, number>;					// Mount path --> index redirects
 	mountlist: { vpk: boolean, uri: vscode.Uri }[];		// Mount list
 }
 
+const RE_SLASH = /(\/|\\)+/g; // TODO: Move this to shared module? duplicates!
+const RE_PATH_STEAM = /(.*Steam\/)/;
 const RE_PATH_GAMEINFO = /\w+(\/|\\)+gameinfo\.txt/;
 const RE_SP_GAMEINFO = /\|gameinfo_path\||\|all_source_engine_paths\|/;
-const FILE_NONE: vscode.FileStat = { type: vscode.FileType.Unknown, ctime: -1, mtime: -1, size: 0 };
 
 function parseSearchPath(root: vscode.Uri, path: string) {
 	path = path.replace(RE_SP_GAMEINFO, '');
@@ -20,14 +20,52 @@ function parseSearchPath(root: vscode.Uri, path: string) {
 	return uri;
 }
 
+function getWorkspaceUri() {
+	if (!vscode.workspace.workspaceFolders?.length) throw new Error('No active workspace!');
+	return vscode.workspace.workspaceFolders[0].uri;
+}
+
+// function findAppManifestPath(path: string, appid: string): string|null {
+// 	const match = path.replace(RE_SLASH, '/').match(RE_PATH_STEAM);
+// 	if (!match) return null;
+// 	return match![1] + `steamapps/appmanifest_${appid}.acf`;
+// }
+
+// function findAppPath(path: string, name: string): string {
+// 	const match = path.replace(RE_SLASH, '/').match(RE_PATH_STEAM);
+// 	if (!match) throw new Error('Failed to match app path!');
+// 	return match![1] + `steamapps/common/${name}/`;
+// }
+
 export class GameFileSystemProvider implements vscode.FileSystemProvider {
 	gamecache: Record<string, GameMounts|null> = {};
+	// steamcache: Record<string, vscode.Uri|null> = {};
 
 	static register() {
 		const editor = new this();
 		gameFileSystemProvider = editor;
 		return vscode.workspace.registerFileSystemProvider('game', editor, { isReadonly: true, isCaseSensitive: false });
 	}
+
+	// async findAppById(appid: string): Promise<vscode.Uri|null> {
+	// 	if (appid in this.steamcache) return this.steamcache[appid];
+	// 	const uri = getWorkspaceUri();
+	// 	const path = findAppManifestPath(uri.path, appid);
+	// 	if (!path) return null;
+	// 	const manifest_path = uri.with({ path });
+
+	// 	let text: string;
+	// 	try { text = new TextDecoder().decode(await vscode.workspace.fs.readFile( manifest_path )); }
+	// 	catch { return null; }
+
+	// 	const root = parse(text, { escapes: false, multilines: false, types: false });
+	// 	const app_info = root.dir('AppState');
+	// 	console.log('Found game', app_info.value('name'), 'from appid', appid);
+
+	// 	const app_uri = uri.with({ path: findAppPath(uri.path, app_info.value('installdir') as string) });
+	// 	this.steamcache[appid] = app_uri;
+	// 	return app_uri;
+	// }
 
 	/** Forcefully checks for a gameinfo in/above the provided Uri. */
 	async initGame(workspace_uri: vscode.Uri): Promise<GameMounts|null> {
@@ -67,7 +105,7 @@ export class GameFileSystemProvider implements vscode.FileSystemProvider {
 					});
 				}
 				game.mountlist.push({ vpk: is_vpk, uri: cleaned });
-				console.info('Searchpath:', is_vpk ? 'vpk' : 'folder', cleaned.toString());
+				console.info('Added searchpath:', is_vpk ? 'vpk' : 'folder', cleaned.toString());
 			}
 		}
 		catch(e) {
@@ -83,16 +121,13 @@ export class GameFileSystemProvider implements vscode.FileSystemProvider {
 
 	/** Checks the cache, and then the system, for a gameinfo in/above the workspace root. */
 	async getGame(): Promise<GameMounts|null> {
-		if (!vscode.workspace.workspaceFolders?.length) return null;
-		const root_uri = vscode.workspace.workspaceFolders[0].uri;
+		const root_uri = getWorkspaceUri();
 		if (root_uri.path in this.gamecache) return this.gamecache[root_uri.path];
 		return await this.initGame(root_uri);
 	}
 
 	/** Finds the original location of a file. */
 	async locateFile(game: GameMounts, uri: vscode.Uri): Promise<vscode.Uri|null> {
-		console.log(game);
-		console.log('Locating file', uri.path, 'from', uri.toString());
 		const path = uri.path.toLowerCase();
 		if (path in game.filecache) return game.filecache[path];
 		
@@ -147,7 +182,6 @@ export class GameFileSystemProvider implements vscode.FileSystemProvider {
 		const game = await this.getGame();
 		if (!game) throw new vscode.FileSystemError('File does not exist!');
 		const new_uri = await this.locateFile(game, uri);
-		console.log('NEW URI =', new_uri?.toString());
 		if (!new_uri) throw new vscode.FileSystemError('File does not exist!');
 		return vscode.workspace.fs.readFile(new_uri);
 	}

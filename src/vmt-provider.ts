@@ -34,7 +34,7 @@ interface VmtDocumentLink extends vscode.DocumentLink {
 function getLineLink(line: string, line_index: number, acceptable: Set<string>, root: vscode.Uri, suffix: string=''): VmtDocumentLink|null {
 	const match = line.match(RE_LINE);
 	if (!match) return null;
-	if (!acceptable.has(match[2])) return null;
+	if (!acceptable.has(match[2].toLowerCase())) return null;
 
 	const char_start = line.length - match[3].length * 2 - match[4].length;
 	const char_end = line.length - match[3].length - 1;
@@ -57,7 +57,6 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 
 	static register(): vscode.Disposable {
 		const editor = new this();
-		console.log('Registered link provider!');
 		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'vmt' }, editor);
 		return editor;
 	}

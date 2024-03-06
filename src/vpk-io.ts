@@ -18,6 +18,13 @@ export interface VpkFileInfo {
 	length: number;
 }
 
+enum VpkReaderVersion {
+	INVALID = -1,
+	NONE = 0,
+	V1 = 1,
+	V2 = 2,
+}
+
 // interface VpkTree {
 // 	[extension: string]: {
 // 		[path: string]: {
@@ -28,7 +35,7 @@ export interface VpkFileInfo {
 
 export class VpkReader {
 	uri: Uri;
-	version: number = 0;
+	version: VpkReaderVersion = VpkReaderVersion.NONE;
 	files: Record<string, VpkFileInfo> = {}; // { '/amogus.txt': { archiveIndex: 0, crc: 0, length: 0, offset: 0, preloadBytes: 0 }};
 	cache: Record<number, Uint8Array> = {};
 
@@ -39,7 +46,6 @@ export class VpkReader {
 	private getArchiveUri(index: number): Uri {
 		const root_path = this.uri.path.replace('_dir.vpk', '_');
 		const number_string = ('00' + index).slice(-3);
-		// console.log('Looking for archive with URI '+this.uri.with({ path: root_path+number_string+'.vpk' }).toString());
 		return this.uri.with({ path: root_path+number_string+'.vpk' });
 	}
 
@@ -57,11 +63,15 @@ export class VpkReader {
 		const bytes = await workspace.fs.readFile(this.uri);
 		const view = new DataView(bytes.buffer);
 
+		// In case an error is thrown, leave us on invalid.
+		this.version = VpkReaderVersion.INVALID;
+
 		if (view.getUint32(0, LE) !== SIGNATURE) throw new Error('Invalid vpk signature!');
 		
-		const version = this.version = view.getUint32(4, LE);
+		const version = view.getUint32(4, LE);
 		if (version < VER_MIN || version > VER_MAX) throw new Error(`Invalid vpk version! (${version})`);
 		const SIZE_HEADER = version === 2 ? 28 : 12;
+		this.version = version;
 
 		const treeSize = view.getUint32(8, LE);
 
@@ -82,7 +92,6 @@ export class VpkReader {
 			const start = i;
 			const end = bytes.indexOf(0x00, start);
 			if (end === -1) {
-				console.warn('BELFJKSHGEFGAEKJFGY');			
 				throw new Error('Failed to terminate string!');
 			}
 			i = end+1;
@@ -137,14 +146,16 @@ export class VpkReader {
 	}
 
 	async getFileInfo(path: string): Promise<VpkFileInfo|null> {
-		if (this.version === 0) await this.readHeader();
+		if (this.version === VpkReaderVersion.NONE) await this.readHeader();
+		if (this.version === VpkReaderVersion.INVALID) return null;
 		if (path in this.files) return this.files[path];
 		return null;
 	}
 
 	async readFile(path: string): Promise<Uint8Array|null> {
-		if (this.version === 0) await this.readHeader();
-
+		if (this.version === VpkReaderVersion.NONE) await this.readHeader();
+		if (this.version === VpkReaderVersion.INVALID) return null;
+		
 		// console.log('Trying to read file', path);
 		const info = await this.getFileInfo(path);
 		if (!info) return null;
@@ -157,7 +168,9 @@ export class VpkReader {
 	}
 
 	async readDirectory(path: string): Promise<[string, FileType][]> {
-		if (this.version === 0) await this.readHeader();
+		if (this.version === VpkReaderVersion.NONE) await this.readHeader();
+		if (this.version === VpkReaderVersion.INVALID) return [];
+
 		const out: [string, FileType][] = [];
 		const included: Record<string, true> = {};
 
