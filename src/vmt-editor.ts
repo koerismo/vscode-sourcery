@@ -16,23 +16,22 @@ async function getImage(value: string) {
 	return (await document.getVtf()).data.getImage(0, 0, 0, 0);
 }
 
-function parseVec(vec: string, size=3): number[] {
+function parseVec(vec: string|number|boolean, size=3): number[] {
 	if (typeof vec !== 'string') return new Array<number>(size).fill(+vec);
 	return vec.slice(1, -1).split(' ').map(x => +x);
 }
 
-function toHexColor(r: number, g: number, b: number) {
-	// const fixHex = (v: number) => ('00'+v.toString(16)).slice(-2);
-	return ((r << 16) + (g << 8) + b);
-}
-
-function vecToHexColor(vec: number[]) {
-	return toHexColor(Math.round(vec[0] * 255), Math.round(vec[1] * 255), Math.round(vec[2] * 255));
+function parseColor(vec: string|number|boolean) {
+	if (typeof vec !== 'string') return { r: +vec, g: +vec, b: +vec };
+	const v = parseVec(vec, 3);
+	return { r: v[0], g: v[1], b: v[2] };
 }
 
 function getImageData(vimage: VImageData) {
 	return { width: vimage.width, height: vimage.height, data: vimage.convert(Uint8Array).data };
 }
+
+interface Color { r: number, g: number, b: number }
 
 interface ConfigUpdate {
 	translucent: 0|1|2,
@@ -40,8 +39,7 @@ interface ConfigUpdate {
 	envmapTint: number,
 	phong: boolean,
 	phongAmount: number,
-	tint: number,
-	phongTint: number,
+	tint: Color,
 	phongExponent: number|{ width: number, height: number, data: Uint8Array },
 	bumpScale: number,
 }
@@ -113,16 +111,16 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 			const main = root.all()[0];
 			if (!main || !(main instanceof KeyVSet)) return;
 
-			const basetexture = main.value('$basetexture', null) as string;
-			const bumpmap = main.value('$bumpmap', null) as string;
+			const basetexture = main.value('$basetexture', null, 'string');
+			const bumpmap = main.value('$bumpmap', null, 'string');
 			const bumpscale = main.value('$bumpscale', 1.0, 'number');
 			const has_envmap = !!main.value('$envmap', false);
 			const has_phong = !!main.value('$phong', false);
 			const is_translucent = !!main.value('$translucent', false);
 			const is_alphatest = !!main.value('$alphatest', false);
-			const color = parseVec(main.value('$color', "1.0") as string);
-			const envmap_tint = parseVec(main.value('$envmaptint', "1.0") as string);
-			const phong_boost = +main.value('$phongboost', 1.0);
+			const color = parseColor(main.value('$color', 1.0));
+			const envmap_tint = parseVec(main.value('$envmaptint', "1.0"));
+			const phong_boost = main.value('$phongboost', 1.0, 'number');
 			const phong_exponent = +main.value('$phongexponent', 30.0);
 			const phong_exponent_texture = main.value('$phongexponenttexture', null, 'string');
 		
@@ -136,10 +134,9 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 				envmapTint: envmap_tint[0],
 				phong: has_phong,
 				phongAmount: phong_boost,
-				phongTint: 0xffffff,
 				phongExponent: phong_exponent || phong_exponent_texture_image || 30.0,
 				translucent: is_translucent ? 2 : (is_alphatest ? 1 : 0),
-				tint: vecToHexColor(color),
+				tint: color,
 				bumpScale: bumpscale,
 			});
 		};

@@ -82,8 +82,9 @@ function loadImage(update, options) {
 	return tex;
 }
 
+/** @typedef {{ r: number, g: number, b: number }} Color */
 /** @typedef {{ type: 'update', field: string, width: number, height: number, data: Uint8Array, srgb: boolean, nearest: boolean }} FieldUpdate */
-/** @typedef {{ translucent: 0|1|2, envmap: boolean, envmapTint: number, phong: boolean, phongAmount: number, tint: number, phongTint: number, phongExponent: number|ImageData }} Config */
+/** @typedef {{ translucent: 0|1|2, envmap: boolean, envmapTint: number, phong: boolean, phongAmount: number, tint: Color, phongExponent: number|ImageData }} Config */
 /** @typedef {({ type: 'update' } & FieldUpdate) | ({ type: 'config' } & Config) | { type: 'error', message: string }} ViewerUpdate */
 /** @param {MessageEvent<ViewerUpdate>} message */
 window.onmessage = (message) => {
@@ -100,7 +101,7 @@ window.onmessage = (message) => {
 				material.map = loadImage(update);
 				break;
 			case 'bumpmap':
-				material.normalMap = loadImage(update, { flip_g: true, no_alpha: true });
+				material.normalMap = loadImage(update, { flip_g: false, no_alpha: true });
 				break;
 			case 'specularmap':
 				material.specularMap = loadImage(update);
@@ -109,7 +110,7 @@ window.onmessage = (message) => {
 	}
 
 	else if (update.type === 'config') {
-		material.color = new Three.Color(update.tint);
+		material.color = new Three.Color(update.tint.r, update.tint.g, update.tint.b);
 
 		// Alpha
 		material.transparent = update.translucent === 2;
@@ -121,7 +122,7 @@ window.onmessage = (message) => {
 
 		// Phong
 		if (update.phong) {
-			material.specular = new Three.Color(update.phongTint.r, update.phongTint.g, update.phongTint.b);
+			material.specular = new Three.Color(update.phongTint.r, update.phongTint.g, update.phongTint.b).multiplyScalar(update.phongAmount);
 			if (typeof update.phongExponent === 'number')	material.shininess = update.phongExponent;
 			else											material.specularMap = loadImage(update.phongExponent);
 		}
