@@ -1,0 +1,13 @@
+.vscodeignore
+.vscode/**
+.vscode-test/**
+out/**
+node_modules/**
+src/**
+.gitignore
+.pnpm-lock
+webpack.config.js
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts

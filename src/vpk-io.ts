@@ -53,7 +53,7 @@ export class VpkReader {
 		if (index in this.cache) return this.cache[index];
 
 		const archive_uri = this.getArchiveUri(index);
-		const archive_data = await workspace.fs.readFile(archive_uri);
+		const archive_data = new Uint8Array(await workspace.fs.readFile(archive_uri));
 		if (!archive_data || !archive_data.length) return null;
 		this.cache[index] = archive_data;
 		return archive_data;

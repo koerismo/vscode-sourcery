@@ -7,6 +7,11 @@ import { VmtLinkProvider } from './vmt-provider';
 import { ValveTextureEditorProvider } from './vtf-editor';
 import { ValveMaterialEditorProvider } from './vmt-editor';
 
+// Commands
+import openVpk from './commands/open-vpk';
+import revealOriginal from './commands/reveal-original';
+import openVmtPreview from './commands/open-vmt-preview';
+
 
 export function activate(context: vscode.ExtensionContext) {
 	console.log('Registering Sourcery extension...');
@@ -20,66 +25,11 @@ export function activate(context: vscode.ExtensionContext) {
 		ValveMaterialEditorProvider.register(context),
 	);
 
-	// Register VPK open command.
-	const vpkOpenCommand = vscode.commands.registerCommand('sourcery.vpk.open', async (uri?: vscode.Uri) => {
-		let file: vscode.Uri;
-		
-		if (uri) {
-			if (!uri.path.endsWith('_dir.vpk')) return vscode.window.showErrorMessage('File must be *_dir.vpk!');
-			file = uri;
-		}
-		else {
-			const files = await vscode.window.showOpenDialog({ title: 'Open Vpk', canSelectMany: false, filters: {'Vpk (Dir)': ['.+_dir\.vpk']} });
-			if (!(files !== undefined && files.length > 0)) return;
-			file = files[0];
-		}
-
-		// Figure out the new root.
-		const vpk_root = vscode.Uri.from({ scheme: 'vpk', path: file.path+'/' });
-
-		// Open the new workspace.
-		vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: vpk_root });
-	});
-
-	const gameRevealCommand = vscode.commands.registerCommand('sourcery.game.reveal', async (uri?: vscode.Uri, notebook?: boolean, open: boolean=true) => {
-		uri ??= vscode.window.activeTextEditor?.document.uri || vscode.window.activeNotebookEditor?.notebook.uri;
-		notebook ??= uri === vscode.window.activeNotebookEditor?.notebook.uri;
-
-		if (!uri) {
-			vscode.window.showErrorMessage('Cannot resolve active document!');
-			return;
-		}
-
-		const currentGame = await gameFileSystemProvider.getGame();
-		if (!currentGame) {
-			vscode.window.showErrorMessage('Cannot resolve game:// path with no active game!');
-			return;
-		}
-		
-		const original_uri = await gameFileSystemProvider.locateFile(currentGame, uri);
-		if (!original_uri) {
-			vscode.window.showErrorMessage('Failed to locate original file!');
-			return;
-		}
-
-		if (open) {
-			vscode.commands.executeCommand('vscode.open', original_uri);
-		}
-
-		return original_uri;
-	});
-
-	const materialPreviewCommand = vscode.commands.registerCommand('sourcery.vmt.preview', async (uri?: vscode.Uri) => {
-		uri ??= vscode.window.activeTextEditor?.document.uri;
-		if (!uri) return;
-		vscode.commands.executeCommand('vscode.openWith', uri, 'sourcery.vmt', { viewColumn: vscode.ViewColumn.Beside });
-	});
-
 	// Register auto-disposal subscriptions.
 	context.subscriptions.push(
-		vpkOpenCommand,
-		gameRevealCommand,
-		materialPreviewCommand
+		vscode.commands.registerCommand('sourcery.vpk.open', openVpk),
+		vscode.commands.registerCommand('sourcery.game.reveal', revealOriginal),
+		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 	);
 
 	// Init message

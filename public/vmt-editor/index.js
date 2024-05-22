@@ -77,7 +77,7 @@ function loadImage(update, options) {
 	}
 	const tex = new Three.DataTexture(update.data, update.width, update.height);
 	tex.colorSpace = update.srgb ? Three.SRGBColorSpace : Three.LinearSRGBColorSpace;
-	if (update.nearest) tex.magFilter = Three.NearestFilter;
+	tex.magFilter = update.nearest ? Three.NearestFilter : Three.LinearFilter;
 	tex.needsUpdate = true;
 	return tex;
 }
@@ -122,7 +122,7 @@ window.onmessage = (message) => {
 
 		// Phong
 		if (update.phong) {
-			material.specular = new Three.Color(update.phongTint.r, update.phongTint.g, update.phongTint.b).multiplyScalar(update.phongAmount);
+			material.specular = new Three.Color(1, 1, 1).multiplyScalar(update.phongAmount); // new Three.Color(update.phongTint.r, update.phongTint.g, update.phongTint.b).multiplyScalar(update.phongAmount);
 			if (typeof update.phongExponent === 'number')	material.shininess = update.phongExponent;
 			else											material.specularMap = loadImage(update.phongExponent);
 		}

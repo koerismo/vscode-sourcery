@@ -18,7 +18,7 @@
 		"commands": [
 			{
 				"command": "sourcery.vpk.open",
-				"title": "Open Vpk as Workspace"
+				"title": "Add Vpk to Workspace"
 			},
 			{
 				"command": "sourcery.vpk.commit",
@@ -35,13 +35,33 @@
 				"when": "editorLangId == vmt",
 				"title": "Open Material Preview",
 				"icon": "$(symbol-color)"
+			},
+			{
+				"command": "sourcery.mdl.copy",
+				"title": "Model: Copy"
+			},
+			{
+				"command": "sourcery.mdl.rename",
+				"title": "Model: Rename"
+			},
+			{
+				"command": "sourcery.mdl.renames",
+				"title": "Model: Batch Rename"
+			},
+			{
+				"command": "sourcery.qc.compile",
+				"title": "Model: Compile QC"
 			}
 		],
 		"menus": {
 			"explorer/context": [
 				{
 					"command": "sourcery.vpk.open",
-					"when": "true"
+					"when": "resourceExtname == .vpk"
+				},
+				{
+					"command": "sourcery.mdl.rename",
+					"when": "resourceExtname == .mdl"
 				}
 			],
 			"editor/title": [
@@ -82,9 +102,34 @@
 			"title": "Sourcery",
 			"properties": {
 				"autoMountGame": {
-					"description": "Automatically ount gameinfo.txt on workspace load?",
+					"description": "Automatically mount gameinfo.txt on workspace load?",
 					"type": "boolean",
 					"default": "false"
+				},
+				"vmtErrors.modelPath": {
+					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
+					"type": "boolean",
+					"default": true
+				},
+				"vmtErrors.notFound": {
+					"description": "Enable warnings for not-found textures?",
+					"type": "boolean",
+					"default": false
+				},
+				"vmtErrors.unknownShader": {
+					"description": "Enable warnings for unrecognized shader names?",
+					"type": "boolean",
+					"default": true
+				},
+				"vmtErrors.invalidParameter": {
+					"description": "Enable warnings for parameters not supported by the specified shader?",
+					"type": "boolean",
+					"default": true
+				},
+				"vmtErrors.unknownParameter": {
+					"description": "Enable warnings for unrecognized shader parameters?",
+					"type": "boolean",
+					"default": true
 				}
 			}
 		}
@@ -103,20 +148,21 @@
 	"devDependencies": {
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
-		"@types/node": "~16.18.86",
+		"@types/node": "~16.18.97",
 		"@types/three": "^0.162.0",
-		"@types/vscode": "^1.87.0",
+		"@types/vscode": "^1.89.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
-		"@vscode/test-electron": "^2.3.9",
+		"@vscode/test-electron": "^2.3.10",
 		"eslint": "^8.57.0",
-		"fast-vdf": "^1.0.9",
+		"fast-vdf": "^2.0.1",
 		"glob": "^8.1.0",
-		"mocha": "^10.3.0",
+		"mocha": "^10.4.0",
+		"stupid-buffer": "^1.0.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^4.9.5",
-		"vtf-js": "link:../vtf.js",
-		"webpack": "^5.90.3",
+		"vtf-js": "^0.8.2",
+		"webpack": "^5.91.0",
 		"webpack-cli": "^5.1.4"
 	}
 }

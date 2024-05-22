@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { VImageData, Vtf } from 'vtf-js';
-import { KeyVRoot, KeyVSet, parse as parseVdf } from 'fast-vdf';
+import { KeyV, KeyVRoot, KeyVSet, parse as parseVdf } from 'fast-vdf';
 import { ValveTextureDocument } from './vtf-editor';
 
 const RE_SLASH = /(\/|\\)+/g;
@@ -16,15 +16,14 @@ async function getImage(value: string) {
 	return (await document.getVtf()).data.getImage(0, 0, 0, 0);
 }
 
-function parseVec(vec: string|number|boolean, size=3): number[] {
-	if (typeof vec !== 'string') return new Array<number>(size).fill(+vec);
-	return vec.slice(1, -1).split(' ').map(x => +x);
-}
-
-function parseColor(vec: string|number|boolean) {
-	if (typeof vec !== 'string') return { r: +vec, g: +vec, b: +vec };
-	const v = parseVec(vec, 3);
-	return { r: v[0], g: v[1], b: v[2] };
+const COLOR_DEFAULT = { r: 1.0, g: 1.0, b: 1.0 };
+function parseColor(key: KeyV|null): Color {
+	if (key === null) return COLOR_DEFAULT;
+	const vec = key.vector(null);
+	if (vec !== null) return { r: vec[0], g: vec[1], b: vec[2] };
+	const float = key.float(null);
+	if (float !== null) return { r: float, g: float, b: float };
+	return COLOR_DEFAULT;
 }
 
 function getImageData(vimage: VImageData) {
@@ -111,18 +110,18 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 			const main = root.all()[0];
 			if (!main || !(main instanceof KeyVSet)) return;
 
-			const basetexture = main.value('$basetexture', null, 'string');
-			const bumpmap = main.value('$bumpmap', null, 'string');
-			const bumpscale = main.value('$bumpscale', 1.0, 'number');
-			const has_envmap = !!main.value('$envmap', false);
-			const has_phong = !!main.value('$phong', false);
-			const is_translucent = !!main.value('$translucent', false);
-			const is_alphatest = !!main.value('$alphatest', false);
-			const color = parseColor(main.value('$color', 1.0));
-			const envmap_tint = parseVec(main.value('$envmaptint', "1.0"));
-			const phong_boost = main.value('$phongboost', 1.0, 'number');
-			const phong_exponent = +main.value('$phongexponent', 30.0);
-			const phong_exponent_texture = main.value('$phongexponenttexture', null, 'string');
+			const basetexture    = main.pair('$basetexture', null)?.string() ?? '';
+			const bumpmap        = main.pair('$bumpmap',     null)?.string() ?? '';
+			const bumpscale      = main.pair('$bumpscale',   null)?.float(null) ?? 1.0;
+			const has_envmap     = !!main.pair('$envmap',      null)?.bool();
+			const has_phong      = !!main.pair('$phong',       null)?.bool();
+			const is_translucent = !!main.pair('$translucent', null)?.bool();
+			const is_alphatest   = !!main.pair('$alphatest',   null)?.bool();
+			const color          = parseColor(main.pair('$color',      null));
+			const envmap_tint    = parseColor(main.pair('$envmaptint', null));
+			const phong_boost    = main.pair('$phongboost',    null)?.float(null) ?? 1.0;
+			const phong_exponent = main.pair('$phongexponent', null)?.float(null) ?? 30.0;
+			const phong_exponent_texture = main.pair('$phongexponenttexture', null)?.string() ?? '';
 		
 			
 			if (basetexture) sendImage('basetexture', await getImage(basetexture));
@@ -131,7 +130,7 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 
 			sendConfig({
 				envmap: has_envmap,
-				envmapTint: envmap_tint[0],
+				envmapTint: envmap_tint.r,
 				phong: has_phong,
 				phongAmount: phong_boost,
 				phongExponent: phong_exponent || phong_exponent_texture_image || 30.0,

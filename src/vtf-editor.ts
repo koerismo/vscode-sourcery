@@ -72,12 +72,11 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
 		try {
-		document.getVtf().then(vtf => {
+			const vtf = await document.getVtf();
 			const image = vtf.data.getImage(0, 0, 0, 0);
 			webviewPanel.webview.postMessage({ type: 'update', width: image.width, height: image.height, data: image.data });
-		});
-	}
-	catch {
+		}
+		catch {
 			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf!' });	
 		}
 	}
