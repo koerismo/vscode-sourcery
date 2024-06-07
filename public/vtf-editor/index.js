@@ -10,7 +10,8 @@ window.onmessage = (message) => {
 	const update = message.data;
 
 	if (update.type === 'error') {
-		document.body.innerText = message;
+		document.body.innerHTML = `<code></code>`;
+		document.body.firstChild.innerText = update.message;
 	}
 
 	if (update.type === 'update') {

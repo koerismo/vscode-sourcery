@@ -1,0 +1,26 @@
+html {
+	width: 100vw;
+	margin: 0;
+	padding: 0;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	display: flex;
+}
+
+body {
+	width: 100%;
+	margin: auto;
+	padding: 0;
+	margin: 5px;
+
+	display: grid;
+	grid-template-columns: repeat(auto-fill, 96px);
+    grid-auto-rows: auto;
+	gap: 5px;
+}
+
+img {
+	width: 100%;
+	border: 1px solid #fff4;
+	aspect-ratio: 1 / 1;
+}

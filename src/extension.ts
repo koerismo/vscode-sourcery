@@ -1,16 +1,18 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+
 import { VpkFileSystemProvider } from './vpk-provider';
-import { GameFileSystemProvider, gameFileSystemProvider } from './game-provider';
+import { GameFileSystemProvider } from './game-provider';
 import { VmtLinkProvider } from './vmt-provider';
 import { ValveTextureEditorProvider } from './vtf-editor';
 import { ValveMaterialEditorProvider } from './vmt-editor';
+// import { MaterialBrowserManager } from './vmt-browser';
 
 // Commands
 import openVpk from './commands/open-vpk';
 import revealOriginal from './commands/reveal-original';
 import openVmtPreview from './commands/open-vmt-preview';
+import { copyModels, renameModel } from './commands/model-utils';
+// import openVmtBrowser from './commands/open-browser';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -23,6 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 		VmtLinkProvider.register(),
 		ValveTextureEditorProvider.register(context),
 		ValveMaterialEditorProvider.register(context),
+		// MaterialBrowserManager.register(context),
 	);
 
 	// Register auto-disposal subscriptions.
@@ -30,6 +33,9 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.vpk.open', openVpk),
 		vscode.commands.registerCommand('sourcery.game.reveal', revealOriginal),
 		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
+		vscode.commands.registerCommand('sourcery.mdl.copy', copyModels),
+		vscode.commands.registerCommand('sourcery.mdl.rename', renameModel),
+		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);
 
 	// Init message
