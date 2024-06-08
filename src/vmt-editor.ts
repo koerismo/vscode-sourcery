@@ -6,8 +6,8 @@ import { ValveTextureDocument } from './vtf-editor';
 const RE_SLASH = /(\/|\\)+/g;
 
 function getImagePath(value: string) {
-	let path = ('materials/' + value).replace(RE_SLASH, '/') + '.vtf';
-	return vscode.Uri.from({ scheme: 'game', path });
+	let path = ('/materials/' + value).replace(RE_SLASH, '/') + '.vtf';
+	return vscode.Uri.from({ scheme: 'mod', path });
 }
 
 async function getImage(value: string) {

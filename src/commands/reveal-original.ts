@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { gameFileSystemProvider } from '../game-provider';
+import { modFilesystem } from '../mod-mount';
 
 export default async (uri?: vscode.Uri, notebook?: boolean, open: boolean=true) => {
 	uri ??= vscode.window.activeTextEditor?.document.uri || vscode.window.activeNotebookEditor?.notebook.uri;
@@ -10,21 +10,20 @@ export default async (uri?: vscode.Uri, notebook?: boolean, open: boolean=true) 
 		return;
 	}
 
-	const currentGame = await gameFileSystemProvider.getGame();
-	if (!currentGame) {
-		vscode.window.showErrorMessage('Cannot resolve game:// path with no active game!');
+	if (!modFilesystem.isReady()) {
+		vscode.window.showErrorMessage('Cannot resolve mod:// path with no active game!');
 		return;
 	}
 	
-	const original_uri = await gameFileSystemProvider.locateFile(currentGame, uri);
-	if (!original_uri) {
+	const origin_uri = await modFilesystem.findFileUri(uri);
+	if (!origin_uri) {
 		vscode.window.showErrorMessage('Failed to locate original file!');
 		return;
 	}
 
 	if (open) {
-		vscode.commands.executeCommand('vscode.open', original_uri);
+		vscode.commands.executeCommand('vscode.open', origin_uri);
 	}
 
-	return original_uri;
+	return origin_uri;
 };

@@ -21,36 +21,32 @@
 				"title": "Add Vpk to Workspace"
 			},
 			{
-				"command": "sourcery.vpk.commit",
-				"title": "Commit Vpk Changes"
-			},
-			{
 				"command": "sourcery.game.reveal",
-				"when": "resourceScheme == game",
-				"title": "Reveal Original File",
-				"icon": "$(file-symlink-file)"
+				"icon": "$(file-symlink-file)",
+				"title": "Reveal Original File"
 			},
 			{
 				"command": "sourcery.vmt.preview",
-				"when": "editorLangId == vmt",
-				"title": "Open Material Preview",
-				"icon": "$(symbol-color)"
+				"icon": "$(symbol-color)",
+				"category": "Material",
+				"title": "Open Material Preview"
 			},
 			{
 				"command": "sourcery.vmt.browse",
+				"category": "Material",
 				"title": "Open Material Browser"
 			},
 			{
 				"command": "sourcery.mdl.copy",
-				"title": "Model: Copy"
+				"title": "Copy To Mod",
+				"category": "Model",
+				"icon": "$(file-copy-file)"
 			},
 			{
-				"command": "sourcery.mdl.rename",
-				"title": "Model: Rename"
-			},
-			{
-				"command": "sourcery.qc.compile",
-				"title": "Model: Compile QC"
+				"command": "sourcery.mdl.compile",
+				"title": "Compile",
+				"category": "Model",
+				"icon": "$(server-process)"
 			}
 		],
 		"menus": {
@@ -64,19 +60,24 @@
 					"when": "resourceExtname == .mdl"
 				},
 				{
-					"command": "sourcery.mdl.rename",
-					"when": "resourceExtname == .mdl"
+					"command": "sourcery.mdl.compile",
+					"when": "resourceExtname == .qc"
 				}
 			],
 			"editor/title": [
 				{
 					"command": "sourcery.game.reveal",
-					"when": "resourceScheme == game",
+					"when": "resourceScheme == mod",
 					"group": "navigation"
 				},
 				{
 					"command": "sourcery.vmt.preview",
-					"when": "editorLangId == vmt",
+					"when": "resourceExtname == .vmt",
+					"group": "navigation"
+				},
+				{
+					"command": "sourcery.mdl.compile",
+					"when": "resourceExtname == .qc",
 					"group": "navigation"
 				}
 			]
@@ -162,6 +163,7 @@
 		"fast-vdf": "^2.0.1",
 		"glob": "^8.1.0",
 		"mocha": "^10.4.0",
+		"sfs-js": "link:../sfs-js",
 		"stupid-buffer": "^1.0.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^4.9.5",

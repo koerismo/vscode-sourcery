@@ -23,6 +23,9 @@ const LINKABLE = new Set([
 	'$texture1',
 	'$texture2',
 	'$texture3',
+
+	// Subrect shader exclusive?
+	'$material',
 ]);
 
 interface VmtDocumentLink extends vscode.DocumentLink {
@@ -75,7 +78,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 		this.diagnostics.clear();
 
 		// if (document.uri.scheme !== 'vpk') return null;
-		const root: vscode.Uri = vscode.Uri.from({ scheme: 'game', path: '/materials' });
+		const root: vscode.Uri = vscode.Uri.from({ scheme: 'mod', path: '/materials' });
 		// if (document.uri.scheme === 'vpk') root = document.uri.with({ path: document.uri.path.split('.vpk', 1)[0]+'.vpk/materials' });
 		// else root = vscode.Uri.from({ scheme: 'game', path: '/' });
 

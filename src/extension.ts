@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import { VpkFileSystemProvider } from './vpk-provider';
-import { GameFileSystemProvider } from './game-provider';
+import { ModFilesystemProvider } from './mod-mount';
 import { VmtLinkProvider } from './vmt-provider';
 import { ValveTextureEditorProvider } from './vtf-editor';
 import { ValveMaterialEditorProvider } from './vmt-editor';
@@ -11,7 +11,7 @@ import { ValveMaterialEditorProvider } from './vmt-editor';
 import openVpk from './commands/open-vpk';
 import revealOriginal from './commands/reveal-original';
 import openVmtPreview from './commands/open-vmt-preview';
-import { copyModels, renameModel } from './commands/model-utils';
+import { copyModels, renameModel, compileModel } from './commands/model-utils';
 // import openVmtBrowser from './commands/open-browser';
 
 
@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register providers
 	context.subscriptions.push(
 		VpkFileSystemProvider.register(),
-		GameFileSystemProvider.register(),
+		ModFilesystemProvider.register(),
 		VmtLinkProvider.register(),
 		ValveTextureEditorProvider.register(context),
 		ValveMaterialEditorProvider.register(context),
@@ -34,7 +34,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.game.reveal', revealOriginal),
 		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		vscode.commands.registerCommand('sourcery.mdl.copy', copyModels),
-		vscode.commands.registerCommand('sourcery.mdl.rename', renameModel),
+		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),
+		vscode.workspace.onDidRenameFiles(renameModel),
 		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);
 

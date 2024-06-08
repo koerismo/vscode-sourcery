@@ -48,6 +48,9 @@ importers:
       mocha:
         specifier: ^10.4.0
         version: 10.4.0
+      sfs-js:
+        specifier: link:../sfs-js
+        version: link:../sfs-js
       stupid-buffer:
         specifier: ^1.0.0
         version: 1.0.0
