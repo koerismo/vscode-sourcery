@@ -3,9 +3,10 @@
 	"publisher": "koerismo",
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
-	"version": "0.0.1",
+	"version": "0.0.2",
+	"icon": "images/icon.png",
 	"engines": {
-		"vscode": "^1.87.0"
+		"vscode": "^1.89.0"
 	},
 	"categories": [
 		"Other"
@@ -109,7 +110,14 @@
 				"autoMountGame": {
 					"description": "Automatically mount gameinfo.txt on workspace load?",
 					"type": "boolean",
-					"default": "false"
+					"default": true
+				},
+				"binPath": {
+					"description": "The path to the game's bin folder, containing studiomdl.",
+					"type": "string",
+					"examples": [
+						"~/steam/steamapps/common/Portal 2/bin/"
+					]
 				},
 				"vmtErrors.modelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
@@ -121,18 +129,8 @@
 					"type": "boolean",
 					"default": false
 				},
-				"vmtErrors.unknownShader": {
-					"description": "Enable warnings for unrecognized shader names?",
-					"type": "boolean",
-					"default": true
-				},
 				"vmtErrors.invalidParameter": {
 					"description": "Enable warnings for parameters not supported by the specified shader?",
-					"type": "boolean",
-					"default": true
-				},
-				"vmtErrors.unknownParameter": {
-					"description": "Enable warnings for unrecognized shader parameters?",
 					"type": "boolean",
 					"default": true
 				}
@@ -144,6 +142,7 @@
 		"compile": "webpack",
 		"watch": "webpack --watch",
 		"package": "webpack --mode production --devtool hidden-source-map",
+		"package-vsce": "pnpm vsce package --no-dependencies",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
@@ -161,16 +160,14 @@
 		"@vscode/test-electron": "^2.3.10",
 		"eslint": "^8.57.0",
 		"fast-vdf": "^2.0.1",
-		"glob": "^8.1.0",
+		"glob": "^10.4.1",
 		"mocha": "^10.4.0",
 		"sfs-js": "link:../sfs-js",
 		"stupid-buffer": "^1.0.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^4.9.5",
+		"vtf-js": "link:../vtf.js",
 		"webpack": "^5.91.0",
 		"webpack-cli": "^5.1.4"
-	},
-	"dependencies": {
-		"vtf-js": "link:../vtf.js"
 	}
 }

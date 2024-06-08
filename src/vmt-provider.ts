@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { modFilesystem } from './mod-mount';
 
 const RE_SLASH = /(\/|\\)+/g;
 const RE_LINE = /^\s*("?)(\$[^"]+)\1\s+("?)([^"]+)\3/;
@@ -50,7 +51,7 @@ function getLineLink(line: string, line_index: number, acceptable: Set<string>, 
 	return { range, target, key: match[2], value: match[4], value_range: range };
 }
 
-export class VmtLinkProvider implements vscode.DocumentLinkProvider {
+export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentLink> {
 	readonly diagnostics: vscode.DiagnosticCollection;
 	private registry!: vscode.Disposable;
 
@@ -69,10 +70,10 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 		this.registry.dispose();
 	}
 	
-	provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.DocumentLink[]> {
+	async provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<VmtDocumentLink[]> {
 		const text = document.getText();
 		const lines = text.split('\n');
-		const links: vscode.DocumentLink[] = [];
+		const links: VmtDocumentLink[] = [];
 		
 		const diagnostics: vscode.Diagnostic[] = [];
 		this.diagnostics.clear();
@@ -97,6 +98,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 					range: link.value_range,
 				});
 
+				if (!await modFilesystem.stat(link.target!)) continue;
 				links.push(link);
 			}
 		}

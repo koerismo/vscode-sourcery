@@ -24,17 +24,21 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 		return vscode.workspace.registerFileSystemProvider('vpk', editor, { isReadonly: true, isCaseSensitive: false });
 	}
 
-	init(uri: vscode.Uri) {
-		const vpk_path = this.getVpkPath(uri);
-		
-		for (const provider of modFilesystem.gfs.providers) {
-			if (!(provider instanceof VpkSystem) || provider.getPath('') !== vpk_path) continue;
-			console.log('Vpk already loaded by active mod. Reusing!');
-			this.cache[vpk_path] = provider;
-			return vpk_path;
+	async initVpk(vpk_path: string) {
+		if (modFilesystem.isReady()) {
+			for (const provider of modFilesystem.gfs.providers) {
+				if (!(provider instanceof VpkSystem) || provider.getPath('') !== vpk_path) continue;
+				console.log('Vpk already loaded by active mod. Reusing!');
+				this.cache[vpk_path] = provider;
+				return vpk_path;
+			}
 		}
 
+		console.log('Reading new vpk', vpk_path);
 		this.cache[vpk_path] = new VpkSystem(vfs, vpk_path);
+		await this.cache[vpk_path].validate().then(x => {
+			console.log('VPK STATE:', vpk_path, x);
+		});
 		return vpk_path;
 	}
 
@@ -45,20 +49,13 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 		return this._onDidChangeFile.event;
 	}
 
-	getVpkAndSubPath(uri: vscode.Uri): [VpkSystem, string] {
-		const [vpk_path, subpath] = uri.path.split('.vpk');
-		if (this.cache[vpk_path+'.vpk'] === undefined) this.init(uri);
-		const vpk: VpkSystem = this.cache[vpk_path+'.vpk'];
-		return [vpk, subpath.startsWith('/') ? subpath : '/'+subpath];
+	splitPath(uri: vscode.Uri) {
+		let [vpk_path, subpath] = uri.path.split('.vpk', 2);
+		return [vpk_path+'.vpk', subpath];
 	}
 
-	getVpkPath(uri: vscode.Uri) {
-		return uri.path.split('.vpk')[0]+'.vpk';
-	}
-
-	getVpk(uri: vscode.Uri) {
-		const vpk_path = this.getVpkPath(uri);
-		if (this.cache[vpk_path] === undefined) this.init(uri);
+	async getVpk(vpk_path:string) {
+		if (this.cache[vpk_path] === undefined) await this.initVpk(vpk_path);
 		return this.cache[vpk_path];
 	}
 
@@ -67,17 +64,19 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async stat(uri: vscode.Uri): Promise<vscode.FileStat> {
-		const [vpk, path] = this.getVpkAndSubPath(uri);
+		const [vpk_path, path] = this.splitPath(uri);
+		const vpk = await this.getVpk(vpk_path);
 		const file = await vpk.stat(path);
-		return file!;
+		if (file === undefined) throw new vscode.FileSystemError(`Failed to stat Vpk file ${path}!`);
+		return file;
 	}
 
 	async readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
-		const [vpk, path] = this.getVpkAndSubPath(uri);
+		const [vpk_path, path] = this.splitPath(uri);
+		const vpk = await this.getVpk(vpk_path);
 		const out = await vpk.readDirectory(path);
-
-		// console.log(uri.toString(), 'Got', out);
-		return out!;
+		if (out === undefined) throw new vscode.FileSystemError(`Vpk directory ${path} does not exist!`);
+		return out;
 	}
 
 	createDirectory(uri: vscode.Uri): void | Thenable<void> {
@@ -85,9 +84,10 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async readFile(uri: vscode.Uri): Promise<Uint8Array> {
-		const [vpk, path] = this.getVpkAndSubPath(uri);
+		const [vpk_path, path] = this.splitPath(uri);
+		const vpk = await this.getVpk(vpk_path);
 		const out = await vpk.readFile(path);
-		if (out === undefined) throw new Error('Failed to read file '+uri.path+'!');
+		if (out === undefined) throw new vscode.FileSystemError(`Failed to read Vpk file ${path}!`);
 		return out;
 	}
 

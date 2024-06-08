@@ -4,14 +4,14 @@ import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
 import { workspace, Uri, FileStat, FileType, Disposable } from 'vscode';
 
 function getWorkspaceUri() {
-	if (!workspace.workspaceFolders?.length) throw new Error('No active workspace!');
+	if (!workspace.workspaceFolders?.length) return undefined; // throw new Error('No active workspace!');
 	return workspace.workspaceFolders[0].uri;
 }
 
 export let modFilesystem!: ModFilesystemProvider;
 export class ModFilesystemProvider implements vscode.FileSystemProvider {
-	vfs: VSCodeSystem;
-	gfs: GameSystem;
+	vfs!: VSCodeSystem;
+	gfs!: GameSystem;
 	
 	static register() {
 		const editor = new this();
@@ -25,15 +25,14 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	
 	constructor() {
 		const root = getWorkspaceUri();
+		if (!root) return;
+
 		this.vfs = new VSCodeSystem();
 		this.gfs = new GameSystem(this.vfs, root.path);
 		this.gfs.validate().then(x => {
 			if (!x) return;
-			// console.log('Mounted paths', this.gfs.providers.map(x => x.getPath('/')));
 			vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
 		});
-
-		// globalThis.modFilesystem = this;
 	}
 
 	private _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
