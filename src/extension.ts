@@ -5,6 +5,7 @@ import { ModFilesystemProvider } from './mod-mount';
 import { VmtLinkProvider } from './vmt-provider';
 import { ValveTextureEditorProvider } from './vtf-editor';
 import { ValveMaterialEditorProvider } from './vmt-editor';
+import { ValveModelEditorProvider } from './mdl-editor';
 // import { MaterialBrowserManager } from './vmt-browser';
 
 // Commands
@@ -25,6 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 		VmtLinkProvider.register(),
 		ValveTextureEditorProvider.register(context),
 		ValveMaterialEditorProvider.register(context),
+		ValveModelEditorProvider.register(context),
 		// MaterialBrowserManager.register(context),
 	);
 

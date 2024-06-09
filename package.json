@@ -102,6 +102,23 @@
 						"filenamePattern": "**/*.vmt"
 					}
 				]
+			},
+			{
+				"viewType": "sourcery.mdl",
+				"displayName": "Valve Model",
+				"priority": "default",
+				"selector": [
+					{
+						"filenamePattern": "**/*.mdl"
+					}
+				]
+			}
+		],
+		"taskDefinitions": [
+			{
+				"type": "studiomdl",
+				"required": [],
+				"properties": {}
 			}
 		],
 		"configuration": {
@@ -158,6 +175,7 @@
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
 		"@vscode/test-electron": "^2.3.10",
+		"@vscode/windows-registry": "^1.1.0",
 		"eslint": "^8.57.0",
 		"fast-vdf": "^2.0.1",
 		"glob": "^10.4.1",

@@ -61,7 +61,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 
 	static register(): vscode.Disposable {
 		const editor = new this();
-		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'vmt' }, editor);
+		editor.registry = vscode.languages.registerDocumentLinkProvider({ pattern: '**/*.vmt' }, editor);
 		return editor;
 	}
 

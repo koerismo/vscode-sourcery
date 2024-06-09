@@ -32,6 +32,9 @@ importers:
       '@vscode/test-electron':
         specifier: ^2.3.10
         version: 2.3.10
+      '@vscode/windows-registry':
+        specifier: ^1.1.0
+        version: 1.1.0
       eslint:
         specifier: ^8.57.0
         version: 8.57.0
@@ -252,6 +255,9 @@ packages:
   '@vscode/test-electron@2.3.10':
     resolution: {integrity: sha512-FxMqrvUm6a8S5tP4CymNJ40e6kD+wUTWTc6K32U629yrCCa+kl/rmpkC2gKpN4F4zjg1r+0Hnk9sl0+N2atsYA==}
     engines: {node: '>=16'}
+
+  '@vscode/windows-registry@1.1.0':
+    resolution: {integrity: sha512-5AZzuWJpGscyiMOed0IuyEwt6iKmV5Us7zuwCDCFYMIq7tsvooO9BUiciywsvuthGz6UG4LSpeDeCxvgMVhnIw==}
 
   '@webassemblyjs/ast@1.12.1':
     resolution: {integrity: sha512-EKfMUOPRRUTy5UII4qJDGPpqfwjOmZ5jeGFwid9mnoqIFK+e0vqoi1qH56JpmZSzEL53jKnNzScdmftJyG5xWg==}
@@ -1525,6 +1531,8 @@ snapshots:
       semver: 7.6.2
     transitivePeerDependencies:
       - supports-color
+
+  '@vscode/windows-registry@1.1.0': {}
 
   '@webassemblyjs/ast@1.12.1':
     dependencies:
