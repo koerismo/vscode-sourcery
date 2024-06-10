@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
+import { workspace, Uri, FileStat, FileType, Disposable } from 'vscode';
 import { GameSystem } from 'sfs-js';
 import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
-import { workspace, Uri, FileStat, FileType, Disposable } from 'vscode';
 
 function getWorkspaceUri() {
 	if (!workspace.workspaceFolders?.length) return undefined; // throw new Error('No active workspace!');

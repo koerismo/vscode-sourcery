@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { VpkSystem } from 'sfs-js';
 import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
 import { modFilesystem } from './mod-mount';
+import { outConsole } from './extension';
 
 // function cleanPath(path: string): [string, string, string] {
 // 	const m = path.match(RE_PATH);
@@ -28,16 +29,16 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 		if (modFilesystem.isReady()) {
 			for (const provider of modFilesystem.gfs.providers) {
 				if (!(provider instanceof VpkSystem) || provider.getPath('') !== vpk_path) continue;
-				console.log('Vpk already loaded by active mod. Reusing!');
+				outConsole.log('Vpk already loaded by active mod. Reusing!');
 				this.cache[vpk_path] = provider;
 				return vpk_path;
 			}
 		}
 
-		console.log('Reading new vpk', vpk_path);
+		outConsole.log('Reading new vpk', vpk_path);
 		this.cache[vpk_path] = new VpkSystem(vfs, vpk_path);
 		await this.cache[vpk_path].validate().then(x => {
-			console.log('VPK STATE:', vpk_path, x);
+			outConsole.log('VPK STATE:', vpk_path, x);
 		});
 		return vpk_path;
 	}

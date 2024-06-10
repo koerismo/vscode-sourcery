@@ -1,6 +1,17 @@
 import * as vscode from 'vscode';
 import { vpkFileSystemProvider } from './vpk-provider';
 import { Vtf, VImageData } from 'vtf-js';
+import { outConsole } from './extension';
+
+// function *walkFileSystem(root: string): Generator<string> {
+// 	for (const provider of modFilesystem.gfs.providers) {
+// 		if (provider instanceof VpkSystem) {
+// 			for (const filename in provider.files) {
+// 				if (filename.startsWith(root)) yield filename;
+// 			}
+// 		}
+// 	}
+// }
 
 export class MaterialBrowserManager {
 	static current?: MaterialBrowserManager;
@@ -70,7 +81,7 @@ export class MaterialBrowserManager {
 					if (index > 2000) break x;
 				}
 				catch(e) {
-					console.log('Failed to read vtf', e);
+					outConsole.log('Failed to read vtf', e);
 				}
 			}
 		}

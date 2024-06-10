@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { MdlInfo, readInfo, writeInfo } from './mdl-skins';
-import { open } from 'fs';
+import { outConsole } from './extension';
 
 export class ValveModelDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
@@ -74,7 +74,7 @@ export class ValveModelEditorProvider implements vscode.CustomReadonlyEditorProv
 
 		// Write mdl. (Not implemented!!)
 		webviewPanel.webview.onDidReceiveMessage(event => {
-			console.log('Trying to update mdl!!', event);
+			outConsole.log('Trying to update mdl!!', event);
 		});
 
 		setTimeout(async () => {

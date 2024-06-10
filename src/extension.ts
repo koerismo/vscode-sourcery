@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { setLogTarget } from 'sfs-js';
 
 import { VpkFileSystemProvider } from './vpk-provider';
 import { ModFilesystemProvider } from './mod-mount';
@@ -16,9 +17,30 @@ import { copyModels, renameModel, compileModel } from './commands/model-utils';
 // import openVmtBrowser from './commands/open-browser';
 
 
+function formatDT() {
+	const d = new Date();
+	const s = d.toLocaleString('en-GB');
+	return s.replace(', ', ' ').replaceAll('/', '-');
+}
+export const outChannel = vscode.window.createOutputChannel('Sourcery', 'log');
+export const outConsole = {
+	log(message?: any, ...optionalParams: any[]) {
+		outChannel.appendLine([formatDT(), '[info]', message, ...optionalParams].join(' '));
+	},
+	warn(message?: any, ...optionalParams: any[]) {
+		outChannel.appendLine([formatDT(), '[warning]', message, ...optionalParams].join(' '));
+	},
+	error(message?: any, ...optionalParams: any[]) {
+		outChannel.appendLine([formatDT(), '[error]', message, ...optionalParams].join(' '));
+	}
+} as const;
+
+// sfs-js errors should be redirected to the console.
+setLogTarget(outConsole);
+
 export function activate(context: vscode.ExtensionContext) {
-	console.log('Registering Sourcery extension...');
-	
+	outConsole.log('Registering Sourcery extension...');
+
 	// Register providers
 	context.subscriptions.push(
 		VpkFileSystemProvider.register(),

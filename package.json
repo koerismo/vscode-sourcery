@@ -3,7 +3,7 @@
 	"publisher": "koerismo",
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"icon": "images/icon.png",
 	"engines": {
 		"vscode": "^1.89.0"
