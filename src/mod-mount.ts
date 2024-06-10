@@ -1,11 +1,42 @@
 import * as vscode from 'vscode';
 import { workspace, Uri, FileStat, FileType, Disposable } from 'vscode';
-import { GameSystem } from 'sfs-js';
+import { GameSystem, ReadableFileSystem, SteamCache } from 'sfs-js';
 import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
+
+import { GetStringRegKey } from '@vscode/windows-registry';
+import { platform as getPlatform } from 'os';
+import { join, normalize } from 'path/posix';
+import { outConsole } from './extension';
+
 
 function getWorkspaceUri() {
 	if (!workspace.workspaceFolders?.length) return undefined; // throw new Error('No active workspace!');
 	return workspace.workspaceFolders[0].uri;
+}
+
+function findSteamCache(fs: ReadableFileSystem): SteamCache {
+	let steam_path: string;
+	switch (getPlatform()) {
+		case 'win32':
+			steam_path = normalize(
+				// https://github.com/itselectroz/steam-path/blob/master/src/win32.ts#L6-L11
+				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
+				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
+				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
+				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
+				'C:/Program Files (x86)/Steam/'
+			);
+			break;
+
+		case 'darwin':
+			steam_path = join(process.env.HOME!, '/Library/Application Support/Steam/');
+			break;
+		default:
+			steam_path = join(process.env.HOME!, '/.steam/steam/');
+	}
+
+	outConsole.log('Using Steam path', "'"+steam_path+"'");
+	return SteamCache.get(fs, steam_path);
 }
 
 export let modFilesystem!: ModFilesystemProvider;
@@ -28,7 +59,8 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 		if (!root) return;
 
 		this.vfs = new VSCodeSystem();
-		this.gfs = new GameSystem(this.vfs, root.path);
+		const steam_cache = findSteamCache(this.vfs);
+		this.gfs = new GameSystem(this.vfs, root.path, steam_cache);
 		this.gfs.validate().then(x => {
 			if (!x) return;
 			vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
