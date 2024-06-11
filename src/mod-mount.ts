@@ -77,7 +77,9 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async stat(uri: Uri): Promise<FileStat> {
-		return (await this.gfs.stat(uri.path.toLowerCase()))!;
+		const out = await this.gfs.stat(uri.path.toLowerCase());
+		if (out === undefined) throw new vscode.FileSystemError(`Failed to stat Mod file ${uri.path}!`);
+		return out;
 	}
 
 	async readDirectory(uri: Uri): Promise<[string, FileType][]> {
@@ -101,7 +103,9 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async readFile(uri: Uri): Promise<Uint8Array> {
-		return (await this.gfs.readFile(uri.path.toLowerCase()))!;
+		const out = await this.gfs.readFile(uri.path.toLowerCase());
+		if (out === undefined) throw new vscode.FileSystemError(`Failed to read Mod file ${uri.path}!`);
+		return out;
 	}
 
 	writeFile(uri: Uri, content: Uint8Array, options: { readonly create: boolean; readonly overwrite: boolean; }): void | Thenable<void> {
