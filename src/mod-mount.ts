@@ -24,8 +24,8 @@ function findSteamCache(fs: ReadableFileSystem): SteamCache {
 				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
-				'C:/Program Files (x86)/Steam/'
-			);
+				'C:/Program Files (x86)/Steam'
+			).replaceAll('\\', '/') + '/';
 			break;
 
 		case 'darwin':
