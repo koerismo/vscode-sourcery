@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import { modFilesystem } from '../mod-mount';
-import { join, posix, relative } from 'path';
+import { join, normalize, posix, relative } from 'path';
 import { platform } from 'os';
-import { InitState } from 'sfs-js';
 
 const COPYLIST = [
 	'.mdl',
@@ -174,7 +173,7 @@ export async function compileModel(uri?: vscode.Uri, notebook?: boolean): Promis
 		vscode.TaskScope.Workspace,
 		'Model Compile',
 		'studiomdl',
-		new vscode.ProcessExecution(studiomdl_path, ['-game', modFilesystem.gfs.modroot, uri.fsPath])
+		new vscode.ProcessExecution(studiomdl_path, ['-game', normalize(modFilesystem.gfs.modroot), normalize(uri.fsPath)])
 	));
 	
 	return;

@@ -60,7 +60,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 
 		this.vfs = new VSCodeSystem();
 		const steam_cache = findSteamCache(this.vfs);
-		this.gfs = new GameSystem(this.vfs, root.path, steam_cache);
+		this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
 		this.gfs.validate().then(x => {
 			if (!x) return;
 			vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
