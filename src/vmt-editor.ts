@@ -70,11 +70,11 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="default-src ${view.cspSource};">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="${path('public/vmt-editor/index.css')}" />
+				<link rel="stylesheet" href="${path('public/css/vmt-editor.css')}" />
 			</head>
 			<body>
 				<canvas id="image"></canvas>
-				<script type="module" src="${path('public/vmt-editor/index.js')}"></script>
+				<script type="module" src="${path('public/dist/vmt-editor.js')}"></script>
 			</body>
 		</html>
 		`;

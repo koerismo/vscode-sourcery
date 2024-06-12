@@ -26,6 +26,7 @@
 				"icon": "$(file-symlink-file)",
 				"title": "Reveal Original File"
 			},
+			
 			{
 				"command": "sourcery.vmt.preview",
 				"icon": "$(symbol-color)",
@@ -37,6 +38,7 @@
 				"category": "Material",
 				"title": "Open Material Browser"
 			},
+
 			{
 				"command": "sourcery.mdl.copy",
 				"title": "Copy To Mod",
@@ -124,42 +126,65 @@
 		"configuration": {
 			"title": "Sourcery",
 			"properties": {
-				"autoMountGame": {
+				"sourcery.game.autoMount": {
 					"description": "Automatically mount gameinfo.txt on workspace load?",
 					"type": "boolean",
 					"default": true
 				},
-				"binPath": {
-					"description": "The path to the game's bin folder, containing studiomdl.",
+				"sourcery.game.modPath": {
+					"description": "If specified, Sourcery will mount this path as the mod root instead of the workspace root.",
 					"type": "string",
+					"default": "",
 					"examples": [
-						"~/steam/steamapps/common/Portal 2/bin/"
+						"~/.steam/steamapps/sourcemods/My Mod/"
 					]
 				},
-				"vmtErrors.modelPath": {
+				"sourcery.game.binPath": {
+					"description": "The path to a game's bin folder containing studiomdl. If left blank, it will be determined automatically.",
+					"type": "string",
+					"default": "",
+					"examples": [
+						"~/.steam/steamapps/common/Portal 2/bin/"
+					]
+				},
+
+				"sourcery.vmt.modelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
 					"default": true
 				},
-				"vmtErrors.notFound": {
-					"description": "Enable warnings for not-found textures?",
-					"type": "boolean",
-					"default": false
-				},
-				"vmtErrors.invalidParameter": {
-					"description": "Enable warnings for parameters not supported by the specified shader?",
+				"sourcery.vmt.notFound": {
+					"description": "Enable warnings for missing textures?",
 					"type": "boolean",
 					"default": true
+				},
+				"sourcery.vmt.invalidParameter": {
+					"description": "Enable warnings for parameter combos not supported by the specified shader?",
+					"type": "boolean",
+					"default": true
+				},
+
+				"sourcery.model.skinEditorPath": {
+					"description": "The path to the Skin Editor tool executable.",
+					"type": "string",
+					"default": ""
+				},
+				"sourcery.model.crowbarPath": {
+					"description": "The path to the Crowbar tool executable.",
+					"type": "string",
+					"default": ""
 				}
 			}
 		}
 	},
 	"scripts": {
 		"vscode:prepublish": "pnpm run package",
-		"compile": "webpack",
+		"make-addon": "pnpm vsce package --no-dependencies",
+		"compile": "webpack && webpack -c ./public/webpack.config.js",
+		"package": "pnpm run package-webviews && pnpm run package-addon",
+		"package-addon": "webpack --mode production --devtool hidden-source-map",
+		"package-webviews": "webpack -c ./public/webpack.config.js --mode production --devtool hidden-source-map",
 		"watch": "webpack --watch",
-		"package": "webpack --mode production --devtool hidden-source-map",
-		"package-vsce": "pnpm vsce package --no-dependencies",
 		"compile-tests": "tsc -p . --outDir out",
 		"watch-tests": "tsc -p . -w --outDir out",
 		"pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
@@ -169,15 +194,15 @@
 	"devDependencies": {
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
-		"@types/node": "~16.18.97",
+		"@types/node": "~16.18.98",
 		"@types/three": "^0.162.0",
-		"@types/vscode": "^1.89.0",
+		"@types/vscode": "^1.90.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
-		"@vscode/test-electron": "^2.3.10",
+		"@vscode/test-electron": "^2.4.0",
 		"@vscode/windows-registry": "^1.1.0",
 		"eslint": "^8.57.0",
-		"fast-vdf": "^2.0.1",
+		"fast-vdf": "^2.0.2",
 		"glob": "^10.4.1",
 		"mocha": "^10.4.0",
 		"node-loader": "^2.0.0",

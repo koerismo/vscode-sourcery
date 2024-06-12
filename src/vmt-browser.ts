@@ -100,10 +100,10 @@ export class MaterialBrowserManager {
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${view.cspSource} data://*; style-src ${view.cspSource}; script-src ${view.cspSource};">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="${path('public/vmt-browser/index.css')}" />
+				<link rel="stylesheet" href="${path('public/css/vmt-browser.css')}" />
 			</head>
 			<body>
-				<script src="${path('public/vmt-browser/index.js')}"></script>
+				<script src="${path('public/dist/vmt-browser.js')}"></script>
 			</body>
 		</html>
 		`;

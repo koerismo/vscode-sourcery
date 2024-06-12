@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 console.log('Starting up Mdl browser webview...');
 
 /** @typedef {{ texturedirs: string[], textures: string[], skins: number[][], name: string }} MdlInfo */

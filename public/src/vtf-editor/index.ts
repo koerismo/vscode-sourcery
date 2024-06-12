@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 console.log('Starting up Vtf preview webview...');
 
 const canvas = document.querySelector('canvas');

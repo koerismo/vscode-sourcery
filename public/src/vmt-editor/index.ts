@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 console.log('Starting up Vmt preview webview...');
 
 const SIZE = 1.4;
@@ -21,7 +23,7 @@ camera.position.set(-3, 0, 0);
 camera.lookAt(0, 0, 0);
 
 const scene = new Three.Scene();
-scene.background = await new Three.TextureLoader().loadAsync(import.meta.url.replace('index.js', 'background.jpg'));
+scene.background = await new Three.TextureLoader().loadAsync(import.meta.url.replace('/dist/vmt-editor.js', '/assets/background.jpg'));
 scene.background.colorSpace = Three.SRGBColorSpace;
 scene.background.mapping = Three.EquirectangularReflectionMapping;
 scene.backgroundBlurriness = 0.2;

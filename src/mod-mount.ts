@@ -8,6 +8,20 @@ import { platform as getPlatform } from 'os';
 import { join, normalize } from 'path/posix';
 import { outConsole } from './extension';
 
+export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
+	path = normalize(join('/'+prefix, path));
+	if (!modFilesystem.isReady()) return [];
+	const dir = await modFilesystem.readDirectory(Uri.file(path));
+	const out = new Array<vscode.CompletionItem>(dir.length);
+	for (let i=0; i<dir.length; i++) {
+		const d = dir[i];
+		out[i] = {
+			label: d[0],
+			kind: d[1] === FileType.Directory ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.File
+		};
+	}
+	return out;
+}
 
 function getWorkspaceUri() {
 	if (!workspace.workspaceFolders?.length) return undefined; // throw new Error('No active workspace!');

@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "noImplicitAny": true,
+    "module": "es2022",
+    "target": "es5",
+    "allowJs": true,
+	"rootDir": "./src/",
+	"outDir": "./dist/"
+  },
+  "include": ["./src/*/index.ts"],
+}

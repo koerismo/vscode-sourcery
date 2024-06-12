@@ -56,11 +56,11 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 				<meta charset="UTF-8">
 				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${view.cspSource}; style-src ${view.cspSource}; script-src ${view.cspSource};">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="${path('public/vtf-editor/index.css')}" />
+				<link rel="stylesheet" href="${path('public/css/vtf-editor.css')}" />
 			</head>
 			<body>
 				<canvas id="image"></canvas>
-				<script src="${path('public/vtf-editor/index.js')}"></script>
+				<script src="${path('public/dist/vtf-editor.js')}"></script>
 			</body>
 		</html>
 		`;
