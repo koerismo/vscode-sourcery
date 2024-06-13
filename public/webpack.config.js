@@ -44,6 +44,10 @@ const config = {
     resolve: {
         extensions: ['.tsx', '.ts', '.jsx', '.js', '...'],
     },
+	optimization: {
+		usedExports: true,
+		sideEffects: true
+	},
 };
 
 module.exports = () => {
