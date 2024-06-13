@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { VImageData, Vtf } from 'vtf-js';
 import { KeyV, KeyVRoot, KeyVSet, parse as parseVdf } from 'fast-vdf';
 import { ValveTextureDocument } from './vtf-editor.js';
+import { modFilesystem } from './mod-mount.js';
+import { normalize } from 'path/posix';
 
 const RE_SLASH = /(\/|\\)+/g;
 
@@ -83,74 +85,32 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public'), vscode.Uri.from({ scheme: 'mod', path: '/' })] };
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
-		const sendImage = (field: string, image: VImageData) => {
+		const sendFile = async (path: string) => {
+			const file = await modFilesystem.gfs.readFile(normalize('/'+path));
 			webviewPanel.webview.postMessage({
-				type: 'update',
-				field: field,
-				data: image.convert(Uint8Array).data,
-				width: image.width,
-				height: image.height,
+				path: path,
+				data: file ?? null
 			});
 		};
 
-		const sendConfig = (config: ConfigUpdate) => {
-			webviewPanel.webview.postMessage({
-				type: 'config',
-				...config,
-			});
-		};
-
-		// Update function
-		const updateView = async () => {
-			let root: KeyVRoot;
-			try { root = parseVdf(document.getText()); }
-			catch { return; }
-
-			const main = root.all()[0];
-			if (!main || !(main instanceof KeyVSet)) return;
-
-			const basetexture    = main.pair('$basetexture', null)?.string() ?? '';
-			const bumpmap        = main.pair('$bumpmap',     null)?.string() ?? '';
-			const bumpscale      = main.pair('$bumpscale',   null)?.float(null) ?? 1.0;
-			const has_envmap     = !!main.pair('$envmap',      null)?.bool();
-			const has_phong      = !!main.pair('$phong',       null)?.bool();
-			const is_translucent = !!main.pair('$translucent', null)?.bool();
-			const is_alphatest   = !!main.pair('$alphatest',   null)?.bool();
-			const color          = parseColor(main.pair('$color',      null));
-			const envmap_tint    = parseColor(main.pair('$envmaptint', null));
-			const phong_boost    = main.pair('$phongboost',    null)?.float(null) ?? 1.0;
-			const phong_exponent = main.pair('$phongexponent', null)?.float(null) ?? 30.0;
-			const phong_exponent_texture = main.pair('$phongexponenttexture', null)?.string() ?? '';
-		
-			
-			if (basetexture) sendImage('basetexture', await getImage(basetexture));
-			if (bumpmap) sendImage('bumpmap', await getImage(bumpmap));
-			const phong_exponent_texture_image = phong_exponent_texture ? getImageData(await getImage(phong_exponent_texture)) : null;
-
-			sendConfig({
-				envmap: has_envmap,
-				envmapTint: envmap_tint.r,
-				phong: has_phong,
-				phongAmount: phong_boost,
-				phongExponent: phong_exponent || phong_exponent_texture_image || 30.0,
-				translucent: is_translucent ? 2 : (is_alphatest ? 1 : 0),
-				tint: color,
-				bumpScale: bumpscale,
-			});
-		};
+		webviewPanel.webview.onDidReceiveMessage(message => {
+			if (message.path) {
+				sendFile(message.path);
+			}
+		});
 
 		// Register document edit listener
-		const updateListener = vscode.workspace.onDidChangeTextDocument((event) => {
-			if (document !== event.document) return;
-			updateView();
-		});
+		// const updateListener = vscode.workspace.onDidChangeTextDocument((event) => {
+		// 	if (document !== event.document) return;
+		// 	// updateView();
+		// });
 
 		// Cleanup
-		webviewPanel.onDidDispose(() => {
-			updateListener.dispose();
-		});
+		// webviewPanel.onDidDispose(() => {
+		// 	updateListener.dispose();
+		// });
 
 		// Initial render
-		updateView();
+		// updateView();
 	}
 }
