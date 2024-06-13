@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { VImageData, Vtf } from 'vtf-js';
 import { KeyV, KeyVRoot, KeyVSet, parse as parseVdf } from 'fast-vdf';
-import { ValveTextureDocument } from './vtf-editor';
+import { ValveTextureDocument } from './vtf-editor.js';
 
 const RE_SLASH = /(\/|\\)+/g;
 
@@ -68,12 +68,11 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 		<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src ${view.cspSource};">
+				<meta http-equiv="Content-Security-Policy" content="default-src ${view.cspSource} 'unsafe-eval';">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link rel="stylesheet" href="${path('public/css/vmt-editor.css')}" />
 			</head>
 			<body>
-				<canvas id="image"></canvas>
 				<script type="module" src="${path('public/dist/vmt-editor.js')}"></script>
 			</body>
 		</html>
@@ -81,7 +80,7 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 	}
 	
 	async resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
-		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
+		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public'), vscode.Uri.from({ scheme: 'mod', path: '/' })] };
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
 		const sendImage = (field: string, image: VImageData) => {

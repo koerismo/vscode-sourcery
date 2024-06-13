@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { modFilesystem } from '../mod-mount';
+import { modFilesystem } from '../mod-mount.js';
 
 export default async (uri?: vscode.Uri, notebook?: boolean, open: boolean=true) => {
 	uri ??= vscode.window.activeTextEditor?.document.uri || vscode.window.activeNotebookEditor?.notebook.uri;

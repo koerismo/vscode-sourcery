@@ -6,7 +6,7 @@ import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
 import { GetStringRegKey } from '@vscode/windows-registry';
 import { platform as getPlatform } from 'os';
 import { join, normalize } from 'path/posix';
-import { outConsole } from './extension';
+import { outConsole } from './extension.js';
 
 export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
 	path = normalize(join('/'+prefix, path));

@@ -1,3 +1,4 @@
+// @ts-nocheck
 
 import type { glsl_compile as glsl_compile_ } from "../../../noclip-rust/pkg/index.js";
 import { HashMap, nullHashFunc } from "../../HashMap.js";

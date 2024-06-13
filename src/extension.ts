@@ -1,19 +1,19 @@
 import * as vscode from 'vscode';
 import { setLogTarget } from 'sfs-js';
 
-import { VpkFileSystemProvider } from './vpk-provider';
-import { ModFilesystemProvider } from './mod-mount';
-import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider } from './vmt-provider';
-import { ValveTextureEditorProvider } from './vtf-editor';
-import { ValveMaterialEditorProvider } from './vmt-editor';
-import { ValveModelEditorProvider } from './mdl-editor';
+import { VpkFileSystemProvider } from './vpk-provider.js';
+import { ModFilesystemProvider } from './mod-mount.js';
+import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider } from './vmt-provider.js';
+import { ValveTextureEditorProvider } from './vtf-editor.js';
+import { ValveMaterialEditorProvider } from './vmt-editor.js';
+import { ValveModelEditorProvider } from './mdl-editor.js';
 // import { MaterialBrowserManager } from './vmt-browser';
 
 // Commands
-import openVpk from './commands/open-vpk';
-import revealOriginal from './commands/reveal-original';
-import openVmtPreview from './commands/open-vmt-preview';
-import { copyModels, renameModel, compileModel } from './commands/model-utils';
+import openVpk from './commands/open-vpk.js';
+import revealOriginal from './commands/reveal-original.js';
+import openVmtPreview from './commands/open-vmt-preview.js';
+import { copyModels, renameModel, compileModel } from './commands/model-utils.js';
 // import openVmtBrowser from './commands/open-browser';
 
 

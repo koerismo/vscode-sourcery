@@ -126,7 +126,11 @@ export class Viewer {
             onscreenTexture: null!,
             antialiasingMode: AntialiasingMode.None,
             mouseLocation: this.inputManager,
-            debugConsole: null!, // this.renderStatisticsTracker,
+            debugConsole: {
+				addInfoLine(line) {
+					console.log(`[NOCLIP]: ${line}`);
+				},
+			}, // this.renderStatisticsTracker,
         };
 
         // GlobalSaveManager.addSettingListener('AntialiasingMode', (saveManager, key) => {

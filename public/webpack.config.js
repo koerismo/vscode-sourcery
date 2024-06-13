@@ -21,7 +21,12 @@ const config = {
         // Add your plugins here
         // Learn more about plugins from https://webpack.js.org/configuration/plugins/
     ],
-	
+	resolve: {
+		extensions: ['.tsx', '.ts', '.jsx', '.js', '...'],
+		extensionAlias: {
+			'.js': ['.js', '.ts'],
+		},
+	},
     module: {
 		parser: {
 			javascript : { importMeta: false }
@@ -41,13 +46,13 @@ const config = {
             // Learn more about loaders from https://webpack.js.org/loaders/
         ],
     },
-    resolve: {
-        extensions: ['.tsx', '.ts', '.jsx', '.js', '...'],
-    },
-	optimization: {
-		usedExports: true,
-		sideEffects: true
-	},
+	// optimization: {
+	// 	usedExports: true,
+	// 	sideEffects: true
+	// },
+	experiments: {
+		syncWebAssembly: true
+	}
 };
 
 module.exports = () => {

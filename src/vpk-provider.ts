@@ -2,8 +2,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { VpkSystem } from 'sfs-js';
 import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
-import { modFilesystem } from './mod-mount';
-import { outConsole } from './extension';
+import { modFilesystem } from './mod-mount.js';
+import { outConsole } from './extension.js';
 
 // function cleanPath(path: string): [string, string, string] {
 // 	const m = path.match(RE_PATH);

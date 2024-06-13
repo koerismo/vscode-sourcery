@@ -26,7 +26,6 @@
 				"icon": "$(file-symlink-file)",
 				"title": "Reveal Original File"
 			},
-			
 			{
 				"command": "sourcery.vmt.preview",
 				"icon": "$(symbol-color)",
@@ -38,7 +37,6 @@
 				"category": "Material",
 				"title": "Open Material Browser"
 			},
-
 			{
 				"command": "sourcery.mdl.copy",
 				"title": "Copy To Mod",
@@ -147,7 +145,6 @@
 						"~/.steam/steamapps/common/Portal 2/bin/"
 					]
 				},
-
 				"sourcery.vmt.modelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
@@ -163,7 +160,6 @@
 					"type": "boolean",
 					"default": true
 				},
-
 				"sourcery.model.skinEditorPath": {
 					"description": "The path to the Skin Editor tool executable.",
 					"type": "string",
@@ -201,12 +197,15 @@
 		"@typescript-eslint/parser": "^5.62.0",
 		"@vscode/test-electron": "^2.4.0",
 		"@vscode/windows-registry": "^1.1.0",
+		"@webgpu/types": "^0.1.42",
 		"eslint": "^8.57.0",
 		"fast-vdf": "^2.0.2",
+		"gl-matrix": "^3.4.3",
 		"glob": "^10.4.1",
 		"mocha": "^10.4.0",
 		"node-loader": "^2.0.0",
 		"sfs-js": "link:../sfs-js",
+		"struxt": "^3.5.4",
 		"stupid-buffer": "^1.0.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^4.9.5",

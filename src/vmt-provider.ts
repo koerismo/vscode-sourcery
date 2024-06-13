@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { modFilesystem, getPathAutocomplete } from './mod-mount';
+import { modFilesystem, getPathAutocomplete } from './mod-mount.js';
 
 const RE_SLASH = /(\/|\\)+/g;
 const RE_LINE_START = /^\s*("?)(\$[^"\s]+)\1\s+(?:"?)([^"\s]*)/;

@@ -531,7 +531,7 @@ export class GfxRenderInst {
 //#endregion
 
 //#region GfxRenderInstList
-export const gfxRenderInstCompareNone = null;
+export const gfxRenderInstCompareNone: any = null;
 
 export function gfxRenderInstCompareSortKey(a: GfxRenderInst, b: GfxRenderInst): number {
     return a.sortKey - b.sortKey;

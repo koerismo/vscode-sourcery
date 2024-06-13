@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { MdlInfo, readInfo, writeInfo } from './mdl-skins';
-import { outConsole } from './extension';
+import { MdlInfo, readInfo, writeInfo } from './mdl-skins.js';
+import { outConsole } from './extension.js';
 
 export class ValveModelDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;

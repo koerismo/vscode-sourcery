@@ -892,10 +892,10 @@ export class GfxrRenderGraphImpl implements GfxrRenderGraph, GfxrGraphBuilder, G
             const clearStencil = (graphRenderTarget.needsClear ? graph.renderTargetDescriptions[renderTargetID].clearStencil : 'load') as number | 'load';
             return { graphRenderTarget, renderTarget, view, clearColor, clearDepth, clearStencil, resolveTo, resolveView, store, width, height, sampleCount };
         } else if (texture !== undefined) {
-            const graphRenderTarget = null;
+            const graphRenderTarget: any = null;
             const width = texture.width, height = texture.height, sampleCount = 1;
-            const resolveTo = null;
-            const resolveView = null;
+            const resolveTo: any = null;
+            const resolveView: any = null;
             const store = true;
             const renderTarget = this.acquireRenderTargetForTexture(graph, texture);
             const clearDescriptor = pass.attachmentClearDescriptor[slot];

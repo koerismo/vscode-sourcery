@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { modFilesystem } from '../mod-mount';
+import { modFilesystem } from '../mod-mount.js';
 import { join, normalize, posix, relative } from 'path';
 import { platform } from 'os';
 

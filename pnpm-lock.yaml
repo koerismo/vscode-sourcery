@@ -35,12 +35,18 @@ importers:
       '@vscode/windows-registry':
         specifier: ^1.1.0
         version: 1.1.0
+      '@webgpu/types':
+        specifier: ^0.1.42
+        version: 0.1.42
       eslint:
         specifier: ^8.57.0
         version: 8.57.0
       fast-vdf:
         specifier: ^2.0.2
         version: 2.0.2
+      gl-matrix:
+        specifier: ^3.4.3
+        version: 3.4.3
       glob:
         specifier: ^10.4.1
         version: 10.4.1
@@ -53,6 +59,9 @@ importers:
       sfs-js:
         specifier: link:../sfs-js
         version: link:../sfs-js
+      struxt:
+        specifier: ^3.5.4
+        version: 3.5.4
       stupid-buffer:
         specifier: ^1.0.0
         version: 1.0.0
@@ -304,6 +313,9 @@ packages:
 
   '@webassemblyjs/wast-printer@1.12.1':
     resolution: {integrity: sha512-+X4WAlOisVWQMikjbcvY2e0rwPsKQ9F688lksZhBcPycBBuii3O7m8FACbDMWDojpAqvjIncrG8J0XHKyQfVeA==}
+
+  '@webgpu/types@0.1.42':
+    resolution: {integrity: sha512-uvJtt4OD1Vjdebrrz3kNLgpOicYbikwnM8WPG6YD2lkCOHDtPdEtCINJFIFtbOCtPfA8SreR/vKyUNbAt92IwQ==}
 
   '@webpack-cli/configtest@2.1.1':
     resolution: {integrity: sha512-wy0mglZpDSiSS0XHrVR+BAdId2+yxPSoJW8fsna3ZpYSlufjvxnP4YbKTCBZnNIcGN4r6ZPXV55X4mYExOfLmw==}
@@ -695,6 +707,9 @@ packages:
   get-caller-file@2.0.5:
     resolution: {integrity: sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==}
     engines: {node: 6.* || 8.* || >= 10.*}
+
+  gl-matrix@3.4.3:
+    resolution: {integrity: sha512-wcCp8vu8FT22BnvKVPjXa/ICBWRq/zjFfdofZy1WSpQZpphblv12/bOQLBC1rMM7SGOFS9ltVmKOHil5+Ml7gA==}
 
   glob-parent@5.1.2:
     resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
@@ -1233,6 +1248,9 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  struxt@3.5.4:
+    resolution: {integrity: sha512-Oas7Ib+FfWgqQKi9SX5IlUqCsU08E6JYbkJ3hVRUzzVGt2FfbJRGFlvdaUCzJ4RzihdTUaU2O2EoLsbRyqvWPA==}
+
   stupid-buffer@1.0.0:
     resolution: {integrity: sha512-aPufQPaRFtAechbjhcBaab5D5IMnKIsTuNI0Iekg5PTjTsaTt40eH5p0jGod2lwhlfnFG+fVZU8EmOtFp3joHw==}
 
@@ -1708,6 +1726,8 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
+  '@webgpu/types@0.1.42': {}
+
   '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack@5.91.0))(webpack@5.91.0(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.91.0(webpack-cli@5.1.4)
@@ -2076,6 +2096,8 @@ snapshots:
   function-bind@1.1.2: {}
 
   get-caller-file@2.0.5: {}
+
+  gl-matrix@3.4.3: {}
 
   glob-parent@5.1.2:
     dependencies:
@@ -2598,6 +2620,10 @@ snapshots:
       ansi-regex: 6.0.1
 
   strip-json-comments@3.1.1: {}
+
+  struxt@3.5.4:
+    dependencies:
+      fast-deep-equal: 3.1.3
 
   stupid-buffer@1.0.0: {}
 
