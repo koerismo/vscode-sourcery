@@ -2,7 +2,7 @@
 import { mat4, vec3, vec4, quat, ReadonlyVec3, ReadonlyMat4, ReadonlyVec4 } from 'gl-matrix';
 import InputManager from './InputManager.js';
 import { Frustum, AABB } from './Geometry.js';
-import { clampRange, projectionMatrixForFrustum, computeUnitSphericalCoordinates, projectionMatrixForCuboid, lerpAngle, MathConstants, getMatrixAxisY, transformVec3Mat4w1, Vec3Zero, Vec3UnitY, Vec3UnitX, Vec3UnitZ, transformVec3Mat4w0, getMatrixAxisZ, getMatrixAxisX } from './MathHelpers.js';
+import { clampRange, projectionMatrixForFrustum, computeUnitSphericalCoordinates, projectionMatrixForCuboid, lerpAngle, MathConstants, getMatrixAxisY, transformVec3Mat4w1, Vec3Zero, Vec3UnitY, Vec3UnitX, Vec3UnitZ, transformVec3Mat4w0, getMatrixAxisZ, getMatrixAxisX, computeEulerAngleRotationFromSRTMatrix } from './MathHelpers.js';
 import { projectionMatrixConvertClipSpaceNearZ } from './gfx/helpers/ProjectionHelpers.js';
 // import { WebXRContext } from './WebXR.js';
 import { assert } from './util.js';

@@ -202,7 +202,7 @@ export default class InputManager {
     };
 
     private _getScaledTouches(touches: TouchList): {x: number, y: number}[] {
-        const result: {x: number, y: number}[] = [];
+        const result: any[] = [];
         const scale = 1000 / Math.max(1, Math.min(this.toplevel.clientWidth, this.toplevel.clientHeight));
         for (let i = 0; i < touches.length; i++) {
             result.push({

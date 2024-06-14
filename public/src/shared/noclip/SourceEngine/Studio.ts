@@ -2,18 +2,18 @@
 // Source "Studio" models, which seem to be named because of their original ties to 3D Studio Max
 // https://developer.valvesoftware.com/wiki/Studiomodel
 
-import ArrayBufferSlice from "./ArrayBufferSlice.js";
-import { GfxDevice, GfxBuffer, GfxInputLayout, GfxBufferUsage, GfxVertexAttributeDescriptor, GfxFormat, GfxInputLayoutBufferDescriptor, GfxVertexBufferFrequency, GfxVertexBufferDescriptor, GfxIndexBufferDescriptor } from "./gfx/platform/GfxPlatform.js";
-import { assert, readString, nArray, assertExists, align } from "./util.js";
-import { SourceFileSystem, SourceRenderContext } from "../NoclipPolyfill.js";
-import { AABB } from "./Geometry.js";
-import { GfxRenderCache } from "./gfx/render/GfxRenderCache.js";
-import { makeStaticDataBuffer } from "./gfx/helpers/BufferHelpers.js";
+import ArrayBufferSlice from "../ArrayBufferSlice.js";
+import { GfxDevice, GfxBuffer, GfxInputLayout, GfxBufferUsage, GfxVertexAttributeDescriptor, GfxFormat, GfxInputLayoutBufferDescriptor, GfxVertexBufferFrequency, GfxVertexBufferDescriptor, GfxIndexBufferDescriptor } from "../gfx/platform/GfxPlatform.js";
+import { assert, readString, nArray, assertExists, align } from "../util.js";
+import { SourceFileSystem, SourceRenderContext } from "./Main.js";
+import { AABB } from "../Geometry.js";
+import { GfxRenderCache } from "../gfx/render/GfxRenderCache.js";
+import { makeStaticDataBuffer } from "../gfx/helpers/BufferHelpers.js";
 import { MaterialShaderTemplateBase, BaseMaterial, EntityMaterialParameters, StaticLightingMode, SkinningMode } from "./Materials.js";
-import { GfxRenderInstManager, setSortKeyDepth } from "./gfx/render/GfxRenderInstManager.js";
+import { GfxRenderInstManager, setSortKeyDepth } from "../gfx/render/GfxRenderInstManager.js";
 import { mat4, quat, ReadonlyMat4, ReadonlyVec3, vec3 } from "gl-matrix";
-import { bitsAsFloat32, getMatrixTranslation, lerp, MathConstants, setMatrixTranslation } from "./MathHelpers.js";
-import { computeViewSpaceDepthFromWorldSpacePoint } from "./Camera.js";
+import { bitsAsFloat32, getMatrixTranslation, lerp, MathConstants, setMatrixTranslation } from "../MathHelpers.js";
+import { computeViewSpaceDepthFromWorldSpacePoint } from "../Camera.js";
 
 // Encompasses the MDL, VVD & VTX formats.
 
@@ -581,6 +581,8 @@ class AttachmentDesc {
 export class StudioModelData {
     private name: string;
 
+	public isReady: boolean = false;
+
     public bodyPartData: StudioModelBodyPartData[] = [];
     public checksum: number;
     public hullBB: AABB;
@@ -595,7 +597,10 @@ export class StudioModelData {
     public animblocks: AnimBlock[] = [];
     public numLOD: number;
 
-    constructor(renderContext: SourceRenderContext, mdlBuffer: ArrayBufferSlice, vvdBuffer: ArrayBufferSlice | null, vtxBuffer: ArrayBufferSlice | null) {
+    constructor() {
+	}
+
+	async parse(renderContext: SourceRenderContext, mdlBuffer: ArrayBufferSlice, vvdBuffer: ArrayBufferSlice | null, vtxBuffer: ArrayBufferSlice | null) {
         const mdlView = mdlBuffer.createDataView();
 
         // We have three separate files of data (MDL, VVD, VTX) to chew through.
@@ -1102,7 +1107,7 @@ export class StudioModelData {
             const clientmaterial = mdlView.getUint32(textureIdx + 0x14, true);
             assert(clientmaterial === 0);
 
-            const resolvedPath = renderContext.filesystem.searchPath(materialSearchDirs, materialName, '.vmt');
+            const resolvedPath = await renderContext.filesystem.searchPath(materialSearchDirs, materialName, '.vmt');
             if (resolvedPath !== null) {
                 baseMaterialNames.push(resolvedPath);
             } else {
@@ -1126,7 +1131,7 @@ export class StudioModelData {
                 assert(materialID < materialNames.length);
                 const nameOffset = replacementIdx + vtxView.getInt32(replacementIdx + 0x02, true);
                 const replacementName = readString(vtxBuffer, nameOffset);
-                materialNames[materialID] = assertExists(renderContext.filesystem.searchPath(materialSearchDirs, replacementName, '.vmt'));
+                materialNames[materialID] = assertExists(await renderContext.filesystem.searchPath(materialSearchDirs, replacementName, '.vmt'));
                 replacementIdx += 0x06;
             }
 
@@ -1656,7 +1661,8 @@ export class StudioModelCache {
             mdlBuffer = await this.filesystem.fetchFileData(mdlPath);
         }
 
-        const modelData = new StudioModelData(this.renderContext, assertExists(mdlBuffer), vvdBuffer!, vtxBuffer!);
+        const modelData = new StudioModelData();
+		await modelData.parse(this.renderContext, assertExists(mdlBuffer), vvdBuffer!, vtxBuffer!);
 
         if (modelData.animBlockName !== null) {
             // Fetch external animation block.
@@ -1790,7 +1796,7 @@ class StudioModelMeshInstance {
         if (!this.visible || this.materialInstance === null || !this.materialInstance.isMaterialVisible(renderContext))
             return;
 
-        // this.materialInstance.calcProjectedLight(renderContext, bbox);
+        this.materialInstance.calcProjectedLight(renderContext, bbox);
 
         const template = renderInstManager.pushTemplateRenderInst();
         this.materialInstance.setOnRenderInst(renderContext, template);

@@ -3,15 +3,14 @@
 
 import { Viewer, SceneGfx, InitErrorCode, initializeViewer, resizeCanvas, ViewerUpdateInfo } from './noclip/viewer.js';
 
-import { ModelViewDesc, ModelViewRenderer } from './ModelRenderer.js';
-import * as Poly from './NoclipPolyfill.js';
+import { HalfLife2SceneDesc } from './Custom.js';
 
 // import { DroppedFileSceneDesc, traverseFileSystemDataTransfer } from './Scenes_FileDrops.js';
 
 // import { UI, Panel } from './ui.js';
 import { serializeCamera, deserializeCamera, FPSCameraController } from './noclip/Camera.js';
 import { assertExists, assert } from './noclip/util.js';
-import { loadRustLib } from './noclip-rust/rustlib.js';
+import { loadRustLib } from './noclip/rustlib.js';
 // import { DataFetcher } from './noclip/DataFetcher.js';
 // import { atob, btoa } from './Ascii85.js';
 import { mat4 } from 'gl-matrix';
@@ -112,7 +111,7 @@ export class Main {
 	DO_CUSTOM_SETUP() {
 		this.viewer.setCameraController(new FPSCameraController());
 		
-		const MODELVIEW = new ModelViewDesc('model_view', 'model_view');
+		const MODELVIEW = new HalfLife2SceneDesc('background02', 'background02');
 		console.log('HERE WE GO BITCHES');
 		this._loadSceneDesc(MODELVIEW, true);
 	}
@@ -627,11 +626,12 @@ export class Main {
         }
 
         promise.then((scene: SceneGfx) => {
-            if (this.loadingSceneDesc === sceneDesc) {
-                // dataFetcher.setProgress();
+			if (this.loadingSceneDesc === sceneDesc) {
+				// dataFetcher.setProgress();
                 this.loadingSceneDesc = null;
                 this.viewer.setScene(scene);
                 this._onSceneChanged(scene, null);
+				console.log('SCENE CHANGED!');
             }
         });
 

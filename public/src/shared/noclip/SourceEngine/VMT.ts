@@ -1,9 +1,9 @@
 
 // Valve Material Type
 
-import { arrayRemove, assertExists } from "./util.js";
-import { SourceFileSystem } from "../NoclipPolyfill.js";
-import { Color } from "./Color.js";
+import { arrayRemove, assertExists } from "../util.js";
+import { SourceFileSystem } from "./Main.js";
+import { Color } from "../Color.js";
 
 export type VKFParamMap = { [k: string]: string };
 export type VKFPairUnit = string | number | VKFPair[];

@@ -3,12 +3,12 @@
 
 import InputManager from './InputManager.js';
 import { SceneDesc, SceneGroup } from "./SceneBase.js";
-import { Camera, CameraUpdateResult, CameraController } from './Camera.js';
+import { CameraController, Camera, CameraUpdateResult } from './Camera.js';
 import { GfxDevice, GfxSwapChain, GfxStatisticsGroup, GfxTexture, makeTextureDescriptor2D, GfxFormat } from './gfx/platform/GfxPlatform.js';
 import { createSwapChainForWebGL2, gfxDeviceGetImpl_GL, GfxPlatformWebGL2Config } from './gfx/platform/GfxPlatformWebGL2.js';
 import { createSwapChainForWebGPU } from './gfx/platform/GfxPlatformWebGPU.js';
 // import { downloadFrontBufferToCanvas } from './Screenshot.js';
-// import { RenderStatistics, RenderStatisticsTracker } from './RenderStatistics.js';
+import { RenderStatistics, RenderStatisticsTracker } from './RenderStatistics.js';
 import { AntialiasingMode } from './gfx/helpers/RenderGraphHelpers.js';
 // import { WebXRContext } from './WebXR.js';
 import { MathConstants } from './MathHelpers.js';
@@ -64,12 +64,12 @@ export interface SceneGfx {
 
 export type Listener = (viewer: Viewer) => void;
 
-// function resetGfxStatisticsGroup(group: GfxStatisticsGroup): void {
-//     group.bufferUploadCount = 0;
-//     group.drawCallCount = 0;
-//     group.textureBindCount = 0;
-//     group.triangleCount = 0;
-// }
+function resetGfxStatisticsGroup(group: GfxStatisticsGroup): void {
+    group.bufferUploadCount = 0;
+    group.drawCallCount = 0;
+    group.textureBindCount = 0;
+    group.triangleCount = 0;
+}
 
 export function resizeCanvas(canvas: HTMLCanvasElement, width: number, height: number, devicePixelRatio: number): void {
     const nw = width * devicePixelRatio;
@@ -101,12 +101,12 @@ export class Viewer {
 
     public gfxDevice: GfxDevice;
     public viewerRenderInput: ViewerRenderInput;
-    // public renderStatisticsTracker = new RenderStatisticsTracker();
+    public renderStatisticsTracker = new RenderStatisticsTracker();
 
     public scene: SceneGfx | null = null;
 
     public oncamerachanged: (force: boolean) => void = (() => {});
-    // public onstatistics: (statistics: RenderStatistics) => void = (() => {});
+    public onstatistics: (statistics: RenderStatistics) => void = (() => {});
 
     private keyMoveSpeedListeners: Listener[] = [];
     private statisticsGroup: GfxStatisticsGroup = { drawCallCount: 0, bufferUploadCount: 0, textureBindCount: 0, triangleCount: 0 };
@@ -126,11 +126,7 @@ export class Viewer {
             onscreenTexture: null!,
             antialiasingMode: AntialiasingMode.None,
             mouseLocation: this.inputManager,
-            debugConsole: {
-				addInfoLine(line) {
-					console.log(`[NOCLIP]: ${line}`);
-				},
-			}, // this.renderStatisticsTracker,
+            debugConsole: this.renderStatisticsTracker,
         };
 
         // GlobalSaveManager.addSettingListener('AntialiasingMode', (saveManager, key) => {
@@ -169,19 +165,19 @@ export class Viewer {
         this.viewerRenderInput.onscreenTexture = this.gfxSwapChain.getOnscreenTexture();
 
         this.gfxDevice.beginFrame();
-        // this.renderStatisticsTracker.beginFrame();
+        this.renderStatisticsTracker.beginFrame();
 
-        // resetGfxStatisticsGroup(this.statisticsGroup);
-        // this.gfxDevice.pushStatisticsGroup(this.statisticsGroup);
+        resetGfxStatisticsGroup(this.statisticsGroup);
+        this.gfxDevice.pushStatisticsGroup(this.statisticsGroup);
 
         this.renderViewport();
 
         this.gfxDevice.popStatisticsGroup();
         this.gfxDevice.endFrame();
 
-        // const renderStatistics = this.renderStatisticsTracker.endFrame();
-        // this.finishRenderStatistics(renderStatistics, this.statisticsGroup);
-        // this.onstatistics(renderStatistics);
+        const renderStatistics = this.renderStatisticsTracker.endFrame();
+        this.finishRenderStatistics(renderStatistics, this.statisticsGroup);
+        this.onstatistics(renderStatistics);
     }
 
     private xrTempRT: GfxTexture | null = null;
@@ -247,29 +243,29 @@ export class Viewer {
     //     this.onstatistics(renderStatistics);
     // }
 
-    // private finishRenderStatistics(statistics: RenderStatistics, statisticsGroup: GfxStatisticsGroup): void {
-    //     if (statisticsGroup.drawCallCount)
-    //         statistics.lines.push(`Draw Calls: ${statisticsGroup.drawCallCount}`);
-    //     if (statisticsGroup.triangleCount)
-    //         statistics.lines.push(`Drawn Triangles: ${statisticsGroup.triangleCount}`);
-    //     if (statisticsGroup.textureBindCount)
-    //         statistics.lines.push(`Texture Binds: ${statisticsGroup.textureBindCount}`);
-    //     if (statisticsGroup.bufferUploadCount)
-    //         statistics.lines.push(`Buffer Uploads: ${statisticsGroup.bufferUploadCount}`);
+    private finishRenderStatistics(statistics: RenderStatistics, statisticsGroup: GfxStatisticsGroup): void {
+        if (statisticsGroup.drawCallCount)
+            statistics.lines.push(`Draw Calls: ${statisticsGroup.drawCallCount}`);
+        if (statisticsGroup.triangleCount)
+            statistics.lines.push(`Drawn Triangles: ${statisticsGroup.triangleCount}`);
+        if (statisticsGroup.textureBindCount)
+            statistics.lines.push(`Texture Binds: ${statisticsGroup.textureBindCount}`);
+        if (statisticsGroup.bufferUploadCount)
+            statistics.lines.push(`Buffer Uploads: ${statisticsGroup.bufferUploadCount}`);
 
-    //     const worldMatrix = this.camera.worldMatrix;
-    //     const camPositionX = worldMatrix[12].toFixed(2), camPositionY = worldMatrix[13].toFixed(2), camPositionZ = worldMatrix[14].toFixed(2);
-    //     statistics.lines.push(`Camera Position: ${camPositionX} ${camPositionY} ${camPositionZ}`);
+        const worldMatrix = this.camera.worldMatrix;
+        const camPositionX = worldMatrix[12].toFixed(2), camPositionY = worldMatrix[13].toFixed(2), camPositionZ = worldMatrix[14].toFixed(2);
+        statistics.lines.push(`Camera Position: ${camPositionX} ${camPositionY} ${camPositionZ}`);
 
-    //     const vendorInfo = this.gfxDevice.queryVendorInfo();
-    //     statistics.lines.push(`Platform: ${vendorInfo.platformString}`);
+        const vendorInfo = this.gfxDevice.queryVendorInfo();
+        statistics.lines.push(`Platform: ${vendorInfo.platformString}`);
 
-    //     if (vendorInfo.platformString === 'WebGL2') {
-    //         const impl = gfxDeviceGetImpl_GL(this.gfxDevice);
-    //         const w = impl.gl.drawingBufferWidth, h = impl.gl.drawingBufferHeight;
-    //         statistics.lines.push(`Drawing Buffer Size: ${w}x${h}`);
-    //     }
-    // }
+        if (vendorInfo.platformString === 'WebGL2') {
+            const impl = gfxDeviceGetImpl_GL(this.gfxDevice);
+            const w = impl.gl.drawingBufferWidth, h = impl.gl.drawingBufferHeight;
+            statistics.lines.push(`Drawing Buffer Size: ${w}x${h}`);
+        }
+    }
 
     public setCameraController(cameraController: CameraController) {
         this.cameraController = cameraController;
@@ -401,6 +397,11 @@ function getPlatformBackend(): 'WebGPU' | 'WebGL2' {
         return 'WebGL2';
 
 	return 'WebGL2';
+    // const platformBackend = GlobalSaveManager.loadSetting<string>('PlatformBackend', 'WebGL2');
+    // if (platformBackend === 'WebGPU')
+    //     return 'WebGPU';
+    // else
+    //     return 'WebGL2';
 }
 
 export async function initializeViewer(out: ViewerOut, canvas: HTMLCanvasElement): Promise<InitErrorCode> {

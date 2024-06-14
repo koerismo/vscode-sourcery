@@ -5,13 +5,13 @@
 // This is basically replacement for DeviceProgram that has better caching behavior
 // and support for a wider variety of variants.
 
-// import CodeEditor from "./CodeEditor.js";
-import { GfxDevice, GfxProgramDescriptorSimple } from "./gfx/platform/GfxPlatform.js";
-import { GfxProgram } from "./gfx/platform/GfxPlatformImpl.js";
-import { GfxRenderCache } from "./gfx/render/GfxRenderCache.js";
-import { preprocessShader_GLSL } from "./gfx/shaderc/GfxShaderCompiler.js";
-import { hashCodeNumberUpdate, HashMap } from "./HashMap.js";
-// import { assertExists } from "./util.js";
+// import CodeEditor from "../CodeEditor.js";
+import { GfxDevice, GfxProgramDescriptorSimple } from "../gfx/platform/GfxPlatform.js";
+import { GfxProgram } from "../gfx/platform/GfxPlatformImpl.js";
+import { GfxRenderCache } from "../gfx/render/GfxRenderCache.js";
+import { preprocessShader_GLSL } from "../gfx/shaderc/GfxShaderCompiler.js";
+import { hashCodeNumberUpdate, HashMap } from "../HashMap.js";
+import { assertExists } from "../util.js";
 
 // class ShaderTextEditor {
 //     public onchanged: ((newText: string) => void) | null = null;
@@ -189,20 +189,19 @@ export class UberShaderInstance<T> {
         return this.gfxProgram;
     }
 
-    public edit(): void {
-        const template = this.template;
-        const programString = template.generateProgramString(this.variantSettings)!;
-		throw Error('Shader text editor removed! DO NOT CALL THIS! - Jadon');
-        // this.shaderTextEditor = new ShaderTextEditor(this.template.constructor.name, programString);
-        // this.shaderTextEditor.onchanged = (newText: string) => {
-        //     if (this.gfxRenderCache === null)
-        //         return;
-        //     if (this.gfxProgram === null)
-        //         return;
-        //     this.template.patchGfxProgram(this.gfxRenderCache, this.gfxProgram, this.variantSettings, newText);
-        // };
-        // this.shaderTextEditor.open();
-    }
+    // public edit(): void {
+    //     const template = this.template;
+    //     const programString = template.generateProgramString(this.variantSettings)!;
+    //     this.shaderTextEditor = new ShaderTextEditor(this.template.constructor.name, programString);
+    //     this.shaderTextEditor.onchanged = (newText: string) => {
+    //         if (this.gfxRenderCache === null)
+    //             return;
+    //         if (this.gfxProgram === null)
+    //             return;
+    //         this.template.patchGfxProgram(this.gfxRenderCache, this.gfxProgram, this.variantSettings, newText);
+    //     };
+    //     this.shaderTextEditor.open();
+    // }
 }
 
 export class UberShaderInstanceBasic extends UberShaderInstance<DefinesMap> {

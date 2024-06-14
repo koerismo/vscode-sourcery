@@ -1,29 +1,29 @@
 
 import { VMT, parseVMT, vmtParseVector, VKFParamMap } from "./VMT.js";
-import { TextureMapping } from "./TextureHolder.js";
-import { GfxRenderInst, makeSortKey, GfxRendererLayer, setSortKeyProgramKey, GfxRenderInstList } from "./gfx/render/GfxRenderInstManager.js";
-import { nArray, assert, assertExists, nullify } from "./util.js";
-import { GfxDevice, GfxProgram, GfxMegaStateDescriptor, GfxFrontFaceMode, GfxBlendMode, GfxBlendFactor, GfxTexture, GfxFormat, GfxSampler, GfxTexFilterMode, GfxMipFilterMode, GfxWrapMode, GfxCullMode, GfxCompareMode, GfxTextureDimension, GfxTextureUsage, GfxBuffer, GfxBufferUsage, GfxInputLayout, GfxVertexAttributeDescriptor, GfxInputLayoutBufferDescriptor, GfxVertexBufferFrequency, GfxVertexBufferDescriptor, GfxIndexBufferDescriptor, GfxBindingLayoutDescriptor, GfxSamplerFormatKind } from "./gfx/platform/GfxPlatform.js";
-import { GfxRenderCache } from "./gfx/render/GfxRenderCache.js";
+import { TextureMapping } from "../TextureHolder.js";
+import { GfxRenderInst, makeSortKey, GfxRendererLayer, setSortKeyProgramKey, GfxRenderInstList } from "../gfx/render/GfxRenderInstManager.js";
+import { nArray, assert, assertExists, nullify } from "../util.js";
+import { GfxDevice, GfxProgram, GfxMegaStateDescriptor, GfxFrontFaceMode, GfxBlendMode, GfxBlendFactor, GfxTexture, GfxFormat, GfxSampler, GfxTexFilterMode, GfxMipFilterMode, GfxWrapMode, GfxCullMode, GfxCompareMode, GfxTextureDimension, GfxTextureUsage, GfxBuffer, GfxBufferUsage, GfxInputLayout, GfxVertexAttributeDescriptor, GfxInputLayoutBufferDescriptor, GfxVertexBufferFrequency, GfxVertexBufferDescriptor, GfxIndexBufferDescriptor, GfxBindingLayoutDescriptor, GfxSamplerFormatKind } from "../gfx/platform/GfxPlatform.js";
+import { GfxRenderCache } from "../gfx/render/GfxRenderCache.js";
 import { mat4, vec3, ReadonlyMat4, ReadonlyVec3, vec2, vec4 } from "gl-matrix";
-import { fillMatrix4x3, fillVec4, fillVec4v, fillMatrix4x2, fillColor, fillVec3v, fillMatrix4x4 } from "./gfx/helpers/UniformBufferHelpers.js";
+import { fillMatrix4x3, fillVec4, fillVec4v, fillMatrix4x2, fillColor, fillVec3v, fillMatrix4x4 } from "../gfx/helpers/UniformBufferHelpers.js";
 import { VTF } from "./VTF.js";
-import { SourceRenderContext, SourceFileSystem, SourceEngineView, SourceEngineViewType } from "../NoclipPolyfill.js";
-import { setAttachmentStateSimple } from "./gfx/helpers/GfxMegaStateDescriptorHelpers.js";
-import { Cubemap, AmbientCube, WorldLight, WorldLightType, WorldLightFlags } from "./BSPFile.js";
-import { MathConstants, invlerp, lerp, clamp, Vec3Zero, Vec3UnitX, Vec3NegX, Vec3UnitY, Vec3NegY, Vec3UnitZ, Vec3NegZ, scaleMatrix, saturate } from "./MathHelpers.js";
-import { colorNewCopy, White, Color, colorCopy, colorScaleAndAdd, colorFromRGBA, colorNewFromRGBA, TransparentBlack, colorScale, OpaqueBlack } from "./Color.js";
-// import { drawWorldSpaceLine, drawWorldSpacePoint, getDebugOverlayCanvas2D } from "./DebugJunk.js";
-import { GfxShaderLibrary, glslGenerateFloat } from "./gfx/helpers/GfxShaderLibrary.js";
-import { IS_DEPTH_REVERSED } from "./gfx/helpers/ReversedDepthHelpers.js";
-import { makeStaticDataBuffer } from "./gfx/helpers/BufferHelpers.js";
-// import { dfRange, dfShow } from "./DebugFloaters.js";
-// import { AABB } from "./Geometry.js";
-import { GfxrResolveTextureID } from "./gfx/render/GfxRenderGraph.js";
-import { gfxDeviceNeedsFlipY } from "./gfx/helpers/GfxDeviceHelpers.js";
+import { SourceRenderContext, SourceFileSystem, SourceEngineView, BSPRenderer, SourceEngineViewType } from "./Main.js";
+import { setAttachmentStateSimple } from "../gfx/helpers/GfxMegaStateDescriptorHelpers.js";
+import { SurfaceLightmapData, LightmapPacker, LightmapPackerPage, Cubemap, BSPFile, AmbientCube, WorldLight, WorldLightType, BSPLeaf, WorldLightFlags } from "./BSPFile.js";
+import { MathConstants, invlerp, lerp, clamp, Vec3Zero, Vec3UnitX, Vec3NegX, Vec3UnitY, Vec3NegY, Vec3UnitZ, Vec3NegZ, scaleMatrix, saturate } from "../MathHelpers.js";
+import { colorNewCopy, White, Color, colorCopy, colorScaleAndAdd, colorFromRGBA, colorNewFromRGBA, TransparentBlack, colorScale, OpaqueBlack } from "../Color.js";
+// import { drawWorldSpaceLine, drawWorldSpacePoint, getDebugOverlayCanvas2D } from "../DebugJunk.js";
+import { GfxShaderLibrary, glslGenerateFloat } from "../gfx/helpers/GfxShaderLibrary.js";
+import { IS_DEPTH_REVERSED } from "../gfx/helpers/ReversedDepthHelpers.js";
+import { makeStaticDataBuffer } from "../gfx/helpers/BufferHelpers.js";
+// import { dfRange, dfShow } from "../DebugFloaters.js";
+import { AABB } from "../Geometry.js";
+import { GfxrResolveTextureID } from "../gfx/render/GfxRenderGraph.js";
+import { gfxDeviceNeedsFlipY } from "../gfx/helpers/GfxDeviceHelpers.js";
 import { UberShaderInstanceBasic, UberShaderTemplateBasic } from "./UberShader.js";
-import { makeSolidColorTexture2D } from "./gfx/helpers/TextureHelpers.js";
-// import { ParticleSystemCache } from "./ParticleSystem.js";
+import { makeSolidColorTexture2D } from "../gfx/helpers/TextureHelpers.js";
+import { ParticleSystemCache } from "./ParticleSystem.js";
 
 //#region Base Classes
 const scratchColor = colorNewCopy(White);
@@ -1157,8 +1157,8 @@ export abstract class BaseMaterial {
         }
     }
 
-    // public calcProjectedLight(renderContext: SourceRenderContext, bbox: AABB): void {
-    // }
+    public calcProjectedLight(renderContext: SourceRenderContext, bbox: AABB): void {
+    }
 
     public getRenderInstListForView(view: SourceEngineView): GfxRenderInstList {
         // Choose the right list.
@@ -2653,8 +2653,8 @@ class Material_Generic extends BaseMaterial {
         this.paramGetTexture('$phongexponenttexture').fillTextureMapping(dst[7], 0);
         this.paramGetTexture('$selfillummask').fillTextureMapping(dst[8], 0);
         this.paramGetTexture('$blendmodulatetexture').fillTextureMapping(dst[9], 0);
-        // if (this.wantsLightmap)
-        //     renderContext.lightmapManager.fillTextureMapping(dst[10], lightmapPageIndex);
+        if (this.wantsLightmap)
+            renderContext.lightmapManager.fillTextureMapping(dst[10], lightmapPageIndex);
         this.paramGetTexture('$envmap').fillTextureMapping(dst[11], this.paramGetInt('$envmapframe'));
 
         if (this.wantsProjectedTexture && renderContext.currentView.viewType !== SourceEngineViewType.ShadowMap) {
@@ -2663,25 +2663,25 @@ class Material_Generic extends BaseMaterial {
         }
     }
 
-    // public override calcProjectedLight(renderContext: SourceRenderContext, bbox: AABB): void {
-    //     if (this.shaderType === GenericShaderType.UnlitGeneric)
-    //         return;
+    public override calcProjectedLight(renderContext: SourceRenderContext, bbox: AABB): void {
+        if (this.shaderType === GenericShaderType.UnlitGeneric)
+            return;
 
-    //     let projectedLightRenderer = null;
-    //     if (renderContext.currentViewRenderer !== null)
-    //         projectedLightRenderer = renderContext.currentViewRenderer.currentProjectedLightRenderer;
+        let projectedLightRenderer = null;
+        if (renderContext.currentViewRenderer !== null)
+            projectedLightRenderer = renderContext.currentViewRenderer.currentProjectedLightRenderer;
 
-    //     if (projectedLightRenderer !== null) {
-    //         if (!projectedLightRenderer.light.frustumView.frustum.contains(bbox))
-    //             projectedLightRenderer = null;
-    //     }
+        if (projectedLightRenderer !== null) {
+            if (!projectedLightRenderer.light.frustumView.frustum.contains(bbox))
+                projectedLightRenderer = null;
+        }
 
-    //     this.projectedLight = projectedLightRenderer !== null ? projectedLightRenderer.light : null;
+        this.projectedLight = projectedLightRenderer !== null ? projectedLightRenderer.light : null;
 
-    //     this.wantsProjectedTexture = this.projectedLight !== null && this.projectedLight.texture !== null;
-    //     if (this.shaderInstance.setDefineBool('USE_PROJECTED_LIGHT', this.wantsProjectedTexture))
-    //         this.gfxProgram = null;
-    // }
+        this.wantsProjectedTexture = this.projectedLight !== null && this.projectedLight.texture !== null;
+        if (this.shaderInstance.setDefineBool('USE_PROJECTED_LIGHT', this.wantsProjectedTexture))
+            this.gfxProgram = null;
+    }
 
     private calcObjectParamsWordCount(): void {
         let vec4Count = 0;
@@ -3551,7 +3551,7 @@ class Material_Water extends BaseMaterial {
         this.paramGetTexture('$flowmap').fillTextureMapping(textureMappings[4], this.paramGetInt('$flowmapframe'));
         this.paramGetTexture('$flow_noise_texture').fillTextureMapping(textureMappings[5], 0);
 
-        // renderContext.lightmapManager.fillTextureMapping(textureMappings[10], lightmapPageIndex);
+        renderContext.lightmapManager.fillTextureMapping(textureMappings[10], lightmapPageIndex);
         this.paramGetTexture('$envmap').fillTextureMapping(textureMappings[11], this.paramGetInt('$envmapframe'));
         this.paramGetTexture('$depthtexture').fillTextureMapping(textureMappings[14], 0);
 
@@ -4849,7 +4849,7 @@ export class MaterialCache {
     private texturePromiseCache = new Map<string, Promise<VTF>>();
     private materialPromiseCache = new Map<string, Promise<VMT>>();
     private usingHDR: boolean = false;
-    // public readonly particleSystemCache: ParticleSystemCache;
+    public readonly particleSystemCache: ParticleSystemCache;
     public ssbumpNormalize = false;
     public staticResources: StaticResources;
     public materialDefines: string[] = [];
@@ -4868,14 +4868,14 @@ export class MaterialCache {
         this.textureCache.set('_rt_Depth', new VTF(device, cache, null, '_rt_Depth', false, LateBindingTexture.FramebufferDepth));
         this.staticResources = new StaticResources(device, cache);
 
-        // this.particleSystemCache = new ParticleSystemCache(this.filesystem);
+        this.particleSystemCache = new ParticleSystemCache(this.filesystem);
 
         this.deviceNeedsFlipY = gfxDeviceNeedsFlipY(device);
     }
 
     public isInitialized(): boolean {
-        // if (!this.particleSystemCache.isLoaded)
-        //     return false;
+        if (!this.particleSystemCache.isLoaded)
+            return false;
 
         return true;
     }
@@ -4948,9 +4948,9 @@ export class MaterialCache {
         return materialInstance;
     }
 
-    public checkVTFExists(name: string): boolean {
+    public async checkVTFExists(name: string): Promise<boolean> {
         const path = this.filesystem.resolvePath(this.resolvePath(name), '.vtf');
-        return this.filesystem.hasEntry(path);
+        return await this.filesystem.hasEntry(path);
     }
 
     private async fetchVTFInternal(name: string, srgb: boolean, cacheKey: string): Promise<VTF> {
@@ -4990,23 +4990,23 @@ export class MaterialCache {
 //#endregion
 
 //#region Runtime Lighting / LightCache
-// function findEnvCubemapTexture(bspfile: BSPFile, pos: ReadonlyVec3): Cubemap | null {
-//     let bestDistance = Infinity;
-//     let bestIndex = -1;
+function findEnvCubemapTexture(bspfile: BSPFile, pos: ReadonlyVec3): Cubemap | null {
+    let bestDistance = Infinity;
+    let bestIndex = -1;
 
-//     for (let i = 0; i < bspfile.cubemaps.length; i++) {
-//         const distance = vec3.squaredDistance(pos, bspfile.cubemaps[i].pos);
-//         if (distance < bestDistance) {
-//             bestDistance = distance;
-//             bestIndex = i;
-//         }
-//     }
+    for (let i = 0; i < bspfile.cubemaps.length; i++) {
+        const distance = vec3.squaredDistance(pos, bspfile.cubemaps[i].pos);
+        if (distance < bestDistance) {
+            bestDistance = distance;
+            bestIndex = i;
+        }
+    }
 
-//     if (bestIndex < 0)
-//         return null;
+    if (bestIndex < 0)
+        return null;
 
-//     return bspfile.cubemaps[bestIndex];
-// }
+    return bspfile.cubemaps[bestIndex];
+}
 
 function worldLightInsideRadius(light: WorldLight, delta: ReadonlyVec3): boolean {
     return light.radius <= 0.0 || vec3.squaredLength(delta) <= light.radius**2;
@@ -5157,54 +5157,55 @@ function newAmbientCube(): AmbientCube {
     return nArray(6, () => colorNewCopy(TransparentBlack));
 }
 
-// function computeAmbientCubeFromLeaf(dst: AmbientCube, leaf: BSPLeaf, pos: ReadonlyVec3): boolean {
-//     // XXX(jstpierre): This breaks on d2_coast_01, where there's a prop located outside
-//     // the leaf it's in due to floating point rounding error.
-//     // assert(leaf.bbox.containsPoint(pos));
+function computeAmbientCubeFromLeaf(dst: AmbientCube, leaf: BSPLeaf, pos: ReadonlyVec3): boolean {
+    // XXX(jstpierre): This breaks on d2_coast_01, where there's a prop located outside
+    // the leaf it's in due to floating point rounding error.
+    // assert(leaf.bbox.containsPoint(pos));
 
-//     if (leaf.ambientLightSamples.length === 0) {
-//         // No ambient light samples.
-//         return false;
-//     } else if (leaf.ambientLightSamples.length === 1) {
-//         // Fast path.
-//         const sample = leaf.ambientLightSamples[0];
-//         for (let p = 0; p < 6; p++)
-//             colorCopy(dst[p], sample.ambientCube[p]);
+    if (leaf.ambientLightSamples.length === 0) {
+        // No ambient light samples.
+        return false;
+    } else if (leaf.ambientLightSamples.length === 1) {
+        // Fast path.
+        const sample = leaf.ambientLightSamples[0];
+        for (let p = 0; p < 6; p++)
+            colorCopy(dst[p], sample.ambientCube[p]);
 
-//         return true;
-//     } else {
-//         // Slow path.
-//         for (let p = 0; p < 6; p++)
-//             colorCopy(dst[p], TransparentBlack);
+        return true;
+    } else {
+        // Slow path.
+        for (let p = 0; p < 6; p++)
+            colorCopy(dst[p], TransparentBlack);
 
-//         let totalWeight = 0.0;
+        let totalWeight = 0.0;
 
-//         for (let i = 0; i < leaf.ambientLightSamples.length; i++) {
-//             const sample = leaf.ambientLightSamples[i];
+        for (let i = 0; i < leaf.ambientLightSamples.length; i++) {
+            const sample = leaf.ambientLightSamples[i];
 
-//             // Compute the weight for each sample, using inverse square falloff.
-//             const dist2 = vec3.squaredDistance(sample.pos, pos);
-//             const weight = 1.0 / (dist2 + 1.0);
-//             totalWeight += weight;
+            // Compute the weight for each sample, using inverse square falloff.
+            const dist2 = vec3.squaredDistance(sample.pos, pos);
+            const weight = 1.0 / (dist2 + 1.0);
+            totalWeight += weight;
 
-//             for (let p = 0; p < 6; p++)
-//                 colorScaleAndAdd(dst[p], dst[p], sample.ambientCube[p], weight);
-//         }
+            for (let p = 0; p < 6; p++)
+                colorScaleAndAdd(dst[p], dst[p], sample.ambientCube[p], weight);
+        }
 
-//         for (let p = 0; p < 6; p++)
-//             colorScale(dst[p], dst[p], 1.0 / totalWeight);
+        for (let p = 0; p < 6; p++)
+            colorScale(dst[p], dst[p], 1.0 / totalWeight);
 
-//         return true;
-//     }
-// }
+        return true;
+    }
+}
 
-export function worldLightingCalcColorForPoint(dst: Color, worldlights: WorldLight[], pos: ReadonlyVec3): void {
+export function worldLightingCalcColorForPoint(dst: Color, bspRenderer: BSPRenderer, pos: ReadonlyVec3): void {
     dst.r = 0;
     dst.g = 0;
     dst.b = 0;
 
-    for (let i = 0; i < worldlights.length; i++) {
-        const light = worldlights[i];
+    const bspfile = bspRenderer.bsp;
+    for (let i = 0; i < bspfile.worldlights.length; i++) {
+        const light = bspfile.worldlights[i];
 
         vec3.sub(scratchVec3, light.pos, pos);
         const ratio = worldLightDistanceFalloff(light, scratchVec3);
@@ -5231,44 +5232,35 @@ export class ProjectedLight {
     }
 }
 
-interface HasWorldLights {
-	worldlights: WorldLight[];
-}
-
-interface HasBsp {
-	bsp: HasWorldLights;
-}
-
 const ambientCubeDirections = [ Vec3UnitX, Vec3NegX, Vec3UnitY, Vec3NegY, Vec3UnitZ, Vec3NegZ ] as const;
 export class LightCache {
-	private leaf: number = -1;
+    private leaf: number = -1;
     public envCubemap: Cubemap | null;
 
     private worldLights: LightCacheWorldLight[] = nArray(ShaderTemplate_Generic.MaxDynamicWorldLights, () => new LightCacheWorldLight());
     private ambientCube: AmbientCube = newAmbientCube();
 
-    constructor(bspRenderer: HasBsp, private pos: ReadonlyVec3) {
+    constructor(bspRenderer: BSPRenderer, private pos: ReadonlyVec3) {
         this.calc(bspRenderer);
     }
 
-    // public debugDrawLights(view: SourceEngineView): void {
-    //     for (let i = 0; i < this.worldLights.length; i++) {
-    //         const worldLight = this.worldLights[i].worldLight;
-    //         if (worldLight !== null) {
-    //             const norm = 1 / Math.max(...worldLight.intensity);
-    //             const lightColor = colorNewFromRGBA(worldLight.intensity[0] * norm, worldLight.intensity[1] * norm, worldLight.intensity[2] * norm);
-    //             drawWorldSpacePoint(getDebugOverlayCanvas2D(), view.clipFromWorldMatrix, worldLight.pos, lightColor, 10);
+    public debugDrawLights(view: SourceEngineView): void {
+        // for (let i = 0; i < this.worldLights.length; i++) {
+        //     const worldLight = this.worldLights[i].worldLight;
+        //     if (worldLight !== null) {
+        //         const norm = 1 / Math.max(...worldLight.intensity);
+        //         const lightColor = colorNewFromRGBA(worldLight.intensity[0] * norm, worldLight.intensity[1] * norm, worldLight.intensity[2] * norm);
+        //         drawWorldSpacePoint(getDebugOverlayCanvas2D(), view.clipFromWorldMatrix, worldLight.pos, lightColor, 10);
 
-    //             const lineColorI = [1.0, 0.8, 0.5, 0.0][i];
-    //             const lineColor = colorNewFromRGBA(lineColorI, lineColorI, lineColorI);
-    //             drawWorldSpaceLine(getDebugOverlayCanvas2D(), view.clipFromWorldMatrix, this.pos, worldLight.pos, lineColor, 4);
-    //         }
-    //     }
-    // }
+        //         const lineColorI = [1.0, 0.8, 0.5, 0.0][i];
+        //         const lineColor = colorNewFromRGBA(lineColorI, lineColorI, lineColorI);
+        //         drawWorldSpaceLine(getDebugOverlayCanvas2D(), view.clipFromWorldMatrix, this.pos, worldLight.pos, lineColor, 4);
+        //     }
+        // }
+    }
 
-    private cacheAmbientLight(leaf: unknown): boolean {
-		return true;
-        // return computeAmbientCubeFromLeaf(this.ambientCube, leaf, this.pos);
+    private cacheAmbientLight(leaf: BSPLeaf): boolean {
+        return computeAmbientCubeFromLeaf(this.ambientCube, leaf, this.pos);
     }
 
     private addWorldLightToAmbientCube(light: WorldLight): void {
@@ -5329,21 +5321,20 @@ export class LightCache {
         }
     }
 
-    private calc(bspRenderer: HasBsp): void {
+    private calc(bspRenderer: BSPRenderer): void {
         const bspfile = bspRenderer.bsp;
 
         // Calculate leaf information.
-        // this.leaf = bspfile.findLeafIdxForPoint(this.pos);
-        // assert(this.leaf >= 0);
+        this.leaf = bspfile.findLeafIdxForPoint(this.pos);
+        assert(this.leaf >= 0);
 
-		// Why is this even here??? - Jadon
-        // this.envCubemap = findEnvCubemapTexture(bspfile, this.pos);
+        this.envCubemap = findEnvCubemapTexture(bspfile, this.pos);
 
         // Reset ambient cube to leaf lighting.
-        // const hasAmbientLeafLighting = this.cacheAmbientLight(bspfile.leaflist[this.leaf]);
+        const hasAmbientLeafLighting = this.cacheAmbientLight(bspfile.leaflist[this.leaf]);
 
         // Now go through and cache world lights.
-        this.cacheWorldLights(bspfile.worldlights, true);
+        this.cacheWorldLights(bspfile.worldlights, hasAmbientLeafLighting);
     }
 
     public fillAmbientCube(d: Float32Array, offs: number): number {
@@ -5364,104 +5355,104 @@ export class LightCache {
 //#endregion
 
 //#region Lightmap / Lighting data
-// class LightmapPage {
-//     public gfxTexture: GfxTexture;
-//     public data: Uint8Array;
-//     public uploadDirty = false;
+class LightmapPage {
+    public gfxTexture: GfxTexture;
+    public data: Uint8Array;
+    public uploadDirty = false;
 
-//     constructor(device: GfxDevice, public page: LightmapPackerPage) {
-//         const width = this.page.width, height = this.page.height, numSlices = 4;
+    constructor(device: GfxDevice, public page: LightmapPackerPage) {
+        const width = this.page.width, height = this.page.height, numSlices = 4;
 
-//         // RGBM seems to be good enough for all devices
-//         const pixelFormat = GfxFormat.U8_RGBA_NORM;
-//         this.data = new Uint8Array(width * height * numSlices * 4);
+        // RGBM seems to be good enough for all devices
+        const pixelFormat = GfxFormat.U8_RGBA_NORM;
+        this.data = new Uint8Array(width * height * numSlices * 4);
 
-//         this.gfxTexture = device.createTexture({
-//             dimension: GfxTextureDimension.n2DArray,
-//             usage: GfxTextureUsage.Sampled,
-//             pixelFormat,
-//             width: page.width,
-//             height: page.height,
-//             depthOrArrayLayers: numSlices,
-//             numLevels: 1,
-//         });
+        this.gfxTexture = device.createTexture({
+            dimension: GfxTextureDimension.n2DArray,
+            usage: GfxTextureUsage.Sampled,
+            pixelFormat,
+            width: page.width,
+            height: page.height,
+            depthOrArrayLayers: numSlices,
+            numLevels: 1,
+        });
 
-//         const fillEmptySpaceWithPink = false;
-//         if (fillEmptySpaceWithPink) {
-//             for (let i = 0; i < width * height * numSlices * 4; i += 4) {
-//                 this.data[i+0] = 0xFF;
-//                 this.data[i+1] = 0x00;
-//                 this.data[i+2] = 0xFF;
-//                 this.data[i+3] = 0xFF;
-//             }
-//         }
-//     }
+        const fillEmptySpaceWithPink = false;
+        if (fillEmptySpaceWithPink) {
+            for (let i = 0; i < width * height * numSlices * 4; i += 4) {
+                this.data[i+0] = 0xFF;
+                this.data[i+1] = 0x00;
+                this.data[i+2] = 0xFF;
+                this.data[i+3] = 0xFF;
+            }
+        }
+    }
 
-//     public prepareToRender(device: GfxDevice): void {
-//         const data = this.data;
+    public prepareToRender(device: GfxDevice): void {
+        const data = this.data;
 
-//         if (this.uploadDirty) {
-//             // TODO(jstpierre): Sub-data resource uploads? :/
-//             device.uploadTextureData(this.gfxTexture, 0, [data]);
-//             this.uploadDirty = false;
-//         }
-//     }
+        if (this.uploadDirty) {
+            // TODO(jstpierre): Sub-data resource uploads? :/
+            device.uploadTextureData(this.gfxTexture, 0, [data]);
+            this.uploadDirty = false;
+        }
+    }
 
-//     public destroy(device: GfxDevice): void {
-//         device.destroyTexture(this.gfxTexture);
-//     }
-// }
+    public destroy(device: GfxDevice): void {
+        device.destroyTexture(this.gfxTexture);
+    }
+}
 
-// export class LightmapManager {
-//     private lightmapPages: LightmapPage[] = [];
-//     public gfxSampler: GfxSampler;
-//     public scratchpad = new Float32Array(4 * 128 * 128 * 3);
-//     public pageWidth = 2048;
-//     public pageHeight = 2048;
+export class LightmapManager {
+    private lightmapPages: LightmapPage[] = [];
+    public gfxSampler: GfxSampler;
+    public scratchpad = new Float32Array(4 * 128 * 128 * 3);
+    public pageWidth = 2048;
+    public pageHeight = 2048;
 
-//     constructor(private device: GfxDevice, cache: GfxRenderCache) {
-//         this.gfxSampler = cache.createSampler({
-//             minFilter: GfxTexFilterMode.Bilinear,
-//             magFilter: GfxTexFilterMode.Bilinear,
-//             mipFilter: GfxMipFilterMode.Nearest,
-//             wrapS: GfxWrapMode.Clamp,
-//             wrapT: GfxWrapMode.Clamp,
-//         });
-//     }
+    constructor(private device: GfxDevice, cache: GfxRenderCache) {
+        this.gfxSampler = cache.createSampler({
+            minFilter: GfxTexFilterMode.Bilinear,
+            magFilter: GfxTexFilterMode.Bilinear,
+            mipFilter: GfxMipFilterMode.Nearest,
+            wrapS: GfxWrapMode.Clamp,
+            wrapT: GfxWrapMode.Clamp,
+        });
+    }
 
-//     public fillTextureMapping(m: TextureMapping, lightmapPageIndex: number | null): void {
-//         if (lightmapPageIndex === null)
-//             return;
+    public fillTextureMapping(m: TextureMapping, lightmapPageIndex: number | null): void {
+        if (lightmapPageIndex === null)
+            return;
 
-//         m.gfxTexture = this.getPageTexture(lightmapPageIndex);
-//         m.gfxSampler = this.gfxSampler;
-//     }
+        m.gfxTexture = this.getPageTexture(lightmapPageIndex);
+        m.gfxSampler = this.gfxSampler;
+    }
 
-//     public appendPackerPages(manager: LightmapPacker): number {
-//         const startPage = this.lightmapPages.length;
-//         for (let i = 0; i < manager.pages.length; i++)
-//             this.lightmapPages.push(new LightmapPage(this.device, manager.pages[i]));
-//         return startPage;
-//     }
+    public appendPackerPages(manager: LightmapPacker): number {
+        const startPage = this.lightmapPages.length;
+        for (let i = 0; i < manager.pages.length; i++)
+            this.lightmapPages.push(new LightmapPage(this.device, manager.pages[i]));
+        return startPage;
+    }
 
-//     public prepareToRender(device: GfxDevice): void {
-//         for (let i = 0; i < this.lightmapPages.length; i++)
-//             this.lightmapPages[i].prepareToRender(device);
-//     }
+    public prepareToRender(device: GfxDevice): void {
+        for (let i = 0; i < this.lightmapPages.length; i++)
+            this.lightmapPages[i].prepareToRender(device);
+    }
 
-//     public getPage(pageIndex: number): LightmapPage {
-//         return this.lightmapPages[pageIndex];
-//     }
+    public getPage(pageIndex: number): LightmapPage {
+        return this.lightmapPages[pageIndex];
+    }
 
-//     public getPageTexture(pageIndex: number): GfxTexture {
-//         return this.lightmapPages[pageIndex].gfxTexture;
-//     }
+    public getPageTexture(pageIndex: number): GfxTexture {
+        return this.lightmapPages[pageIndex].gfxTexture;
+    }
 
-//     public destroy(device: GfxDevice): void {
-//         for (let i = 0; i < this.lightmapPages.length; i++)
-//             this.lightmapPages[i].destroy(device);
-//     }
-// }
+    public destroy(device: GfxDevice): void {
+        for (let i = 0; i < this.lightmapPages.length; i++)
+            this.lightmapPages[i].destroy(device);
+    }
+}
 
 // Convert from RGBM-esque storage to linear light
 export function unpackColorRGBExp32(v: number, exp: number): number {
@@ -5507,71 +5498,71 @@ function packRGBM(dst: Uint8Array, dstOffs: number, r: number, g: number, b: num
     return 4;
 }
 
-// function lightmapPackRuntime(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>, src: Float32Array, srcOffs: number): void {
-//     const dst = dstPage.data;
-//     const dstWidth = dstPage.page.width;
+function lightmapPackRuntime(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>, src: Float32Array, srcOffs: number): void {
+    const dst = dstPage.data;
+    const dstWidth = dstPage.page.width;
 
-//     for (let dstY = 0; dstY < location.height; dstY++) {
-//         for (let dstX = 0; dstX < location.width; dstX++) {
-//             let sr = src[srcOffs++], sg = src[srcOffs++], sb = src[srcOffs++];
-//             let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
-//             dstOffs += packRGBM(dst, dstOffs, sr, sg, sb);
-//         }
-//     }
-// }
+    for (let dstY = 0; dstY < location.height; dstY++) {
+        for (let dstX = 0; dstX < location.width; dstX++) {
+            let sr = src[srcOffs++], sg = src[srcOffs++], sb = src[srcOffs++];
+            let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
+            dstOffs += packRGBM(dst, dstOffs, sr, sg, sb);
+        }
+    }
+}
 
-// function lightmapPackRuntimeWhite(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>): void {
-//     const dst = dstPage.data;
-//     const dstWidth = dstPage.page.width;
+function lightmapPackRuntimeWhite(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>): void {
+    const dst = dstPage.data;
+    const dstWidth = dstPage.page.width;
 
-//     for (let dstY = 0; dstY < location.height; dstY++) {
-//         for (let dstX = 0; dstX < location.width; dstX++) {
-//             let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
-//             dstOffs += packRGBM(dst, dstOffs, 1.0, 1.0, 1.0);
-//         }
-//     }
-// }
+    for (let dstY = 0; dstY < location.height; dstY++) {
+        for (let dstX = 0; dstX < location.width; dstX++) {
+            let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
+            dstOffs += packRGBM(dst, dstOffs, 1.0, 1.0, 1.0);
+        }
+    }
+}
 
-// function lightmapPackRuntimeBumpmap(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>, src: Float32Array, srcOffs: number): void {
-//     const dst = dstPage.data;
-//     const srcTexelCount = location.width * location.height;
-//     const srcSize = srcTexelCount * 3;
-//     const dstWidth = dstPage.page.width, dstHeight = dstPage.page.height;
-//     const dstSize = dstWidth * dstHeight * 4;
+function lightmapPackRuntimeBumpmap(dstPage: LightmapPage, location: Readonly<SurfaceLightmapData>, src: Float32Array, srcOffs: number): void {
+    const dst = dstPage.data;
+    const srcTexelCount = location.width * location.height;
+    const srcSize = srcTexelCount * 3;
+    const dstWidth = dstPage.page.width, dstHeight = dstPage.page.height;
+    const dstSize = dstWidth * dstHeight * 4;
 
-//     let srcOffs0 = srcOffs, srcOffs1 = srcOffs + srcSize * 1, srcOffs2 = srcOffs + srcSize * 2, srcOffs3 = srcOffs + srcSize * 3;
-//     for (let dstY = 0; dstY < location.height; dstY++) {
-//         for (let dstX = 0; dstX < location.width; dstX++) {
-//             let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
-//             let dstOffs0 = dstOffs, dstOffs1 = dstOffs + dstSize * 1, dstOffs2 = dstOffs + dstSize * 2, dstOffs3 = dstOffs + dstSize * 3;
+    let srcOffs0 = srcOffs, srcOffs1 = srcOffs + srcSize * 1, srcOffs2 = srcOffs + srcSize * 2, srcOffs3 = srcOffs + srcSize * 3;
+    for (let dstY = 0; dstY < location.height; dstY++) {
+        for (let dstX = 0; dstX < location.width; dstX++) {
+            let dstOffs = ((location.pagePosY + dstY) * dstWidth + location.pagePosX + dstX) * 4;
+            let dstOffs0 = dstOffs, dstOffs1 = dstOffs + dstSize * 1, dstOffs2 = dstOffs + dstSize * 2, dstOffs3 = dstOffs + dstSize * 3;
 
-//             const s0r = src[srcOffs0++], s0g = src[srcOffs0++], s0b = src[srcOffs0++];
+            const s0r = src[srcOffs0++], s0g = src[srcOffs0++], s0b = src[srcOffs0++];
 
-//             // Lightmap 0 is easy (unused tho).
-//             dstOffs0 += packRGBM(dst, dstOffs0, s0r, s0g, s0b);
+            // Lightmap 0 is easy (unused tho).
+            dstOffs0 += packRGBM(dst, dstOffs0, s0r, s0g, s0b);
 
-//             // Average the bumped colors to normalize (this math is very wrong, but it's what Valve appears to do)
-//             let s1r = src[srcOffs1++], s1g = src[srcOffs1++], s1b = src[srcOffs1++];
-//             let s2r = src[srcOffs2++], s2g = src[srcOffs2++], s2b = src[srcOffs2++];
-//             let s3r = src[srcOffs3++], s3g = src[srcOffs3++], s3b = src[srcOffs3++];
+            // Average the bumped colors to normalize (this math is very wrong, but it's what Valve appears to do)
+            let s1r = src[srcOffs1++], s1g = src[srcOffs1++], s1b = src[srcOffs1++];
+            let s2r = src[srcOffs2++], s2g = src[srcOffs2++], s2b = src[srcOffs2++];
+            let s3r = src[srcOffs3++], s3g = src[srcOffs3++], s3b = src[srcOffs3++];
 
-//             let sr = (s1r + s2r + s3r) / 3.0;
-//             let sg = (s1g + s2g + s3g) / 3.0;
-//             let sb = (s1b + s2b + s3b) / 3.0;
+            let sr = (s1r + s2r + s3r) / 3.0;
+            let sg = (s1g + s2g + s3g) / 3.0;
+            let sb = (s1b + s2b + s3b) / 3.0;
 
-//             if (sr !== 0.0)
-//                 sr = s0r / sr;
-//             if (sg !== 0.0)
-//                 sg = s0g / sg;
-//             if (sb !== 0.0)
-//                 sb = s0b / sb;
+            if (sr !== 0.0)
+                sr = s0r / sr;
+            if (sg !== 0.0)
+                sg = s0g / sg;
+            if (sb !== 0.0)
+                sb = s0b / sb;
 
-//             dstOffs1 += packRGBM(dst, dstOffs1, s1r * sr, s1g * sg, s1b * sb);
-//             dstOffs2 += packRGBM(dst, dstOffs2, s2r * sr, s2g * sg, s2b * sb);
-//             dstOffs3 += packRGBM(dst, dstOffs3, s3r * sr, s3g * sg, s3b * sb);
-//         }
-//     }
-// }
+            dstOffs1 += packRGBM(dst, dstOffs1, s1r * sr, s1g * sg, s1b * sb);
+            dstOffs2 += packRGBM(dst, dstOffs2, s2r * sr, s2g * sg, s2b * sb);
+            dstOffs3 += packRGBM(dst, dstOffs3, s3r * sr, s3g * sg, s3b * sb);
+        }
+    }
+}
 
 export class WorldLightingState {
     public styleIntensities = new Float32Array(64);
@@ -5634,75 +5625,75 @@ export class WorldLightingState {
     }
 }
 
-// export class SurfaceLightmap {
-//     // The styles that we built our lightmaps for.
-//     public lightmapStyleIntensities: number[];
+export class SurfaceLightmap {
+    // The styles that we built our lightmaps for.
+    public lightmapStyleIntensities: number[];
 
-//     constructor(public lightmapData: SurfaceLightmapData, private wantsLightmap: boolean, private wantsBumpmap: boolean) {
-//         this.lightmapStyleIntensities = nArray(this.lightmapData.styles.length, () => -1);
-//     }
+    constructor(public lightmapData: SurfaceLightmapData, private wantsLightmap: boolean, private wantsBumpmap: boolean) {
+        this.lightmapStyleIntensities = nArray(this.lightmapData.styles.length, () => -1);
+    }
 
-//     public checkDirty(renderContext: SourceRenderContext): boolean {
-//         const worldLightingState = renderContext.worldLightingState;
+    public checkDirty(renderContext: SourceRenderContext): boolean {
+        const worldLightingState = renderContext.worldLightingState;
 
-//         if (!this.wantsLightmap)
-//             return false;
+        if (!this.wantsLightmap)
+            return false;
 
-//         for (let i = 0; i < this.lightmapData.styles.length; i++) {
-//             const styleIdx = this.lightmapData.styles[i];
-//             if (worldLightingState.styleIntensities[styleIdx] !== this.lightmapStyleIntensities[i])
-//                 return true;
-//         }
+        for (let i = 0; i < this.lightmapData.styles.length; i++) {
+            const styleIdx = this.lightmapData.styles[i];
+            if (worldLightingState.styleIntensities[styleIdx] !== this.lightmapStyleIntensities[i])
+                return true;
+        }
 
-//         return false;
-//     }
+        return false;
+    }
 
-//     public buildLightmap(renderContext: SourceRenderContext, managerPageIndex: number): void {
-//         const worldLightingState = renderContext.worldLightingState;
-//         const scratchpad = renderContext.lightmapManager.scratchpad;
+    public buildLightmap(renderContext: SourceRenderContext, managerPageIndex: number): void {
+        const worldLightingState = renderContext.worldLightingState;
+        const scratchpad = renderContext.lightmapManager.scratchpad;
 
-//         const dstPage = renderContext.lightmapManager.getPage(managerPageIndex);
-//         const hasLightmap = this.lightmapData.samples !== null;
-//         if (this.wantsLightmap && hasLightmap) {
-//             const texelCount = this.lightmapData.width * this.lightmapData.height;
-//             const srcNumLightmaps = (this.wantsBumpmap && this.lightmapData.hasBumpmapSamples) ? 4 : 1;
-//             const srcSize = srcNumLightmaps * texelCount * 4;
+        const dstPage = renderContext.lightmapManager.getPage(managerPageIndex);
+        const hasLightmap = this.lightmapData.samples !== null;
+        if (this.wantsLightmap && hasLightmap) {
+            const texelCount = this.lightmapData.width * this.lightmapData.height;
+            const srcNumLightmaps = (this.wantsBumpmap && this.lightmapData.hasBumpmapSamples) ? 4 : 1;
+            const srcSize = srcNumLightmaps * texelCount * 4;
 
-//             scratchpad.fill(0);
-//             assert(scratchpad.byteLength >= srcSize);
+            scratchpad.fill(0);
+            assert(scratchpad.byteLength >= srcSize);
 
-//             let srcOffs = 0;
-//             for (let i = 0; i < this.lightmapData.styles.length; i++) {
-//                 const styleIdx = this.lightmapData.styles[i];
-//                 const intensity = worldLightingState.styleIntensities[styleIdx];
-//                 lightmapAccumLight(scratchpad, 0, this.lightmapData.samples!, srcOffs, srcSize, intensity);
-//                 srcOffs += srcSize;
-//                 this.lightmapStyleIntensities[i] = intensity;
-//             }
+            let srcOffs = 0;
+            for (let i = 0; i < this.lightmapData.styles.length; i++) {
+                const styleIdx = this.lightmapData.styles[i];
+                const intensity = worldLightingState.styleIntensities[styleIdx];
+                lightmapAccumLight(scratchpad, 0, this.lightmapData.samples!, srcOffs, srcSize, intensity);
+                srcOffs += srcSize;
+                this.lightmapStyleIntensities[i] = intensity;
+            }
 
-//             if (this.wantsBumpmap && !this.lightmapData.hasBumpmapSamples) {
-//                 // Game wants bumpmap samples but has none. Copy from primary lightsource.
-//                 const src = new Float32Array(scratchpad.buffer, 0, srcSize * 3);
-//                 for (let i = 1; i < 4; i++) {
-//                     const dst = new Float32Array(scratchpad.buffer, i * srcSize * 3, srcSize * 3);
-//                     dst.set(src);
-//                 }
-//             }
+            if (this.wantsBumpmap && !this.lightmapData.hasBumpmapSamples) {
+                // Game wants bumpmap samples but has none. Copy from primary lightsource.
+                const src = new Float32Array(scratchpad.buffer, 0, srcSize * 3);
+                for (let i = 1; i < 4; i++) {
+                    const dst = new Float32Array(scratchpad.buffer, i * srcSize * 3, srcSize * 3);
+                    dst.set(src);
+                }
+            }
 
-//             if (this.wantsBumpmap) {
-//                 lightmapPackRuntimeBumpmap(dstPage, this.lightmapData, scratchpad, 0);
-//             } else {
-//                 lightmapPackRuntime(dstPage, this.lightmapData, scratchpad, 0);
-//             }
-//         } else if (this.wantsLightmap && !hasLightmap) {
-//             // Fill with white. Handles both bump & non-bump cases.
-//             lightmapPackRuntimeWhite(dstPage, this.lightmapData);
-//         }
+            if (this.wantsBumpmap) {
+                lightmapPackRuntimeBumpmap(dstPage, this.lightmapData, scratchpad, 0);
+            } else {
+                lightmapPackRuntime(dstPage, this.lightmapData, scratchpad, 0);
+            }
+        } else if (this.wantsLightmap && !hasLightmap) {
+            // Fill with white. Handles both bump & non-bump cases.
+            lightmapPackRuntimeWhite(dstPage, this.lightmapData);
+        }
 
-//         dstPage.uploadDirty = true;
-//         renderContext.debugStatistics.lightmapsBuilt++;
-//     }
-// }
+        dstPage.uploadDirty = true;
+        renderContext.debugStatistics.lightmapsBuilt++;
+    }
+}
 //#endregion
 
 //#region Material Proxy System

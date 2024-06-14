@@ -66,7 +66,7 @@ export class DeviceProgram {
     }
 
     private _editShader(n: 'vert' | 'frag' | 'both') {
-		throw Error('Code editor has been stripped! DO NOT CALL THIS! - Koerismo');
+		throw Error('silly!!');
         // const win = assertExists(window.open('about:blank', undefined, `location=off, resizable, alwaysRaised, left=20, top=20, width=1200, height=900`));
         // const init = () => {
         //     const editor = new CodeEditor(win.document);
