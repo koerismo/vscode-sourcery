@@ -3,7 +3,7 @@ import { setLogTarget } from 'sfs-js';
 
 import { VpkFileSystemProvider } from './vpk-provider.js';
 import { ModFilesystemProvider } from './mod-mount.js';
-import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider } from './vmt-provider.js';
+import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt-provider.js';
 import { ValveTextureEditorProvider } from './vtf-editor.js';
 import { ValveMaterialEditorProvider } from './vmt-editor.js';
 import { ValveModelEditorProvider } from './mdl-editor.js';
@@ -51,6 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 		ValveModelEditorProvider.register(context),
 		VmtAutocompleteProvider.register(context),
 		VmtCodeActionProvider.register(context),
+		VmtChangeListener.register(context),
 		// MaterialBrowserManager.register(context),
 	);
 

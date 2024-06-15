@@ -111,6 +111,7 @@ export class Main {
 	DO_CUSTOM_SETUP() {
 		this.viewer.setCameraController(new FPSCameraController());
 		
+		// const MODELVIEW = new HalfLife2SceneDesc('d1_trainstation_01', 'd1_trainstation_01');
 		const MODELVIEW = new HalfLife2SceneDesc('background02', 'background02');
 		console.log('HERE WE GO BITCHES');
 		this._loadSceneDesc(MODELVIEW, true);
@@ -290,7 +291,7 @@ export class Main {
         // prepareFrameDebugOverlayCanvas2D();
 
         // Needs to be called before this.viewer.update()
-        const shouldTakeScreenshot = this.viewer.inputManager.isKeyDownEventTriggered('Numpad7') || this.viewer.inputManager.isKeyDownEventTriggered('BracketRight');
+        // const shouldTakeScreenshot = this.viewer.inputManager.isKeyDownEventTriggered('Numpad7') || this.viewer.inputManager.isKeyDownEventTriggered('BracketRight');
 
         let sceneTimeScale = this.sceneTimeScale;
         // if (!this.ui.isPlaying) {

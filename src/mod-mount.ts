@@ -65,20 +65,29 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	isReady() {
-		return this.gfs.initialized;
+		return !!(this.gfs?.initialized);
 	}
 	
 	constructor() {
 		const root = getWorkspaceUri();
 		if (!root) return;
-
-		this.vfs = new VSCodeSystem();
-		const steam_cache = findSteamCache(this.vfs);
-		this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
-		this.gfs.validate().then(x => {
-			if (!x) return;
-			vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
-		});
+		(async () => {
+			try {
+				// Check if gameinfo exists. vscode's api throws if it doesn't find it, so we skip the whole init.
+				await vscode.workspace.fs.stat(vscode.Uri.joinPath(root, 'gameinfo.txt'));
+	
+				this.vfs = new VSCodeSystem();
+				const steam_cache = findSteamCache(this.vfs);
+				this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
+				this.gfs.validate().then(x => {
+					if (!x) return;
+					vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
+				});
+			}
+			catch {
+				outConsole.log('No gameinfo found.');
+			}
+		})();
 	}
 
 	private _onDidChangeFile = new vscode.EventEmitter<vscode.FileChangeEvent[]>();

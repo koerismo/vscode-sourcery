@@ -145,6 +145,11 @@
 						"~/.steam/steamapps/common/Portal 2/bin/"
 					]
 				},
+				"sourcery.vmt.convertOnPaste": {
+					"description": "Automatically convert textures when pasted into VMTs? If multiple textures are pasted at the same time, they are merged as an alpha-masked tetxure.",
+					"type": "boolean",
+					"default": true
+				},
 				"sourcery.vmt.modelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
@@ -153,17 +158,7 @@
 				"sourcery.vmt.notFound": {
 					"description": "Enable warnings for missing textures?",
 					"type": "boolean",
-					"default": true
-				},
-				"sourcery.vmt.invalidParameter": {
-					"description": "Enable warnings for parameter combos not supported by the specified shader?",
-					"type": "boolean",
-					"default": true
-				},
-				"sourcery.model.skinEditorPath": {
-					"description": "The path to the Skin Editor tool executable.",
-					"type": "string",
-					"default": ""
+					"default": false
 				},
 				"sourcery.model.crowbarPath": {
 					"description": "The path to the Crowbar tool executable.",
@@ -205,6 +200,7 @@
 		"fast-vdf": "^2.0.2",
 		"gl-matrix": "^3.4.3",
 		"glob": "^10.4.1",
+		"image-decode": "^1.2.2",
 		"mocha": "^10.4.0",
 		"node-loader": "^2.0.0",
 		"sfs-js": "link:../sfs-js",
