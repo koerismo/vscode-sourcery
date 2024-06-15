@@ -127,7 +127,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 					});
 				}
 
-				if (!await modFilesystem.gfs.stat(link.target!.path)) {
+				if (!await modFilesystem.gfs.stat(link.target!.path.toLowerCase())) {
 					if (config.get('notFound')) diagnostics.push({
 						severity: vscode.DiagnosticSeverity.Warning,
 						message: `Texture could not be found within game!`,

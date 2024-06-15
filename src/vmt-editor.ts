@@ -4,8 +4,10 @@ import { KeyV, KeyVRoot, KeyVSet, parse as parseVdf } from 'fast-vdf';
 import { ValveTextureDocument } from './vtf-editor.js';
 import { modFilesystem } from './mod-mount.js';
 import { normalize } from 'path/posix';
+import { createServer, type Server } from 'http';
 
 const RE_SLASH = /(\/|\\)+/g;
+const HOST_PORT = 50001;
 
 function getImagePath(value: string) {
 	let path = ('/materials/' + value).replace(RE_SLASH, '/') + '.vtf';
@@ -47,6 +49,7 @@ interface ConfigUpdate {
 
 export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvider {
 	private readonly context: vscode.ExtensionContext;
+	server: Server | null = null;
 
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -54,24 +57,60 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 
 	static register(context: vscode.ExtensionContext) {
 		const editor = new this(context);
-		return vscode.window.registerCustomEditorProvider('sourcery.vmt', editor, {
+		const register = vscode.window.registerCustomEditorProvider('sourcery.vmt', editor, {
 			supportsMultipleEditorsPerDocument: true,
 			webviewOptions: { enableFindWidget: false, retainContextWhenHidden: true }
 		});
+
+		return new vscode.Disposable(() => {
+			editor.dispose();
+			register.dispose();
+		});
+	}
+
+	async startup(): Promise<void> {
+		if (this.server) return Promise.resolve() ;
+		console.log('Starting up VMT server...');
+		return new Promise(resolve => {
+			this.server = createServer(async (req, res) => {
+				if (!modFilesystem.isReady()) {
+					res.writeHead(500);
+					res.end();
+					return;
+				}
+				res.writeHead(200, { 'access-control-allow-origin': '*' });
+				const out = await modFilesystem.gfs.readFile(req.url!, undefined, true);
+				if (!out) {
+					res.end();
+					return;
+				}
+				res.end(out);
+
+			}).listen(HOST_PORT, 'localhost', () => {
+				console.log('Listening!!!');
+				resolve();
+			});
+		});
+	}
+
+	dispose() {
+		if (this.server) this.server.close();
 	}
 
 	getHtml(view: vscode.Webview) {
 		const path = (path: string) => {
 			return view.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, path));
 		};
+		console.log(view.cspSource);
 
 		return `
 		<!DOCTYPE html>
 		<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src ${view.cspSource} 'unsafe-eval';">
+				<meta http-equiv="Content-Security-Policy" content="default-src ${view.cspSource} 'unsafe-eval'; connect-src http://localhost:${HOST_PORT}/ https://*.vscode-cdn.net">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
+				<meta name="mod_uri" content="${view.asWebviewUri(vscode.Uri.from({ scheme: 'mod', path: '/' }))}">
 				<link rel="stylesheet" href="${path('public/css/vmt-editor.css')}" />
 			</head>
 			<body>
@@ -82,22 +121,14 @@ export class ValveMaterialEditorProvider implements vscode.CustomTextEditorProvi
 	}
 	
 	async resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
-		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public'), vscode.Uri.from({ scheme: 'mod', path: '/' })] };
-		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
+		await this.startup();
 
-		const sendFile = async (path: string) => {
-			const file = await modFilesystem.gfs.readFile(normalize('/'+path));
-			webviewPanel.webview.postMessage({
-				path: path,
-				data: file ?? null
-			});
+		webviewPanel.webview.options = {
+			enableScripts: true,
+			portMapping: [{ extensionHostPort: HOST_PORT, webviewPort: HOST_PORT }],
+			localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')]
 		};
-
-		webviewPanel.webview.onDidReceiveMessage(message => {
-			if (message.path) {
-				sendFile(message.path);
-			}
-		});
+		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
 		// Register document edit listener
 		// const updateListener = vscode.workspace.onDidChangeTextDocument((event) => {
