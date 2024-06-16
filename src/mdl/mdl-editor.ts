@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { MdlInfo, readInfo, writeInfo } from './mdl-skins.js';
-import { outConsole } from './extension.js';
+import { outConsole } from '../extension.js';
+import EditorHTML from './editor.html';
 
 export class ValveModelDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
@@ -50,21 +51,9 @@ export class ValveModelEditorProvider implements vscode.CustomReadonlyEditorProv
 			return view.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, path));
 		};
 
-		return `
-		<!DOCTYPE html>
-		<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${view.cspSource}; style-src ${view.cspSource}; script-src ${view.cspSource};">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="${path('public/css/mdl-editor.css')}" />
-			</head>
-			<body>
-				<canvas id="image"></canvas>
-				<script src="${path('public/dist/mdl-editor.js')}"></script>
-			</body>
-		</html>
-		`;
+		return EditorHTML
+			.replaceAll('$ROOT$', this.context.extensionUri.toString())
+			.replaceAll('$CSP$', view.cspSource);
 	}
 	
 	async resolveCustomEditor(document: ValveModelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
@@ -72,7 +61,6 @@ export class ValveModelEditorProvider implements vscode.CustomReadonlyEditorProv
 		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
-		// Write mdl. (Not implemented!!)
 		webviewPanel.webview.onDidReceiveMessage(event => {
 			outConsole.log('Trying to update mdl!!', event);
 		});

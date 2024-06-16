@@ -45,6 +45,10 @@ const extensionConfig = {
 			{
 				test: /\.node$/,
 				loader: 'node-loader',
+			},
+			{
+				test: /\.html$/,
+				loader: 'raw-loader',
 			}
 		],
 	},

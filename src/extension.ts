@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { setLogTarget } from 'sfs-js';
+import { MountServerManager } from './mod-server.js';
 
 import { VpkFileSystemProvider } from './vpk-provider.js';
 import { ModFilesystemProvider } from './mod-mount.js';
-import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt-provider.js';
+import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
+import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
 import { ValveTextureEditorProvider } from './vtf-editor.js';
-import { ValveMaterialEditorProvider } from './vmt-editor.js';
-import { ValveModelEditorProvider } from './mdl-editor.js';
+import { ValveDetailEditorProvider } from './detail/detail-editor.js';
+import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
 // import { MaterialBrowserManager } from './vmt-browser';
 
 // Commands
@@ -43,9 +45,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Register providers
 	context.subscriptions.push(
+		// Common server for sharing mod:// resources with webviews
+		MountServerManager.register(context),
+
 		VpkFileSystemProvider.register(),
 		ModFilesystemProvider.register(),
 		VmtLinkProvider.register(),
+		ValveDetailEditorProvider.register(context),
 		ValveTextureEditorProvider.register(context),
 		ValveMaterialEditorProvider.register(context),
 		ValveModelEditorProvider.register(context),

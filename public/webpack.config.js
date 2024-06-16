@@ -9,6 +9,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 /** @type WebpackConfig */
 const config = {
     entry: {
+		'detail-editor': './public/src/detail-editor/index.ts',
+		'soundscape-editor': './public/src/soundscape-editor/index.ts',
 		'mdl-editor': './public/src/mdl-editor/index.ts',
 		'vtf-editor': './public/src/vtf-editor/index.ts',
 		'vmt-editor': './public/src/vmt-editor/index.ts',

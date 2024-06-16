@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import { vpkFileSystemProvider } from './vpk-provider.js';
+import { vpkFileSystemProvider } from '../vpk-provider.js';
 import { Vtf, VImageData } from 'vtf-js';
-import { outConsole } from './extension.js';
+import { outConsole } from '../extension.js';
 
 // function *walkFileSystem(root: string): Generator<string> {
 // 	for (const provider of modFilesystem.gfs.providers) {

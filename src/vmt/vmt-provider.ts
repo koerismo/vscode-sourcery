@@ -1,13 +1,14 @@
 import * as vscode from 'vscode';
-import { modFilesystem, getPathAutocomplete } from './mod-mount.js';
-import { outConsole } from './extension.js';
+import { modFilesystem, getPathAutocomplete } from '../mod-mount.js';
+import { outConsole } from '../extension.js';
 import { existsSync } from 'fs';
 import { extname, dirname, basename, join, relative, sep } from 'path';
+// @ts-expect-error No types :(
 import * as decodeImage from 'image-decode';
 import { VFilters, VFlags, VFormats, VImageData, VMipmapProvider, Vtf } from 'vtf-js';
 
 const RE_SLASH = /(\/|\\)+/g;
-const RE_LINE_ONLYKEY = /^\s*("?)(\$[^"\s]+)\1\s*\"?/;
+const RE_LINE_ONLYKEY = /^\s*("?)(\$[^"\s]+)\1\s*\"?$/;
 const RE_LINE_START = /^\s*("?)(\$[^"\s]+)\1\s+(?:"?)([^"\s]*)/;
 const RE_LINE = /^\s*("?)(\$[^"\s]+)\1\s+("?)([^"\s]*)\3/;
 const RE_MODEL_PATH = /^(?:\/|\\)?props?(_\w+)?(?:\/|\\)/;
@@ -19,7 +20,6 @@ const RE_TEX_AO = /(ao|occlusion|occ)\..+$/i;
 
 const VTF_CONVERT_OPTIONS = {
 	filter: VFilters.Triangle,
-	mipmaps: 1
 };
 
 const IMAGE_EXTS = new Set([
@@ -265,7 +265,7 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 	
 	if (ext === '.vtf') {
 		vtf = Vtf.decode(data.buffer, false, true);
-		if (!requireDecode && (vtf.version <= idealVersion || !(await askToDowngrade()))) vtfout = data.buffer;
+		if (vtf.version <= idealVersion || !(await askToDowngrade())) vtfout = data.buffer;
 		else {
 			vtf.version = idealVersion;
 			if (requireEncode) vtfout = vtf.encode();
@@ -297,13 +297,21 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 
 export class VmtChangeListener {
 	static register(context: vscode.ExtensionContext) {
-		return vscode.workspace.onDidChangeTextDocument(async event => {
+		// const changeListener = vscode.workspace.onDidChangeTextDocument(this.handleDocumentUpdate.bind(this));
+		// return new vscode.Disposable(() => {
+		// 	changeListener.dispose();
+		// });
+		return vscode.workspace.onDidChangeTextDocument(this.handleDocumentUpdate.bind(this));
+	}
+
+	static async handleDocumentUpdate(event: vscode.TextDocumentChangeEvent) {
 			if (!modFilesystem.isReady()) return; // Ignore if no game is active
 
 			if (!event.document.uri.path.endsWith('.vmt')) return;
 			if (event.reason === 1 || event.reason === 2) return; // Ignore undo/redo event
 			if (event.contentChanges.length !== 1) return; // Something weird is happening that isn't a text insert
-			if (!vscode.workspace.getConfiguration('sourcery.vmt', event.document.uri).get('convertOnPaste')) return; // This feature is disabled.
+			const config = vscode.workspace.getConfiguration('sourcery.vmt', event.document.uri);
+			if (!config.get('convertOnPaste')) return; // This feature is disabled.
 			
 			// On text insert
 			const change = event.contentChanges[0];
@@ -316,6 +324,13 @@ export class VmtChangeListener {
 			if (!linematch) return outConsole.log('Did not match key regex!');
 			const key = linematch[2] as (keyof typeof POSTFIX);
 			outConsole.log('Using key', key, 'for conversion.');
+
+			// Get new Vtf path
+			const dir = dirname(event.document.uri.path);
+			const new_path = join( dir, basename(event.document.uri.path, '.vmt') + POSTFIX[key] + '.vtf');
+			const new_name = relative(join(modFilesystem.gfs.modroot, 'materials'), new_path.slice(0, -4));
+
+			if (!config.get('convertOnPasteOverwrite') && existsSync(new_path)) return outConsole.log('Ignoring paste. File already exists with the same name!');
 
 			// Extract paths
 			const paths_lines_split = change.text.split('\n');
@@ -401,11 +416,6 @@ export class VmtChangeListener {
 				if (!IMAGE_EXTS.has(ext_alpha)) return outConsole.log('VMT: Ignoring unsupported alpha extension');
 				if (!existsSync(path_alpha)) return;
 			}
-
-			// Get new Vtf path
-			const dir = dirname(event.document.uri.path);
-			const new_path = join( dir, basename(event.document.uri.path, '.vmt') + POSTFIX[key] + '.vtf');
-			const new_name = relative(join(modFilesystem.gfs.modroot, 'materials'), new_path.slice(0, -4));
 			
 			// ======== PROCESS IMAGE(S) ==========
 
@@ -485,6 +495,5 @@ export class VmtChangeListener {
 			vscode.window.activeTextEditor?.edit(editor => {
 				editor.replace(paste_range, new_name);
 			});
-		});
 	}
 }

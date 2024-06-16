@@ -1,5 +1,4 @@
 import { ViewBuffer } from 'stupid-buffer';
-import { readFileSync } from 'fs';
 
 export interface MdlInfo {
 	texturedirs: string[];

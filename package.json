@@ -112,6 +112,16 @@
 						"filenamePattern": "**/*.mdl"
 					}
 				]
+			},
+			{
+				"viewType": "sourcery.detail",
+				"displayName": "Valve Detail",
+				"priority": "default",
+				"selector": [
+					{
+						"filenamePattern": "**/*.vbsp"
+					}
+				]
 			}
 		],
 		"taskDefinitions": [
@@ -146,7 +156,12 @@
 					]
 				},
 				"sourcery.vmt.convertOnPaste": {
-					"description": "Automatically convert textures when pasted into VMTs? If multiple textures are pasted at the same time, they are merged as an alpha-masked tetxure.",
+					"description": "Automatically convert textures when pasted into Vmts? If multiple textures are pasted at the same time, they are contextually merged.",
+					"type": "boolean",
+					"default": true
+				},
+				"sourcery.vmt.convertOnPasteOverwrite": {
+					"description": "Allow Convert-On-Paste to overwrite existing textures?",
 					"type": "boolean",
 					"default": true
 				},
@@ -191,6 +206,7 @@
 		"@types/vscode": "^1.90.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
+		"@vscode/codicons": "^0.0.36",
 		"@vscode/test-electron": "^2.4.0",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
 		"@vscode/windows-registry": "^1.1.0",
@@ -203,6 +219,7 @@
 		"image-decode": "^1.2.2",
 		"mocha": "^10.4.0",
 		"node-loader": "^2.0.0",
+		"raw-loader": "^4.0.2",
 		"sfs-js": "link:../sfs-js",
 		"struxt": "^3.5.4",
 		"stupid-buffer": "^1.0.0",

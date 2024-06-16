@@ -1,0 +1,217 @@
+@import url('../../node_modules/@vscode/codicons/dist/codicon.css');
+
+body, html {
+	width: 100vw;
+	height: 100vh;
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body {
+	padding: 10px;
+	flex-direction: row;
+	display: flex;
+	justify-content: stretch;
+	gap: 10px;
+}
+
+/* =================================== BASE LAYOUT =================================== */
+
+h2 {
+	color: var(--vscode-panelSectionHeader-foreground);
+	cursor: default;
+	text-transform: uppercase;
+    font-size: 11px;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+	background-color: var(--vscode-sideBar-background);
+	padding: 10px;
+	margin: 0px;
+
+	/* Prevent shrinking. Maybe this is not a good idea? */
+	flex-shrink: 0;
+}
+
+.h {
+	display: flex;
+	flex-direction: row;
+	justify-content: stretch;
+	gap: 10px;
+}
+
+.v {
+	display: flex;
+	flex-direction: column;
+	justify-content: stretch;
+	gap: 10px;
+}
+
+.v > .fill { height: 100% }
+.h > .fill { width: 100% }
+tr > .fill { width: 100% }
+
+div.panel {
+	display: flex;
+	flex-direction: column;
+
+	position: relative;
+	border: 1px solid var(--vscode-panel-border);
+	background-color: var(--vscode-editorPane-background);
+	/* background: var(--vscode-sideBarTitle-background); */
+}
+
+div.panel.panel-small {
+	height: min(150px, 50%);
+}
+
+/* =================================== TABLE =================================== */
+
+table.edit-table {
+	text-align: left;
+	border: none;
+	border-collapse: collapse;
+
+	/* height: 100px; */
+    overflow-y: scroll;
+    display: flex;
+    scrollbar-width: thin;
+}
+
+table.edit-table tbody {
+	display: table;
+	width: 100%;
+}
+
+table.edit-table tr {
+	position: relative;
+}
+
+table.edit-table tr.header {
+	position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--vscode-panel-background);
+}
+
+table.edit-table tr::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+}
+
+table.edit-table tr.active::after {
+	z-index: -10;
+}
+
+table.edit-table tr:hover {
+	background-color: var(--vscode-list-hoverBackground);
+}
+
+table.edit-table tr.active {
+	background-color: var(--vscode-list-activeSelectionBackground);
+	/* outline: 1px solid var(--vscode-list-focusOutline); */
+}
+
+table.edit-table td {
+	padding: 0px 5px;
+}
+
+table.edit-table th {
+	padding: 5px 10px;
+}
+
+table.edit-table td > input {
+	padding: 5px;
+	background-color: transparent;
+	border: none;
+	outline: 1px solid transparent;
+	color: var(--vscode-foreground);
+}
+
+table.edit-table td > input:focus {
+	background-color: var(--vscode-input-background);
+	outline: 1px solid var(--vscode-foreground);
+	outline-color: var(--vscode-list-focusOutline);
+}
+
+/* =================================== INPUT WIDTHS =================================== */
+
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+	-webkit-appearance: none; 
+	margin: 0;
+}
+
+input {
+	width: 100%;
+}
+
+input[type=number] {
+	width: 80px;
+}
+
+
+/* =================================== SPECIAL =================================== */
+
+
+div.btn-container {
+	position: absolute;
+	right: 0;
+	top: 0;
+}
+
+div.btn-list-add,
+div.btn-list-remove {
+	padding: 9px;
+	color: var(--vscode-icon-foreground);
+}
+
+div.btn-list-add:hover,
+div.btn-list-remove:hover {
+	padding: 9px;
+	background-color: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
+}
+
+div.prop-grid {
+	padding: 5px 10px;
+	display: grid;
+	gap: 5px;
+	grid-template-columns: auto auto;
+	grid-auto-rows: max(26px, auto);
+	line-height: 26px;
+}
+
+.edit-icon {
+	width: 64px;
+	height: 64px;
+	aspect-ratio: 1/1;
+	background-color: transparent;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 2px;
+	cursor: pointer;
+}
+
+.edit-icon:hover {
+	border-color: var(--vscode-inputOption-activeBorder);
+}
+
+div.prop-grid input {
+	width: 100%;
+	background-color: var(--vscode-input-background);
+	outline-color: var(--vscode-inputOption-activeBorder);
+	color: var(--vscode-input-foreground);
+	border: 1px solid var(--vscode-input-border);
+}
+
+div.prop-grid vscode-dropdown {
+	width: 100%;
+}

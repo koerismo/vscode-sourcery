@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval';">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="$ROOT$/public/css/detail-editor.css" />
+	</head>
+	<body class="h">
+		<div class="v fill">
+			<div id="panel-sheets" class="panel panel-small">
+				<h2>Types</h2>
+				<div class="btn-container">
+					<div class="btn-list-add codicon codicon-add"></div>
+					<div class="btn-list-remove codicon codicon-remove"></div>
+				</div>
+				<table is="edit-table" id="table-types" class="edit-table"></table>
+			</div>
+			<div class="panel panel-small">
+				<h2>Groups</h2>
+				<div class="btn-container">
+					<div class="btn-list-add codicon codicon-add"></div>
+					<div class="btn-list-remove codicon codicon-remove"></div>
+				</div>
+				<table is="edit-table" id="table-groups" class="edit-table"></table>
+			</div>
+			<div class="h fill">
+				<div class="panel fill">
+					<h2>Props</h2>
+					<div class="btn-container">
+						<div class="btn-list-add codicon codicon-add"></div>
+						<div class="btn-list-remove codicon codicon-remove"></div>
+					</div>
+					<table is="edit-table" id="table-props" class="edit-table"></table>
+				</div>
+				<div class="panel fill">
+					<h2>Settings</h2>
+					<div class="prop-grid">
+						<label>Sprite</label>
+						<canvas class="edit-icon"></canvas>
+						<label>Shape</label>
+						<vscode-dropdown>
+							<vscode-option>Sprite (Fixed)</vscode-option>
+							<vscode-option>Sprite (Upright)</vscode-option>
+							<vscode-option>Sprite (Facing Camera)</vscode-option>
+							<vscode-option>Triangle</vscode-option>
+							<vscode-option>Cross</vscode-option>
+						</vscode-dropdown>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="v fill">
+			<div>
+				<vscode-button>Set Detail Texture</vscode-button>
+				<vscode-button>Set Ground Preview</vscode-button>
+			</div>
+			<div class="panel v fill">
+			</div>
+		</div>
+		<script src="$ROOT$/public/dist/detail-editor.js"></script>
+	</body>
+</html>
