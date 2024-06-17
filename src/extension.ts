@@ -6,7 +6,7 @@ import { VpkFileSystemProvider } from './vpk-provider.js';
 import { ModFilesystemProvider } from './mod-mount.js';
 import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
 import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
-import { ValveTextureEditorProvider } from './vtf-editor.js';
+import { ValveTextureEditorProvider } from './vtf/vtf-editor.js';
 import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
 // import { MaterialBrowserManager } from './vmt-browser';

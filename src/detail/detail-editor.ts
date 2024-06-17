@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Detail, DetailFile, DetailGroup, DetailProp } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage } from './detail-file.js';
 import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import EditorHTML from './editor.html';
@@ -25,7 +25,10 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 				const props: DetailProp[] = group.dirs().map(prop => {
 					const kvs: Record<string, any> = {};
 					prop.pairs().forEach(kv => kvs[kv.key] = kv.value);
-					return kvs as DetailProp;
+					return {
+						name: prop.key,
+						...kvs
+					} as DetailProp;
 				});
 
 				return {
@@ -46,7 +49,8 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 	}
 
 	async write_kv(file: DetailFile) {
-		const KV = new KeyVRoot().factory();
+		const root = new KeyVRoot();
+		const KV = root.factory();
 		KV.dir('detail');
 		for (const detail of file.details) {
 			KV.dir(detail.texture);
@@ -55,16 +59,26 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 				KV.dir(group.name);
 				KV.pair('alpha', group.alpha);
 				for (const prop of group.props) {
+					KV.dir(prop.name);
 					// @ts-expect-error Shit
 					for (const key in prop) KV.pair(key, prop[key]);
+					KV.back();
 				}
+				KV.back();
 			}
+			KV.back();
 		}
+		KV.back();
+		KV.exit();
+		const text = root.dump({ quote: 'auto' });
+		const buf = new TextEncoder().encode(text);
+		vscode.workspace.fs.writeFile(this.uri, buf);
 	}
 }
 
 export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	private readonly context: vscode.ExtensionContext;
+	private sessions: Record<string, vscode.WebviewPanel> = {};
 
 
 	static register(context: vscode.ExtensionContext) {
@@ -86,19 +100,35 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 		return this._onDidChangeCustomDocument.event;
 	}
 	
-	saveCustomDocument(document: vscode.CustomDocument, cancellation: vscode.CancellationToken): Thenable<void> {
+	saveCustomDocument(document: ValveDetailDocument, cancellation: vscode.CancellationToken): Promise<void> {
+		const webviewPanel = this.sessions[document.uri.path];
+		return new Promise((resolve, reject) => {
+			const listener = webviewPanel.webview.onDidReceiveMessage((msg: DetailMessage) => {
+				if (msg.type !== 'save') return;
+				if (msg.error) return reject(msg.error);
+				if (!msg.data) {
+					outConsole.error('No data returned from webview!!! WTF?');
+					reject('No data returned from webview!!! WTF?');
+					return;
+				}
+				document.write_kv(msg.data);
+				listener.dispose();
+				resolve();
+			});
+			webviewPanel.webview.postMessage(<DetailMessage>{ type: 'save' });
+		});
+	}
+
+	saveCustomDocumentAs(document: ValveDetailDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<void> {
+		document.uri = destination;
+		return this.saveCustomDocument(document, cancellation);
+	}
+
+	revertCustomDocument(document: ValveDetailDocument, cancellation: vscode.CancellationToken): Promise<void> {
 		throw new Error('Method not implemented.');
 	}
 
-	saveCustomDocumentAs(document: vscode.CustomDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw new Error('Method not implemented.');
-	}
-
-	revertCustomDocument(document: vscode.CustomDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw new Error('Method not implemented.');
-	}
-
-	backupCustomDocument(document: vscode.CustomDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
+	backupCustomDocument(document: ValveDetailDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
 		throw new Error('Method not implemented.');
 	}
 
@@ -108,7 +138,7 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 			.replaceAll('$CSP$', view.cspSource);
 	}
 
-	resolveCustomEditor(document: vscode.CustomDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): void | Thenable<void> {
+	async resolveCustomEditor(document: ValveDetailDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
 		webviewPanel.webview.options = {
 			localResourceRoots: [
 				vscode.Uri.joinPath(this.context.extensionUri, 'public'),
@@ -117,7 +147,17 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 			enableScripts: true
 		};
 
+		// Save session for later message IO
+		this.sessions[document.uri.path] = webviewPanel;
+
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
+		const readyListener = webviewPanel.webview.onDidReceiveMessage(async msg => {
+			readyListener.dispose();
+			webviewPanel.webview.postMessage(<DetailMessage>{
+				type: 'load',
+				data: await document.read_kv(),
+			});
+		});
 	}
 
 	openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): vscode.CustomDocument | Thenable<vscode.CustomDocument> {

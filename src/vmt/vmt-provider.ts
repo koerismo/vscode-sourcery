@@ -2,15 +2,15 @@ import * as vscode from 'vscode';
 import { modFilesystem, getPathAutocomplete } from '../mod-mount.js';
 import { outConsole } from '../extension.js';
 import { existsSync } from 'fs';
-import { extname, dirname, basename, join, relative, sep } from 'path';
-// @ts-expect-error No types :(
+import { readFile } from 'fs/promises';
+import { extname, dirname, basename, join, relative, sep } from 'path/posix';
 import * as decodeImage from 'image-decode';
-import { VFilters, VFlags, VFormats, VImageData, VMipmapProvider, Vtf } from 'vtf-js';
+import { Vtf, VFilters, VFlags, VFormats, VImageData, VMipmapProvider, VDataCollection } from 'vtf-js';
 
 const RE_SLASH = /(\/|\\)+/g;
-const RE_LINE_ONLYKEY = /^\s*("?)(\$[^"\s]+)\1\s*\"?$/;
-const RE_LINE_START = /^\s*("?)(\$[^"\s]+)\1\s+(?:"?)([^"\s]*)/;
-const RE_LINE = /^\s*("?)(\$[^"\s]+)\1\s+("?)([^"\s]*)\3/;
+const RE_LINE_ONLYKEY = /^\s*("?)([$%][^"\s]+)\1\s*\"?$/;
+const RE_LINE_START = /^\s*("?)([$%][^"\s]+)\1\s+(?:"?)([^"\s]*)/;
+const RE_LINE = /^\s*("?)([$%][^"\s]+)\1\s+("?)([^"\s]*)\3/;
 const RE_MODEL_PATH = /^(?:\/|\\)?props?(_\w+)?(?:\/|\\)/;
 
 const RE_TEX_ALPHA = /(_a|alpha|mask|_exp|exponent|envmap)\..+$/i;
@@ -20,6 +20,9 @@ const RE_TEX_AO = /(ao|occlusion|occ)\..+$/i;
 
 const VTF_CONVERT_OPTIONS = {
 	filter: VFilters.Triangle,
+};
+const VTF_RESIZE_OPTIONS = {
+	filter: VFilters.Triangle
 };
 
 const IMAGE_EXTS = new Set([
@@ -53,6 +56,8 @@ const LINKABLE = new Set([
 	'$texture2',
 	'$texture3',
 
+	'%tooltexture',
+
 	// Subrect shader exclusive?
 	'$material',
 ]);
@@ -77,6 +82,8 @@ const POSTFIX = {
 	'$texture1': '_tex1',
 	'$texture2': '_tex2',
 	'$texture3': '_tex3',
+
+	'%tooltexture': '_preview',
 
 	// Subrect shader exclusive?
 	'$material': '',
@@ -141,7 +148,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 
 	static register(): vscode.Disposable {
 		const editor = new this();
-		editor.registry = vscode.languages.registerDocumentLinkProvider({ pattern: '**/*.vmt' }, editor);
+		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'vmt' }, editor);
 		return editor;
 	}
 
@@ -162,7 +169,6 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 
 		for (let i=0; i<lines.length; i++) {
 			const line = lines[i];
-			if (!line.includes('$')) continue;
 			const link = getLineLink(line, i, LINKABLE, root, '.vtf');
 		
 			if (link) {
@@ -247,41 +253,87 @@ export class VmtCodeActionProvider implements vscode.CodeActionProvider {
 	}
 }
 
-async function askToDowngrade() {
+async function askToDowngrade(skip: boolean=false) {
+	if (skip) return true;
 	const response = await vscode.window.showWarningMessage('Vtf may not be compatible with current game! Downgrade?', 'Yes', 'No');
 	return response === 'Yes';
 }
 
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
+function generateToolTexture(textures: VImageData[]) {
+	const width = textures[0].width;
+	const height = textures[0].height;
+	for (let i=1; i<textures.length; i++) {
+		if (textures[i].width !== width || textures[i].height !== height) {
+			outConsole.error('Dimensions between provided textures do not match!');
+			return null;
+		}
+		textures[i] = textures[i].convert(Uint8Array);
+	}
+	
+	const angleSlope = -1; // -0.5; // X/Y
+	const yMid = height / 2;
+	const xMid = width / 2;
+
+	const texAtPos = (x: number, y: number) => {
+		return +((y-yMid)*angleSlope + xMid < x);
+	};
+
+	// Clamp the array, so if we NICE resize it then we won't get artifacts
+	const data = new Uint8ClampedArray(width * height * 4);
+	const out = new VImageData(<Uint8Array><unknown>data, width, height);
+
+	let p = 0;
+	for (let i=0; i<data.length; i+=4) {
+		const x = p % width;
+		const y = ((p - x) / width);
+		const tex = textures[texAtPos(x, y)].data;
+		data[i] = tex[i];
+		data[i+1] = tex[i+1];
+		data[i+2] = tex[i+2];
+		data[i+3] = tex[i+3];
+		p++;
+	}
+
+	return out;
+}
+
+function resizeIfNeeded<T extends VImageData>(texture: T, max_size: number): T {
+	if (texture.width <= max_size && texture.height <= max_size) return texture;
+	const scale_factor = max_size / Math.max(texture.width, texture.height);
+	const new_width = texture.width * scale_factor;
+	const new_height = texture.height * scale_factor;
+	return texture.resize(new_width, new_height, VTF_RESIZE_OPTIONS) as T;
+}
+
+async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false, skipDGAsk: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
+	const buffer = (await readFile(path)).buffer;
 	const ext = extname(path);
-	const data = new Uint8Array(await vscode.workspace.fs.readFile(vscode.Uri.file(path)));
 	
 	let vtf: Vtf|null = null;
 	let vtfout: ArrayBuffer|null = null;
 	
 	if (ext === '.vtf') {
-		vtf = Vtf.decode(data.buffer, false, true);
-		if (vtf.version <= idealVersion || !(await askToDowngrade())) vtfout = data.buffer;
+		vtf = Vtf.decode(buffer, false, true);
+		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer;
 		else {
 			vtf.version = idealVersion;
 			if (requireEncode) vtfout = vtf.encode();
 		}
-
 	}
 
 	else {
-		const image: { data: Uint8Array, width: number, height: number } = decodeImage(data);
+		// TODO: This decoder is currently a BAD bottleneck on perf. What do??
+		const image = decodeImage(buffer);
 		let has_alpha = false;
 		for (let i=3; i<image.data.length; i+=4) {
 			if (image.data[i] === 255) continue;
 			has_alpha = true;
 			break;
 		}
-
 		const vcollection = new VMipmapProvider([[[new VImageData(image.data, image.width, image.height)]]], VTF_CONVERT_OPTIONS);
 		vtf = new Vtf(vcollection, {
 			version: idealVersion,
@@ -323,7 +375,11 @@ export class VmtChangeListener {
 			const linematch = event.document.getText(linerange).match(RE_LINE_ONLYKEY);
 			if (!linematch) return outConsole.log('Did not match key regex!');
 			const key = linematch[2] as (keyof typeof POSTFIX);
+			if (!(key in POSTFIX)) return;
 			outConsole.log('Using key', key, 'for conversion.');
+			
+			// Special case: Allow any # of textures for tooltextures.
+			const is_tooltexture = key === '%tooltexture';
 
 			// Get new Vtf path
 			const dir = dirname(event.document.uri.path);
@@ -335,14 +391,17 @@ export class VmtChangeListener {
 			// Extract paths
 			const paths_lines_split = change.text.split('\n');
 			const paths_split = change.text.includes('\n') ? paths_lines_split : change.text.split(' ');
-			if (paths_split.length > 3) return;
+			if (paths_split.length > 3 && !is_tooltexture) return;
 
 			let path_color = paths_split[0];
 			let path_alpha = paths_split[1];
 			let paths_mrao: [string, string, string] | null = null;
 
 			// Make sure that the paths are ordered correctly
-			if (paths_split.length === 2) {
+			if (is_tooltexture) {
+				// Do nothing :3
+			}
+			else if (paths_split.length === 2) {
 				const is_0_alpha = RE_TEX_ALPHA.test(paths_split[0]);
 				if (is_0_alpha) {
 					path_color = paths_split[1];
@@ -419,13 +478,34 @@ export class VmtChangeListener {
 			
 			// ======== PROCESS IMAGE(S) ==========
 
+			const max_size: number = config.get('convertOnPasteResize') ?? 0;
+
 			let vtf: Vtf;
 			let vtf_out: ArrayBuffer;
-			if (using_alpha) {
+			if (is_tooltexture) {
+				const vtfs = await Promise.all(paths_split.map(x => convertToVtf(x, ideal_version, ideal_format, ideal_format, true, false, true)));
+				let vimage = generateToolTexture(vtfs.map(x => x.vtf.data.getImage(0, 0, 0, 0)));
+				if (!vimage) return;
+				
+				const max_size_tt: number = config.get('convertOnPasteResizeTooltexture') ?? 0;
+				if (max_size_tt !== 0) {
+					vimage = resizeIfNeeded(vimage, max_size_tt);
+				}
+				
+				const vcollection = new VDataCollection([[[[vimage]]]]);
+				vtf = new Vtf(vcollection, {
+					format: ideal_format,
+					version: ideal_version,
+					compression: ideal_version === 6 ? 6 : 0,
+				});
+
+				vtf_out = vtf.encode();
+			}
+			else if (using_alpha) {
 				outConsole.log('Attempting to merge alpha textures...');
-				const converted_color = await convertToVtf(path_color, ideal_version, ideal_format, ideal_format_alpha, true, false);
-				const converted_alpha = await convertToVtf(path_alpha, ideal_version, ideal_format, ideal_format_alpha, true, false);
-				const im_color = converted_color.vtf.data.getImage(0, 0, 0, 0);
+				const converted_color = await convertToVtf(path_color, ideal_version, ideal_format, ideal_format_alpha, true, false, true);
+				const converted_alpha = await convertToVtf(path_alpha, ideal_version, ideal_format, ideal_format_alpha, true, false, true);
+				let im_color = converted_color.vtf.data.getImage(0, 0, 0, 0);
 				const im_alpha = converted_alpha.vtf.data.getImage(0, 0, 0, 0);
 				if (im_color.width !== im_alpha.width || im_color.height !== im_alpha.height) {
 					vscode.window.showErrorMessage('Failed to merge textures! The pasted textures must be the same size to merge.');
@@ -436,37 +516,48 @@ export class VmtChangeListener {
 				for (let i=0; i<im_color.data.length; i+=4) {
 					im_color.data[i+3] = im_alpha.data[i];
 				}
+
+				// Resize if necessary
+				if (max_size !== 0) {
+					im_color = resizeIfNeeded(im_color, max_size);
+				}
 				
 				const vcollection = new VMipmapProvider([[[im_color]]], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted_color.vtf);
 				vtf.format = ideal_format_alpha;
-				outConsole.log('Encoding...');
 				vtf_out = vtf.encode();
 			}
 			else if (using_mrao) {
 				outConsole.log('Attempting to merge MRAO textures...');
 				const converted = await Promise.all([
-					await convertToVtf(paths_mrao![0], ideal_version, ideal_format, ideal_format_alpha, true, false),
-					await convertToVtf(paths_mrao![1], ideal_version, ideal_format, ideal_format_alpha, true, false),
-					await convertToVtf(paths_mrao![2], ideal_version, ideal_format, ideal_format_alpha, true, false),
+					await convertToVtf(paths_mrao![0], ideal_version, ideal_format, ideal_format_alpha, true, false, true),
+					await convertToVtf(paths_mrao![1], ideal_version, ideal_format, ideal_format_alpha, true, false, true),
+					await convertToVtf(paths_mrao![2], ideal_version, ideal_format, ideal_format_alpha, true, false, true),
 				]);
+
 				// Test for equal dimensions
 				const images = converted.map(x => x.vtf.data.getImage(0,0,0,0));
-				const target = images[0];
+				let target = images[0];
 				if (target.width !== images[1].width || target.width !== images[2].width || target.height !== images[1].height || target.height !== images[2].height) {
 					vscode.window.showErrorMessage('Failed to merge textures! The pasted textures must be the same size to merge.');
 					return;
 				}
+
 				// Copy mrao over
 				for (let i=0; i<target.data.length; i+=4) {
 					target.data[i+1] = images[1].data[i];
 					target.data[i+2] = images[2].data[i];
 				}
+
+				// Resize if necessary
+				if (max_size !== 0) {
+					target = resizeIfNeeded(target, max_size);
+				}
+
 				// Encode
 				const vcollection = new VMipmapProvider([[[target]]], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted[0].vtf);
 				vtf.format = ideal_format;
-				outConsole.log('Encoding...');
 				vtf_out = vtf.encode();
 			}
 			else {
@@ -474,6 +565,7 @@ export class VmtChangeListener {
 				vtf = conv_color.vtf;
 				vtf_out = conv_color.out;
 			}
+
 			outConsole.log('Finished!');
 
 			// =====================================
@@ -481,10 +573,11 @@ export class VmtChangeListener {
 			// This stupid fucking bit determines the range that was pasted into the document.
 			const target_line = change.range.start.line + paths_lines_split.length - 1;
 			let target_char = paths_lines_split[paths_lines_split.length-1].length;
-			if (target_line === change.range.start.line) target_char += change.range.end.character;
+			if (target_line === change.range.start.line) target_char += change.range.end.character - 1;
 			const paste_range = change.range.with(change.range.start, new vscode.Position(target_line, target_char));
 
-			if (using_alpha) vscode.window.showInformationMessage('Updated alpha-masked texture automagically!');
+			if (is_tooltexture) vscode.window.showInformationMessage('Updated %tooltexture texture automagically!');
+			else if (using_alpha) vscode.window.showInformationMessage('Updated alpha-masked texture automagically!');
 			else if (using_mrao) vscode.window.showInformationMessage('Updated MRAO texture automagically!');
 			else vscode.window.showInformationMessage('Updated texture automagically!');
 			

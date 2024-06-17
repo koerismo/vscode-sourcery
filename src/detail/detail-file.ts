@@ -4,6 +4,18 @@ export enum DetailOrientation {
 	ZAxis,
 }
 
+export enum DetailKind {
+	Sprite,
+	Shape,
+	Model,
+}
+
+export interface DetailMessage {
+	type: 'load'|'save'|'ready';
+	data?: DetailFile;
+	error?: string;
+}
+
 export interface DetailFile {
 	details: Detail[];
 }
@@ -21,6 +33,8 @@ export interface DetailGroup {
 }
 
 export interface DetailProp {
+	name: string;
+
 	// Prop
 	amount: number;
 	upright?: boolean;
@@ -28,8 +42,8 @@ export interface DetailProp {
 	maxangle?: number;
 	
 	// Sprite
-	sprite: { x: number, y: number, w: number, h: number };
-	spritesize: { u: number, v: number, w: number, h: number };
+	sprite: string; // { x: number, y: number, w: number, h: number };
+	spritesize: string; // { u: number, v: number, w: number, h: number };
 	spriterandomscale?: number;
 	detailOrientation?: DetailOrientation;
 	

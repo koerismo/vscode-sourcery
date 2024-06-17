@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval';">
+		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval' 'unsafe-inline';">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="$ROOT$/public/css/detail-editor.css" />
 	</head>
@@ -11,16 +11,16 @@
 			<div id="panel-sheets" class="panel panel-small">
 				<h2>Types</h2>
 				<div class="btn-container">
-					<div class="btn-list-add codicon codicon-add"></div>
-					<div class="btn-list-remove codicon codicon-remove"></div>
+					<div class="btn-list-add codicon codicon-add" onclick="FileManager.addType()"></div>
+					<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeType()"></div>
 				</div>
 				<table is="edit-table" id="table-types" class="edit-table"></table>
 			</div>
 			<div class="panel panel-small">
 				<h2>Groups</h2>
 				<div class="btn-container">
-					<div class="btn-list-add codicon codicon-add"></div>
-					<div class="btn-list-remove codicon codicon-remove"></div>
+					<div class="btn-list-add codicon codicon-add" onclick="FileManager.addGroup()"></div>
+					<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeGroup()"></div>
 				</div>
 				<table is="edit-table" id="table-groups" class="edit-table"></table>
 			</div>
@@ -28,24 +28,52 @@
 				<div class="panel fill">
 					<h2>Props</h2>
 					<div class="btn-container">
-						<div class="btn-list-add codicon codicon-add"></div>
-						<div class="btn-list-remove codicon codicon-remove"></div>
+						<div class="btn-list-add codicon codicon-add" onclick="FileManager.addModel()"></div>
+						<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeModel()"></div>
 					</div>
 					<table is="edit-table" id="table-props" class="edit-table"></table>
 				</div>
-				<div class="panel fill">
+				<div id="settings-panel" class="panel fill">
 					<h2>Settings</h2>
 					<div class="prop-grid">
-						<label>Sprite</label>
-						<canvas class="edit-icon"></canvas>
-						<label>Shape</label>
-						<vscode-dropdown>
-							<vscode-option>Sprite (Fixed)</vscode-option>
-							<vscode-option>Sprite (Upright)</vscode-option>
-							<vscode-option>Sprite (Facing Camera)</vscode-option>
-							<vscode-option>Triangle</vscode-option>
-							<vscode-option>Cross</vscode-option>
+						<label>Kind</label>
+						<vscode-dropdown id="settings-kind">
+							<vscode-option value="sprite">Sprite</vscode-option>
+							<vscode-option value="shape">Shape</vscode-option>
+							<vscode-option value="model">Model</vscode-option>
 						</vscode-dropdown>
+						<label>Spawn Upright</label>
+						<vscode-checkbox id="settings-upright"></vscode-checkbox>
+						<div class="content" id="settings-category-sprite">
+							<label>Sprite</label>
+							<div class="h">
+								<canvas class="edit-icon"></canvas>
+								<div class="v">
+									<vscode-button>Copy</vscode-button>
+									<vscode-button>Paste</vscode-button>
+								</div>
+							</div>
+						</div>
+						<div class="content" id="settings-category-shape">
+							<label>Shape Angle</label>
+							<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180">
+							<label>Shape Radius</label>
+							<input id="settings-tri-radius" is="edit-number" type="number" min="0">
+						</div>
+						<div class="content" id="settings-category-model">
+							<label>Model</label>
+							<input id="settings-model" disabled/>
+							<vscode-button style="grid-column: span 2;">Select</vscode-button>
+						</div>
+						<label>Size</label>
+						<div class="h">
+							<input id="settings-width"  is="edit-number" type="number" step="1" min="0">
+							<input id="settings-height" is="edit-number" type="number" step="1" min="0">
+						</div>
+						<label>Scale Range</label>
+						<input id="settings-scale-random" is="edit-number" type="number" min="0" max="1">
+						<label>Sway</label>
+						<input id="settings-sway" is="edit-number" type="number" min="0" max="10">
 					</div>
 				</div>
 			</div>

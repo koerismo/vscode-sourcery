@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { Vtf } from 'vtf-js';
+import { VFormats, Vtf } from 'vtf-js';
+import EditorHTML from './editor.html';
 
 export class ValveTextureDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
@@ -45,25 +46,9 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 	}
 
 	getHtml(view: vscode.Webview) {
-		const path = (path: string) => {
-			return view.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, path));
-		};
-
-		return `
-		<!DOCTYPE html>
-		<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${view.cspSource}; style-src ${view.cspSource}; script-src ${view.cspSource};">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="${path('public/css/vtf-editor.css')}" />
-			</head>
-			<body>
-				<canvas id="image"></canvas>
-				<script src="${path('public/dist/vtf-editor.js')}"></script>
-			</body>
-		</html>
-		`;
+		return EditorHTML
+			.replaceAll('$ROOT$', view.asWebviewUri(this.context.extensionUri).toString())
+			.replaceAll('$CSP$', view.cspSource);
 	}
 	
 	async resolveCustomEditor(document: ValveTextureDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
@@ -74,7 +59,18 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 		try {
 			const vtf = await document.getVtf();
 			const image = vtf.data.getImage(0, 0, 0, 0);
-			webviewPanel.webview.postMessage({ type: 'update', width: image.width, height: image.height, data: image.data });
+			webviewPanel.webview.postMessage({
+				type: 'update',
+				width: image.width,
+				height: image.height,
+				data: image.data,
+				version: vtf.version,
+				format: VFormats[vtf.format],
+				frames: vtf.data.frameCount(),
+				mipmaps: vtf.data.mipmapCount(),
+				faces: vtf.data.faceCount(),
+				slices: vtf.data.sliceCount(),
+			});
 		}
 		catch(e) {
 			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });	

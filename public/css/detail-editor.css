@@ -61,11 +61,12 @@ div.panel {
 	position: relative;
 	border: 1px solid var(--vscode-panel-border);
 	background-color: var(--vscode-editorPane-background);
-	/* background: var(--vscode-sideBarTitle-background); */
 }
 
 div.panel.panel-small {
-	height: min(150px, 50%);
+	height: max(min(160px, 20vmin), 80px);
+	flex-shrink: 0;
+	flex-grow: 0;
 }
 
 /* =================================== TABLE =================================== */
@@ -75,7 +76,6 @@ table.edit-table {
 	border: none;
 	border-collapse: collapse;
 
-	/* height: 100px; */
     overflow-y: scroll;
     display: flex;
     scrollbar-width: thin;
@@ -117,7 +117,6 @@ table.edit-table tr:hover {
 
 table.edit-table tr.active {
 	background-color: var(--vscode-list-activeSelectionBackground);
-	/* outline: 1px solid var(--vscode-list-focusOutline); */
 }
 
 table.edit-table td {
@@ -126,6 +125,10 @@ table.edit-table td {
 
 table.edit-table th {
 	padding: 5px 10px;
+}
+
+table.edit-table tr.active td > input {
+	color: var(--vscode-list-activeSelectionForeground);
 }
 
 table.edit-table td > input {
@@ -142,6 +145,21 @@ table.edit-table td > input:focus {
 	outline-color: var(--vscode-list-focusOutline);
 }
 
+@media screen and (max-height: 600px) {
+	table.edit-table {
+		line-height: 7px;
+		font-size: 0.9em;
+	}
+	table.edit-table td > input {
+		padding: 3px 5px;
+	}
+}
+
+div.panel:has(table.edit-table[disabled]),
+div.panel.disabled {
+	opacity: 0.5;
+}
+
 /* =================================== INPUT WIDTHS =================================== */
 
 input[type=number]::-webkit-inner-spin-button, 
@@ -155,7 +173,7 @@ input {
 }
 
 input[type=number] {
-	width: 80px;
+	width: 60px;
 }
 
 
@@ -172,13 +190,36 @@ div.btn-list-add,
 div.btn-list-remove {
 	padding: 9px;
 	color: var(--vscode-icon-foreground);
+	cursor: pointer;
 }
 
 div.btn-list-add:hover,
 div.btn-list-remove:hover {
-	padding: 9px;
 	background-color: var(--vscode-button-secondaryBackground);
 	color: var(--vscode-button-secondaryForeground);
+}
+
+div.panel:has(table.edit-table[disabled]) div.btn-container div {
+	cursor: default;
+	opacity: 0.5;
+}
+
+div.panel:has(table.edit-table[disabled]) div.btn-container div:hover {
+	background-color: inherit;
+	color: inherit;
+}
+
+.edit-icon {
+	width: 52px;
+	height: 52px;
+	background-color: transparent;
+	border: 1px solid var(--vscode-panel-border);
+	border-radius: 2px;
+	cursor: pointer;
+}
+
+.edit-icon:hover {
+	border-color: var(--vscode-list-focusOutline);
 }
 
 div.prop-grid {
@@ -187,25 +228,13 @@ div.prop-grid {
 	gap: 5px;
 	grid-template-columns: auto auto;
 	grid-auto-rows: max(26px, auto);
-	line-height: 26px;
-}
-
-.edit-icon {
-	width: 64px;
-	height: 64px;
-	aspect-ratio: 1/1;
-	background-color: transparent;
-	border: 1px solid var(--vscode-panel-border);
-	border-radius: 2px;
-	cursor: pointer;
-}
-
-.edit-icon:hover {
-	border-color: var(--vscode-inputOption-activeBorder);
+	line-height: 22px;
+	white-space: nowrap;
 }
 
 div.prop-grid input {
 	width: 100%;
+	box-sizing: border-box;
 	background-color: var(--vscode-input-background);
 	outline-color: var(--vscode-inputOption-activeBorder);
 	color: var(--vscode-input-foreground);
@@ -215,3 +244,10 @@ div.prop-grid input {
 div.prop-grid vscode-dropdown {
 	width: 100%;
 }
+
+div.prop-grid .content {
+	display: contents;
+}
+
+div.prop-grid .h { gap: 4px }
+div.prop-grid .v { gap: 4px }

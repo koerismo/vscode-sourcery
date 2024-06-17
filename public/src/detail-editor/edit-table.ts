@@ -1,3 +1,5 @@
+import { type EditNumber } from './edit-number.js';
+
 interface RowFormat {
 	title: string;
 	property: string;
@@ -7,17 +9,39 @@ interface RowFormat {
 	max?: number;
 }
 
-interface UpdateEventInit extends CustomEventInit {
-	row: number;
-	column: number;
-	value: any;
-}
-
 export class EditTable extends HTMLTableElement {
-	_format: RowFormat[] = [];
-	_data: Record<string, any>[] = [];
-	_selectable: boolean = true;
-	_selected_row: number = -1;
+	private _format: RowFormat[] = [];
+	private _data: Record<string, any>[] = [];
+	private _disabled: boolean = false;
+	private _selected_row: number = -2;
+
+	set disabled(v: boolean) {
+		if (v) {
+			this.setAttribute('disabled', '');
+			this.#selectRowNoSet(-2, -2);
+		}
+		else {
+			this.removeAttribute('disabled');
+			this.#selectRowNoSet(-2, this._selected_row);
+		}
+		this._disabled = v;
+	}
+
+	get disabled() {
+		return this._disabled;
+	}
+
+	get selectedIndex() {
+		return this._selected_row;
+	}
+
+	set selectedIndex(v: number) {
+		this.#selectRow(v);
+	}
+
+	deselect() {
+		this.#selectRow(-2);
+	}
 	
 	static register() {
 		customElements.define('edit-table', this, { extends: 'table' });
@@ -29,7 +53,7 @@ export class EditTable extends HTMLTableElement {
 	}
 	
 	// addEventListener<K extends keyof HTMLElementEventMap>(type: K, listener: (this: HTMLTableElement, ev: HTMLElementEventMap[K]) => any, options?: boolean | AddEventListenerOptions): void;
-	addEventListener(type: 'update', listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+	addEventListener(type: 'update'|'select'|'deselect', listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
 	addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
 	addEventListener(type: unknown, listener: unknown, options?: unknown): void {
 		// @ts-expect-error shit
@@ -46,10 +70,6 @@ export class EditTable extends HTMLTableElement {
 		if (this._format) this.forceUpdate();
 	}
 
-	setSelectable(selectable: boolean) {
-		this._selectable = selectable;
-	}
-
 	#getValue(element: HTMLInputElement) {
 		const type = element.type;
 		if (type === 'text') return element.value;
@@ -61,7 +81,7 @@ export class EditTable extends HTMLTableElement {
 	#setValue(element: HTMLInputElement, value: any) {
 		const type = element.type;
 		if (type === 'text') return element.value = value;
-		if (type === 'number') return element.value = value;
+		if (type === 'number') return (<EditNumber>element).setValue(value);
 		if (type === 'checkbox') return element.checked = value;
 		throw Error('Unknown type '+type);
 	}
@@ -69,15 +89,16 @@ export class EditTable extends HTMLTableElement {
 	#createCell(format: RowFormat, row_id: number) {
 		const row_data = this._data[row_id];
 		const cell = document.createElement('td');
-		const input = document.createElement('input');
+		let input: HTMLInputElement;
 	
 		if (format.type === 'float' || format.type === 'int')	{
-			input.type = 'number';
+			input = document.createElement('input' , { is: 'edit-number' });
 			if (format.min !== undefined) input.min = format.min.toString();
 			if (format.max !== undefined) input.max = format.max.toString();
 			if (format.type === 'int') input.step = '1';
 		}
 		else {
+			input = document.createElement('input');
 			input.type = format.type;
 		}
 	
@@ -94,17 +115,6 @@ export class EditTable extends HTMLTableElement {
 			if (ev.key === 'Enter') input.blur();
 		});
 
-		// Validate numbers on blur
-		if (input.type === 'number') {
-			input.addEventListener('blur', () => {
-				let v = +input.value;
-				if (format.type === 'int') v = Math.floor(v);
-				if (format.min !== undefined) v = Math.max(format.min, v);
-				if (format.max !== undefined) v = Math.min(format.max, v);
-				input.value = v.toString();
-			});
-		}
-
 		cell.appendChild(input);
 		return cell;
 	}
@@ -118,9 +128,23 @@ export class EditTable extends HTMLTableElement {
 		return row;
 	}
 
+	#selectRowNoSet(prev: number, index: number) {
+		if (prev >= 0 && this.firstElementChild.children.length > prev+1)
+			this.firstElementChild.children[prev+1].classList.remove('active');
+		if (index >= 0 && this.firstElementChild.children.length > index+1)
+			this.firstElementChild.children[index+1].classList.add('active');
+	}
+
 	#selectRow(index: number) {
-		this.firstElementChild.children[this._selected_row+1].classList.remove('active');
-		this.firstElementChild.children[(this._selected_row = index)+1].classList.add('active');
+		if (this._selected_row >= 0 && this.firstElementChild.children.length > this._selected_row+1)
+			this.firstElementChild.children[this._selected_row+1].classList.remove('active');
+		if (index >= 0 && this.firstElementChild.children.length > index+1) {
+			this.firstElementChild.children[(this._selected_row = index)+1].classList.add('active');
+			this.dispatchEvent(new Event('select'));
+		}
+		else {
+			this.dispatchEvent(new Event('deselect'));
+		}
 	}
 
 	#createHeader() {
@@ -134,12 +158,13 @@ export class EditTable extends HTMLTableElement {
 		}
 		return row;
 	}
-
+	
 	forceUpdate() {
 		if (!this._format || !this._data) return false;
 		this.firstElementChild.replaceChildren(this.#createHeader());
 		for (let i=0; i<this._data.length; i++) {
 			this.firstElementChild.appendChild(this.#createRow(i));
 		}
+		this.#selectRow(this._selected_row);
 	}
 }

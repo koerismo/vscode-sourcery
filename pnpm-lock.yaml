@@ -50,6 +50,9 @@ importers:
       eslint:
         specifier: ^8.57.0
         version: 8.57.0
+      fast-png:
+        specifier: ^6.2.0
+        version: 6.2.0
       fast-vdf:
         specifier: ^2.0.2
         version: 2.0.2
@@ -214,6 +217,9 @@ packages:
 
   '@types/node@16.18.98':
     resolution: {integrity: sha512-fpiC20NvLpTLAzo3oVBKIqBGR6Fx/8oAK/SSf7G+fydnXMY1x4x9RZ6sBXhqKlCU21g2QapUsbLlhv3+a7wS+Q==}
+
+  '@types/pako@2.0.3':
+    resolution: {integrity: sha512-bq0hMV9opAcrmE0Byyo0fY3Ew4tgOevJmQ9grUhpXQhYfyLJ1Kqg3P33JT5fdbT2AjeAjR51zqqVjAL/HMkx7Q==}
 
   '@types/semver@7.5.8':
     resolution: {integrity: sha512-I8EUhyrgfLrcTkzV3TSsGyl1tSuPrEDzr0yd5m90UgNxQkyDXULk3b6MlQqTCpZpNtWe1K0hzclnZkTcLBe2UQ==}
@@ -707,6 +713,9 @@ packages:
   fast-levenshtein@2.0.6:
     resolution: {integrity: sha512-DCXu6Ifhqcks7TZKY3Hxp3y6qphY5SJZmrWMDrKcERSOXWQdMhU9Ig/PYrzyw/ul9jOIyh0N4M0tbC5hodg8dw==}
 
+  fast-png@6.2.0:
+    resolution: {integrity: sha512-fO4DewoEd9WwuP8DQcfj8Tlc88Jno6lJAjlDYzvJSqMIZwxUpRT4zuzPXgqygjJqngBdCbeQRaL/FVz3InExhA==}
+
   fast-vdf@2.0.2:
     resolution: {integrity: sha512-64FRsYKzAr0AYIjz/ii3SEXz6TyAEbl/7yFrIuI+mAtUnrkzrLRPmH+6AGJRhwcFLFowTvT0zp/ywW8LsvBxOw==}
 
@@ -875,6 +884,9 @@ packages:
   interpret@3.1.1:
     resolution: {integrity: sha512-6xwYfHbajpoF0xLW+iwLkhwgvLoZDfjYfoFNu8ftMoXINzwuymNLd9u/KmwtdT2GbR+/Cz66otEGEVVUHX9QLQ==}
     engines: {node: '>=10.13.0'}
+
+  iobuffer@5.3.2:
+    resolution: {integrity: sha512-kO3CjNfLZ9t+tHxAMd+Xk4v3D/31E91rMs1dHrm7ikEQrlZ8mLDbQ4z3tZfDM48zOkReas2jx8MWSAmN9+c8Fw==}
 
   is-base64@0.1.0:
     resolution: {integrity: sha512-WRRyllsGXJM7ZN7gPTCCQ/6wNPTRDwiWdPK66l5sJzcU/oOzcIcRRf0Rux8bkpox/1yjt0F6VJRsQOIG2qz5sg==}
@@ -1141,6 +1153,9 @@ packages:
 
   pako@1.0.11:
     resolution: {integrity: sha512-4hLB8Py4zZce5s4yd9XzopqwVv/yGNhV1Bl8NTmCq1763HeK2+EwVTv+leGeL13Dnh2wfbqowVPXCIO0z4taYw==}
+
+  pako@2.1.0:
+    resolution: {integrity: sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==}
 
   parent-module@1.0.1:
     resolution: {integrity: sha512-GQ2EWRpQV8/o+Aw8YqtfZZPfNRWZYkbidE9k5rpl/hC3vtHHBfGm2Ifi6qWV+coDGkrUKZAxE3Lot5kcsRlh+g==}
@@ -1676,6 +1691,8 @@ snapshots:
 
   '@types/node@16.18.98': {}
 
+  '@types/pako@2.0.3': {}
+
   '@types/semver@7.5.8': {}
 
   '@types/stats.js@0.17.3': {}
@@ -2207,6 +2224,12 @@ snapshots:
 
   fast-levenshtein@2.0.6: {}
 
+  fast-png@6.2.0:
+    dependencies:
+      '@types/pako': 2.0.3
+      iobuffer: 5.3.2
+      pako: 2.1.0
+
   fast-vdf@2.0.2: {}
 
   fastest-levenshtein@1.0.16: {}
@@ -2382,6 +2405,8 @@ snapshots:
   inherits@2.0.4: {}
 
   interpret@3.1.1: {}
+
+  iobuffer@5.3.2: {}
 
   is-base64@0.1.0: {}
 
@@ -2636,6 +2661,8 @@ snapshots:
   p-try@2.2.0: {}
 
   pako@1.0.11: {}
+
+  pako@2.1.0: {}
 
   parent-module@1.0.1:
     dependencies:
