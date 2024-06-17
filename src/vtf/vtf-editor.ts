@@ -66,8 +66,8 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 				data: image.data,
 				version: vtf.version,
 				format: VFormats[vtf.format],
-				frames: vtf.data.frameCount(),
 				mipmaps: vtf.data.mipmapCount(),
+				frames: vtf.data.frameCount(),
 				faces: vtf.data.faceCount(),
 				slices: vtf.data.sliceCount(),
 			});

@@ -21,5 +21,20 @@ window.onmessage = (message) => {
 		canvas.width = update.width;
 		canvas.height = update.height;
 		ctx.putImageData(image, 0, 0);
+		document.querySelector('#info-version')!.innerText = '7.' + update.version;
+		document.querySelector('#info-size')!.innerText = update.width + 'x' + update.height;
+		document.querySelector('#info-format')!.innerText = update.format;
+		document.querySelector('#info-mipmaps')!.innerText = update.mipmaps;
+		document.querySelector('#info-frames')!.innerText = update.frames;
+		document.querySelector('#info-faces')!.innerText = update.faces;
+		document.querySelector('#info-slices')!.innerText = update.slices;
 	}
+};
+
+let scale = 1.0;
+window.onwheel = (event) => {
+	scale *= 1 + event.deltaY * 0.0005;
+	if (scale < 0.001) scale = 0.001;
+	if (scale > 1000) scale = 1000;
+	canvas.style.transform = 'scale('+scale+')';
 };

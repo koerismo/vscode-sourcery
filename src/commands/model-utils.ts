@@ -71,8 +71,12 @@ export async function copyModels(uri?: vscode.Uri|vscode.Uri[], target_root?: vs
 
 		// TODO: Rework this to be prettier
 		const target = vscode.Uri.joinPath(target_root, file.path);
-		const sliced_from = origin.path.slice(0, -4);
-		const sliced_to = target.path.slice(0, -4);
+		let sliced_from = origin.path.slice(0, -4);
+		let sliced_to = target.path.slice(0, -4);
+		if (platform() === 'win32') {
+			sliced_from = '/'+sliced_from;
+		}
+
 		if (origin.scheme !== 'vpk' && origin.path === target.path) return console.error(`Cancelled copy from identical source/target location!`);
 		
 		for (const item of COPYLIST) {
