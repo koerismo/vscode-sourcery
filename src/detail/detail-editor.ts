@@ -154,7 +154,7 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 		const editor = new this(context);
 		const commandDisposable = vscode.window.registerCustomEditorProvider('sourcery.detail', editor, {
 			supportsMultipleEditorsPerDocument: false,
-			webviewOptions: { enableFindWidget: false, retainContextWhenHidden: false }
+			webviewOptions: { enableFindWidget: false, retainContextWhenHidden: true }
 		});
 
 		return new vscode.Disposable(() => {
@@ -240,6 +240,11 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 
 		let hasAskedBefore = false;
 		this.askListener = webviewPanel.webview.onDidReceiveMessage(async (msg: DetailMessage) => {
+			if (msg.type === 'markDirty') {
+				this._onDidChangeCustomDocument.fire({ document });
+				return;
+			}
+			
 			if (msg.type === 'ask') {
 				assert(msg.kind === 'material');
 				

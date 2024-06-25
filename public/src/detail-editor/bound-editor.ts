@@ -25,6 +25,14 @@ function clamp(v: number, a: number, b: number) {
 	return (v >= b ? b : (v <= a ? a : v));
 }
 
+function checkV(v: number|undefined, def: number, min?: number, max?: number) {
+	v ??= def;
+	if (isNaN(v)) v = def;
+	if (min !== undefined) v = Math.max(min, v);
+	if (max !== undefined) v = Math.min(max, v);
+	return v;
+}
+
 export class BoundEditorElement extends HTMLElement {
 	static register() {
 		customElements.define('bound-editor', this);
@@ -293,10 +301,16 @@ export class BoundEditorElement extends HTMLElement {
 	public async editBounds(target: Partial<Bound>, origin?: Origin) {
 		if (!this.image) return false;
 
-		target.x ??= 0;
-		target.y ??= 0;
-		target.w ??= this.image.width;
-		target.h ??= this.image.height;
+		target.x = checkV(target.x, 0, 0, this.image.width);
+		target.y = checkV(target.y, 0, 0, this.image.height);
+		target.w = checkV(target.w, this.image.width, 0, this.image.width);
+		target.h = checkV(target.h, this.image.height, 0, this.image.height);
+
+		if (origin) {
+			origin.x = checkV(origin.x, 0.5, 0, 1);
+			origin.y = checkV(origin.y, 0.5, 0, 1);
+		}
+
 		this.bTarget = target as Bound;
 		this.oTarget = origin;
 		this.bOriginal = Object.assign({}, target as Bound);

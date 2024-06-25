@@ -151,7 +151,7 @@ export class EditPropElement extends HTMLElement {
 			setElVisible(this.category_shape_tri, +this.input_kind.value === DetailKind.Shape && this.input_shape.value === PropShape.tri);
 		});
 
-		this.input_upright.addEventListener('input', () => {
+		this.input_upright.addEventListener('change', () => {
 			if (!this._data) return;
 			this._data.upright = +this.input_upright.checked;
 		});

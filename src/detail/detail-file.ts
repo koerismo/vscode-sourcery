@@ -26,6 +26,9 @@ export interface DetailSpriteSize {
 }
 
 export type DetailMessage = {
+	type: 'markDirty';
+	error?: string;
+} | {
 	type: 'load'|'save'|'ready';
 	data?: DetailFile;
 	error?: string;

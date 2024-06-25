@@ -80,7 +80,7 @@ export function makeDefaultProp(inherit: Partial<DetailProp>={}): DetailProp {
 		kind: DetailKind.Sprite,
 		amount: 1.0,
 		sprite: { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 },
-		spritesize: { x: 0, y: 0, w: 0, h: 0 },
+		spritesize: { x: 0.5, y: 0.5, w: 16, h: 16 },
 		sprite_shape: 'cross',
 		detailOrientation: DetailOrientation.None,
 		...inherit
@@ -92,7 +92,7 @@ export function ensurePropIsValid(prop: Partial<DetailProp>): DetailProp {
 	prop.kind ??= DetailKind.Sprite;
 	prop.amount ??= 1.0;
 	prop.sprite ??= { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 };
-	prop.spritesize ??= { x: 0, y: 0, w: 0, h: 0 };
+	prop.spritesize ??= { x: 0.5, y: 0.5, w: 16, h: 16 };
 	prop.sprite_shape ??= 'cross';
 	prop.detailOrientation ??= DetailOrientation.None;
 
@@ -107,6 +107,7 @@ declare global {
 
 class FileManager {
 	static file: DetailFile;
+	static saved: boolean = true;
 	static groundThumb: HTMLImageElement = document.querySelector('#thumb-ground')!;
 	static textureThumb: HTMLImageElement = document.querySelector('#thumb-texture')!;
 	static spriteThumb: HTMLImageElement = document.querySelector('#thumb-sprite')!;
@@ -209,14 +210,25 @@ class FileManager {
 		bound_editor.setGhosts(all_prop_bounds);
 
 		const current_prop = this.getCurrentProp();
-		if (!current_prop) return;
+		if (!current_prop || !bound_editor.image) return;
 
-		if (bound_editor.image) current_prop.sprite.imageWidth = bound_editor.image.width;
+		// If this is first-time setup, reset the bounds.
+		if (!current_prop.sprite.imageWidth) {
+			current_prop.sprite.x = 0;
+			current_prop.sprite.y = 0;
+			current_prop.sprite.w = bound_editor.image.width;
+			current_prop.sprite.h = bound_editor.image.height;
+			current_prop.sprite.imageWidth = bound_editor.image.width;
+		}
+		
+		// Attempt to start up the bounds editor
 		bound_editor.editBounds(current_prop.sprite, current_prop.spritesize);
 	}
 
 	public static updateSpriteThumb() {
-		const cropped = bound_editor.getCroppedImage();
+		const current_prop = this.getCurrentProp();
+		if (!current_prop) return this.spriteThumb.src = '';
+		const cropped = bound_editor.getCroppedImage(current_prop.sprite);
 		if (!cropped)  this.spriteThumb.src = '';
 		else           this.spriteThumb.src = makeThumb(cropped);
 	}
@@ -253,6 +265,9 @@ class FileManager {
 		//TODO: THIS IS A HACK!!!! REPLACE THIS WHEN THE VIEWPORT IS IMPLEMENTED!
 		//ON FIRST ASK, THE HOST WILL RESPOND WITH THE DEFAULT TEXTURE.
 		this.askToSetSpriteMat();
+
+		document.body.addEventListener('input', this.markDirty.bind(this));
+		document.body.addEventListener('change', this.markDirty.bind(this));
 
 		// On type change, reset groups and models
 		type_table.addEventListener('select', () => {
@@ -325,7 +340,14 @@ class FileManager {
 	}
 
 	static save() {
+		this.saved = true;
 		return this.file;
+	}
+
+	static markDirty() {
+		if (!this.saved) return;
+		this.saved = false;
+		vscode.postMessage(<DetailMessage>{ type: 'markDirty' });
 	}
 }
 
@@ -351,9 +373,6 @@ async function askForTexture(): Promise<[string, { width: number, height: number
 
 onmessage = (event: MessageEvent<DetailMessage>) => {
 	const message = event.data;
-	// const mtype = event.data.type;
-	// const error = event.data.error!;
-	// const file = event.data.data!;
 
 	if (message.error) {
 		document.body.innerText = message.error;
@@ -376,6 +395,6 @@ onmessage = (event: MessageEvent<DetailMessage>) => {
 	}
 };
 
-vscode.postMessage({
+vscode.postMessage(<DetailMessage>{
 	type: 'ready'
 });
