@@ -28,7 +28,10 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 		const data = await vscode.workspace.fs.readFile(this.uri);
 		const text = new TextDecoder().decode(data);
 		const root = parseVdf(text);
-		const details: Detail[] = root.dir('detail').dirs().map(detail => {
+		let detailRoot = root.dir('detail', null);
+		if (!detailRoot) return { details: [] };
+
+		const details: Detail[] = detailRoot.dirs().map(detail => {
 			const groups: DetailGroup[] = detail.dirs().map(group => {
 				const props: DetailProp[] = group.dirs().map(prop => {
 					const kvs: Record<string, any> = {};
@@ -84,7 +87,10 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 					// if (prop.shape_angle)	KV.pair('shape_angle',	prop.shape_angle);
 
 					for (const key in prop) {
-						if (key === 'sprite') {
+						if (key === 'name' || key === 'kind') {
+							continue;
+						}
+						else if (key === 'sprite') {
 							const {x, y, w, h, imageWidth} = prop[key];
 							KV.pair(key, [x, y, w, h, imageWidth].join(' '));
 						} else if (key === 'spritesize') {

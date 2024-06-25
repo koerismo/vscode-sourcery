@@ -1,7 +1,7 @@
 import { Checkbox, Dropdown, provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDropdown(), vsCodeOption());
 
-import { Detail, DetailFile, DetailGroup, DetailMessage, DetailProp } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailProp } from './detail-file.js';
 import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
@@ -25,26 +25,26 @@ EditNumberElement.register();
 BoundEditorElement.register();
 EditPropElement.register();
 
-const type_table = document.querySelector<EditTableElement>('#table-types');
+const type_table = document.querySelector<EditTableElement>('#table-types')!;
 type_table.setFormat([
 	{ title: 'Name',    property: 'texture', type: 'text',   width: '100%' },
 	{ title: 'Density', property: 'density', type: 'float',  width: 'auto', min: 0, max: 1_000_000 },
 ]);
  
-const group_table = document.querySelector<EditTableElement>('#table-groups');
+const group_table = document.querySelector<EditTableElement>('#table-groups')!;
 group_table.setFormat([
 	{ title: 'Name',    property: 'name',    type: 'text',   width: '100%' },
 	{ title: 'Alpha',   property: 'alpha',   type: 'float',  width: 'auto', min: 0, max: 1 },
 ]);
 
-const prop_table = document.querySelector<EditTableElement>('#table-props');
+const prop_table = document.querySelector<EditTableElement>('#table-props')!;
 prop_table.setFormat([
 	{ title: 'Name',    property: 'name',    type: 'text',   width: '100%' },
 	{ title: 'Amount',  property: 'amount',  type: 'float',  width: 'auto', min: 0, max: 1 },
 ]);
 
-const bound_editor = document.querySelector<BoundEditorElement>('bound-editor');
-const prop_editor = document.querySelector<EditPropElement>('edit-detail-prop');
+const bound_editor = document.querySelector<BoundEditorElement>('bound-editor')!;
+const prop_editor = document.querySelector<EditPropElement>('edit-detail-prop')!;
 
 /* ================================ MANAGER ================================ */
 
@@ -54,7 +54,7 @@ export function setElVisible(el: HTMLElement, visible: boolean) {
 
 export function makeThumb(imdata: ImageDataLike) {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d')!;
     canvas.width = imdata.width;
     canvas.height = imdata.height;
     ctx.putImageData(new ImageData(new Uint8ClampedArray(imdata.data.buffer), imdata.width), 0, 0);
@@ -82,9 +82,9 @@ declare global {
 
 class FileManager {
 	static file: DetailFile;
-	static groundThumb: HTMLImageElement = document.querySelector('#thumb-ground');
-	static textureThumb: HTMLImageElement = document.querySelector('#thumb-texture');
-	static spriteThumb: HTMLImageElement = document.querySelector('#thumb-sprite');
+	static groundThumb: HTMLImageElement = document.querySelector('#thumb-ground')!;
+	static textureThumb: HTMLImageElement = document.querySelector('#thumb-texture')!;
+	static spriteThumb: HTMLImageElement = document.querySelector('#thumb-sprite')!;
 
 	static getCurrentGroup() {
 		return this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex];
@@ -150,6 +150,8 @@ class FileManager {
 		if (prop_table.disabled) return;
 		const new_entry: DetailProp = {
 			name: 'Untitled',
+			kind: DetailKind.Sprite,
+
 			amount: 0,
 			sprite: { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 },
 			spritesize: { x: 0, y: 0, w: 0, h: 0 },
@@ -178,7 +180,7 @@ class FileManager {
 		if (!resp) return console.log('User cancelled');
 		const [path, tex] = resp;
 		bound_editor.setImage(tex);
-		this.textureThumb.src = bound_editor.thumbSrc;
+		this.textureThumb.src = bound_editor.thumbSrc!;
 	}
 
 	public static async askToSetGroundMat() {
@@ -194,22 +196,26 @@ class FileManager {
 		const current_prop = this.getCurrentProp();
 		if (!current_prop) return;
 
-		current_prop.sprite.imageWidth = bound_editor.image.width;
+		if (bound_editor.image) current_prop.sprite.imageWidth = bound_editor.image.width;
 		bound_editor.editBounds(current_prop.sprite, current_prop.spritesize);
 	}
 
 	public static updateSpriteThumb() {
-		this.spriteThumb.src = makeThumb(bound_editor.getCroppedImage());
+		const cropped = bound_editor.getCroppedImage();
+		if (!cropped)  this.spriteThumb.src = '';
+		else           this.spriteThumb.src = makeThumb(cropped);
 	}
 
 	public static async copySpriteBounds() {
 		const bounds = this.getCurrentProp()?.sprite;
-		if (!bounds) return;
+		if (!bounds || !bound_editor.image) return;
 		await navigator.clipboard.writeText(encodeBound(bounds, bound_editor.image.width));
 	}
 
 	public static async pasteSpriteBounds() {
-		const bounds = this.getCurrentProp().sprite;
+		const bounds = this.getCurrentProp()?.sprite;
+		if (!bounds) return;
+
 		const bstr = await navigator.clipboard.readText();
 		try {
 			const decoded = decodeBound(bstr);
@@ -268,8 +274,7 @@ class FileManager {
 
 		prop_table.addEventListener('select', () => {
 			// Update sprite thumb
-			const current_prop = this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex].props[prop_table.selectedIndex];
-			this.spriteThumb.src = makeThumb(bound_editor.getCroppedImage(current_prop.sprite));
+			this.updateSpriteThumb();
 			
 			// Reset settings
 			prop_editor.classList.remove('disabled');
@@ -340,7 +345,7 @@ onmessage = (event: MessageEvent<DetailMessage>) => {
 
 	if (message.type === 'load') {
 		console.log('Loading file...');
-		FileManager.load(message.data);
+		FileManager.load(message.data!);
 		return;
 	}
 

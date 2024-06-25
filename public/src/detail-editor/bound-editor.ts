@@ -30,12 +30,12 @@ export class BoundEditorElement extends HTMLElement {
 		customElements.define('bound-editor', this);
 	}
 
-	public image: ImageDataLike;
-	public thumbSrc: string;
+	public image?: ImageDataLike;
+	public thumbSrc?: string;
 	public bGhosts: Bound[] = [];
-	public bOriginal: Bound;
-	public bTarget: Bound;
-	public oOriginal: Origin;
+	public bOriginal?: Bound;
+	public bTarget?: Bound;
+	public oOriginal?: Origin;
 	public oTarget?: Origin;
 
 	public active = false;
@@ -65,7 +65,7 @@ export class BoundEditorElement extends HTMLElement {
 			</div>
 			<main>
 				<div id="bound-image">
-					<img>
+					<img draggable="false">
 					<div id="bound-ghost-layer"></div>
 					<div id="bound-box-layer">
 						<span id="bound-box"></span>
@@ -122,8 +122,9 @@ export class BoundEditorElement extends HTMLElement {
 	}
 
 	private _onCancel() {
-		Object.assign(this.bTarget, this.bOriginal);
-		Object.assign(this.oTarget, this.oOriginal);
+		if (!this.bTarget) return this.closeEditor();
+		Object.assign(this.bTarget!, this.bOriginal);
+		Object.assign(this.oTarget!, this.oOriginal);
 		this.closeEditor();
 	}
 
@@ -155,6 +156,8 @@ export class BoundEditorElement extends HTMLElement {
 	}
 
 	private _onDrag(event: MouseEvent) {
+		if (!this.bTarget || !this.image) return;
+
 		let xDiff = event.movementX / 1.5;
 		let yDiff = event.movementY / 1.5;
 		if (event.shiftKey) {
@@ -163,8 +166,8 @@ export class BoundEditorElement extends HTMLElement {
 		}
 
 		if (this.oTarget && this.drag === BoundDragType.Origin) {
-			this.oTarget.x += xDiff / this.bTarget.w;
-			this.oTarget.y -= yDiff / this.bTarget.h;
+			if (this.bTarget.w) this.oTarget.x += xDiff / this.bTarget.w;
+			if (this.bTarget.h) this.oTarget.y -= yDiff / this.bTarget.h;
 			this.updateActive();
 			return;
 		}
@@ -196,6 +199,7 @@ export class BoundEditorElement extends HTMLElement {
 	}
 
 	private _onDragEnd(event: MouseEvent) {
+		if (!this.bTarget) return;
 		const snap = this.snap;
 		this.bTarget.x = Math.round(this.bTarget.x / snap) * snap;
 		this.bTarget.y = Math.round(this.bTarget.y / snap) * snap;
@@ -208,7 +212,7 @@ export class BoundEditorElement extends HTMLElement {
 
 	public fixAspectRatio() {
 		if (!this.image) return;
-		const container_bb = this.els.imageContainer.parentElement.getClientRects()[0];
+		const container_bb = this.els.imageContainer.parentElement!.getClientRects()[0];
 		const container_aspect = container_bb.height / container_bb.width;
 		const image_aspect = this.image.height / this.image.width;
 		this.classList.toggle('fit-with-height', container_aspect > image_aspect);
@@ -220,7 +224,10 @@ export class BoundEditorElement extends HTMLElement {
 		this.dispatchEvent(new Event('close'));
 	}
 
-	public getCroppedImage(bound: Bound=this.bTarget, image: ImageDataLike=this.image): ImageDataLike {
+	public getCroppedImage(bound: Bound|undefined=this.bTarget, image: ImageDataLike|undefined=this.image): ImageDataLike | null {
+		if (!bound || !image) return null;
+		if (bound.w <= 0 || bound.h <= 0) return null;
+
 		const width = Math.round(bound.w), height = Math.round(bound.h);
 		const left = Math.round(bound.x), top = Math.round(bound.y);
 		const data = new Uint8Array(bound.w * bound.h * 4);
@@ -253,6 +260,7 @@ export class BoundEditorElement extends HTMLElement {
 	}
 	
 	public updateGhosts() {
+		if (!this.image) return;
 		this.els.ghostContainer.replaceChildren();
 		for (let i=0; i<this.bGhosts.length; i++) {
 			const ghost = this.bGhosts[i];
@@ -267,7 +275,7 @@ export class BoundEditorElement extends HTMLElement {
 	}
 
 	public updateActive() {
-		if (!this.bTarget) return;
+		if (!this.bTarget || !this.image) return;
 		const box = this.els.box, bb = this.bTarget, snap = this.snap;
 		box.style.left = ((Math.round(bb.x / snap) * snap / this.image.width * 100)) + '%';
 		box.style.top = (Math.round(bb.y / snap) * snap / this.image.height * 100) + '%';
@@ -283,6 +291,8 @@ export class BoundEditorElement extends HTMLElement {
 	}
 
 	public async editBounds(target: Partial<Bound>, origin?: Origin) {
+		if (!this.image) return false;
+
 		target.x ??= 0;
 		target.y ??= 0;
 		target.w ??= this.image.width;
@@ -300,5 +310,7 @@ export class BoundEditorElement extends HTMLElement {
 
 		// Update origin visibility
 		this.els.origin.style.display = origin ? '' : 'none';
+
+		return true;
 	}
 }

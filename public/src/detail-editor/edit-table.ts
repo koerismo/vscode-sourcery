@@ -135,18 +135,20 @@ export class EditTableElement extends HTMLTableElement {
 
 	#selectRowNoSet(prev: number, index: number) {
 		this._is_selected = (index > -1);
-		if (prev >= 0 && this.firstElementChild.children.length > prev+1)
-			this.firstElementChild.children[prev+1].classList.remove('active');
-		if (index >= 0 && this.firstElementChild.children.length > index+1)
-			this.firstElementChild.children[index+1].classList.add('active');
+		const firstChild = this.firstElementChild!;
+		if (prev >= 0 && firstChild.children.length > prev+1)
+			firstChild.children[prev+1].classList.remove('active');
+		if (index >= 0 && firstChild.children.length > index+1)
+			firstChild.children[index+1].classList.add('active');
 	}
 
 	#selectRow(index: number) {
 		this._is_selected = (index > -1);
-		if (this._selected_row >= 0 && this.firstElementChild.children.length > this._selected_row+1)
-			this.firstElementChild.children[this._selected_row+1].classList.remove('active');
-		if (index >= 0 && this.firstElementChild.children.length > index+1) {
-			this.firstElementChild.children[(this._selected_row = index)+1].classList.add('active');
+		const firstChild = this.firstElementChild!;
+		if (this._selected_row >= 0 && firstChild.children.length > this._selected_row+1)
+			firstChild.children[this._selected_row+1].classList.remove('active');
+		if (index >= 0 && firstChild.children.length > index+1) {
+			firstChild.children[(this._selected_row = index)+1].classList.add('active');
 			this.dispatchEvent(new Event('select'));
 		}
 		else {
@@ -168,9 +170,10 @@ export class EditTableElement extends HTMLTableElement {
 	
 	forceUpdate() {
 		if (!this._format || !this._data) return false;
-		this.firstElementChild.replaceChildren(this.#createHeader());
+		const firstChild = this.firstElementChild!;
+		firstChild.replaceChildren(this.#createHeader());
 		for (let i=0; i<this._data.length; i++) {
-			this.firstElementChild.appendChild(this.#createRow(i));
+			firstChild.appendChild(this.#createRow(i));
 		}
 		this.#selectRow(this._selected_row);
 	}

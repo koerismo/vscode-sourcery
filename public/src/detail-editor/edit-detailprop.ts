@@ -141,12 +141,7 @@ export class EditPropElement extends HTMLElement {
 		//
 
 		this.input_kind.addEventListener('input', () => {
-			if (!this._data) return;
-			setElVisible(this.category_sprite_common, this.input_kind.value !== PropKind.model);
-			setElVisible(this.category_sprite, this.input_kind.value === PropKind.sprite);
-			setElVisible(this.category_shape, this.input_kind.value === PropKind.shape);
-			setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
-			setElVisible(this.category_model, this.input_kind.value === PropKind.model);
+			this.updateKind();
 		});
 
 		this.input_spr_orient.addEventListener('input', () => {
@@ -166,9 +161,19 @@ export class EditPropElement extends HTMLElement {
 		});
 	}
 
+	updateKind() {
+		if (!this._data) return;
+		setElVisible(this.category_sprite_common, this.input_kind.value !== PropKind.model);
+		setElVisible(this.category_sprite, this.input_kind.value === PropKind.sprite);
+		setElVisible(this.category_shape, this.input_kind.value === PropKind.shape);
+		setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
+		setElVisible(this.category_model, this.input_kind.value === PropKind.model);
+	}
+
 	setModel(model?: DetailProp) {
 		this._data = model;
 		if (!this._data) return;
+		this.updateKind();
 		this.input_width.setModel(this._data.spritesize, 'w');
 		this.input_height.setModel(this._data.spritesize, 'h');
 		this.input_randscale.setModel(this._data, 'spriterandomscale');

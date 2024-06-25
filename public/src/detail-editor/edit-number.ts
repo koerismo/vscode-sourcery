@@ -52,7 +52,7 @@ export class EditNumberElement extends HTMLInputElement {
 	}
 
 	setModel<T = Record<string,any>>(data: T, key: keyof T) {
-		this._data = data;
+		this._data = data as Record<string, any>;
 		this._key = key as string;
 		this.forceUpdate();
 	}

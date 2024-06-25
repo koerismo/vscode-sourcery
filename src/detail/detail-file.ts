@@ -54,6 +54,7 @@ export interface DetailGroup {
 
 export interface DetailProp {
 	name: string;
+	kind: DetailKind;
 
 	// Prop
 	amount: number;

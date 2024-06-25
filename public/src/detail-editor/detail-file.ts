@@ -54,6 +54,7 @@ export interface DetailGroup {
 
 export interface DetailProp {
 	name: string;
+	kind: DetailKind;
 
 	// Prop
 	amount: number;
@@ -62,8 +63,8 @@ export interface DetailProp {
 	maxangle?: number;
 	
 	// Sprite
-	sprite: DetailSpriteBound; // { x: number, y: number, w: number, h: number };
-	spritesize: DetailSpriteSize; // { u: number, v: number, w: number, h: number };
+	sprite: DetailSpriteBound;
+	spritesize: DetailSpriteSize;
 	spriterandomscale?: number;
 	detailOrientation?: DetailOrientation;
 	
