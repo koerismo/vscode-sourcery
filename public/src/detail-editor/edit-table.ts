@@ -1,4 +1,4 @@
-import { type EditNumber } from './edit-number.js';
+import { type EditNumberElement } from './edit-number.js';
 
 interface RowFormat {
 	title: string;
@@ -9,7 +9,7 @@ interface RowFormat {
 	max?: number;
 }
 
-export class EditTable extends HTMLTableElement {
+export class EditTableElement extends HTMLTableElement {
 	private _format: RowFormat[] = [];
 	private _data: Record<string, any>[] = [];
 	private _disabled: boolean = false;
@@ -81,7 +81,7 @@ export class EditTable extends HTMLTableElement {
 	#setValue(element: HTMLInputElement, value: any) {
 		const type = element.type;
 		if (type === 'text') return element.value = value;
-		if (type === 'number') return (<EditNumber>element).setValue(value);
+		if (type === 'number') return (<EditNumberElement>element).setValue(value);
 		if (type === 'checkbox') return element.checked = value;
 		throw Error('Unknown type '+type);
 	}

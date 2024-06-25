@@ -137,7 +137,7 @@ function getLineLink(line: string, line_index: number, acceptable: Set<string>, 
 	const char_end = line.length - match[3].length;
 	const range = new vscode.Range(new vscode.Position(line_index, char_start), new vscode.Position(line_index, char_end));
 
-	let path = root.path + '/' + match[4].replace(RE_SLASH, '/');
+	let path = (root.path + '/' + match[4]).replace(RE_SLASH, '/');
 	if (suffix && !path.endsWith(suffix)) path += suffix;
 	const target = root.with({ path });
 
@@ -266,6 +266,8 @@ async function askToDowngrade(skip: boolean=false) {
 }
 
 function generateToolTexture(textures: VImageData[]) {
+	if (textures.length === 1) return textures[0].convert(<typeof Uint8Array><unknown>Uint8ClampedArray);
+	
 	const width = textures[0].width;
 	const height = textures[0].height;
 	for (let i=1; i<textures.length; i++) {
@@ -374,12 +376,12 @@ export class VmtChangeListener {
 			// On text insert
 			const change = event.contentChanges[0];
 			if (change.text.length <= 3) return;
-			// if (change.text[0] !== sep && change.text[2] !== sep) return;
+			if (change.text[0] !== sep && change.text[2] !== sep) return;
 
 			// Get key
 			const linerange = new vscode.Range(change.range.start.with({ character: 0 }), change.range.start);
 			const linematch = event.document.getText(linerange).match(RE_LINE_ONLYKEY);
-			if (!linematch) return outConsole.log('Did not match key regex!');
+			if (!linematch) return;
 			const key = linematch[2] as (keyof typeof POSTFIX);
 			if (!(key in POSTFIX)) return;
 			outConsole.log('Using key', key, 'for conversion.');

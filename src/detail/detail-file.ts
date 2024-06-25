@@ -10,11 +10,31 @@ export enum DetailKind {
 	Model,
 }
 
-export interface DetailMessage {
+export interface DetailSpriteBound {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+	imageWidth: number;
+}
+
+export interface DetailSpriteSize {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+export type DetailMessage = {
 	type: 'load'|'save'|'ready';
 	data?: DetailFile;
 	error?: string;
-}
+} | {
+	type: 'ask';
+	kind: 'material'|'model';
+	data: [string, { width: number, height: number, data: Uint8Array }]|null;
+	error?: string;
+};
 
 export interface DetailFile {
 	details: Detail[];
@@ -42,8 +62,8 @@ export interface DetailProp {
 	maxangle?: number;
 	
 	// Sprite
-	sprite: string; // { x: number, y: number, w: number, h: number };
-	spritesize: string; // { u: number, v: number, w: number, h: number };
+	sprite: DetailSpriteBound; // { x: number, y: number, w: number, h: number };
+	spritesize: DetailSpriteSize; // { u: number, v: number, w: number, h: number };
 	spriterandomscale?: number;
 	detailOrientation?: DetailOrientation;
 	

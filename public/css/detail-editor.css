@@ -16,6 +16,20 @@ body {
 	gap: 10px;
 }
 
+input {
+	box-sizing: border-box;
+	background-color: var(--vscode-input-background);
+	outline-color: var(--vscode-inputOption-activeBorder);
+	color: var(--vscode-input-foreground);
+	border: 1px solid var(--vscode-input-border);
+}
+
+input:focus {
+	background-color: var(--vscode-input-background);
+	outline: 1px solid var(--vscode-foreground);
+	outline-color: var(--vscode-list-focusOutline);
+}
+
 /* =================================== BASE LAYOUT =================================== */
 
 h2 {
@@ -63,10 +77,16 @@ div.panel {
 	background-color: var(--vscode-editorPane-background);
 }
 
-div.panel.panel-small {
+div.small-v {
 	height: max(min(160px, 20vmin), 80px);
-	flex-shrink: 0;
-	flex-grow: 0;
+	/* flex-shrink: 0;
+	flex-grow: 0; */
+}
+
+div.small-h {
+	width: max(min(160px, 100vw), 300px);
+	/* flex-shrink: 0;
+	flex-grow: 0; */
 }
 
 /* =================================== TABLE =================================== */
@@ -234,11 +254,6 @@ div.prop-grid {
 
 div.prop-grid input {
 	width: 100%;
-	box-sizing: border-box;
-	background-color: var(--vscode-input-background);
-	outline-color: var(--vscode-inputOption-activeBorder);
-	color: var(--vscode-input-foreground);
-	border: 1px solid var(--vscode-input-border);
 }
 
 div.prop-grid vscode-dropdown {
@@ -251,3 +266,119 @@ div.prop-grid .content {
 
 div.prop-grid .h { gap: 4px }
 div.prop-grid .v { gap: 4px }
+
+
+/* =================================== BOUND EDITOR =================================== */
+
+
+bound-editor {
+	position: absolute;
+	width: 50vw;
+	height: 98vh;
+	left: 1vh;
+	top: 1vh;
+	
+	background-color: #222;
+	border: 1px solid #555;
+	box-shadow: 3px 3px 30px #0005;
+	
+	display: flex;
+	z-index: -99;
+	opacity: 0;
+	/* display: none; */
+	flex-direction: column;
+
+	/* Transition */
+	transform: scale(0.95);
+	transition: transform ease-out 0.1s;
+}
+
+bound-editor #bound-header {
+	display: flex;
+	justify-content: space-between;
+	gap: 2px;
+	margin: 2px;
+}
+
+bound-editor main {
+	display: flex;
+	flex-direction: row;
+	height: 100%;
+	overflow: hidden;
+}
+
+bound-editor.fit-with-height main {
+	flex-direction: column;
+}
+
+bound-editor.active {
+	display: flex;
+	transform: scale(1.0);
+	z-index: 99;
+	opacity: 1;
+}
+
+bound-editor #bound-image {
+	position: relative;
+	box-sizing: border-box;
+	margin: 20px;
+}
+
+bound-editor #bound-image img {
+	background: #0002; 
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	height: 100%;
+}
+
+bound-editor #bound-ghost-layer {
+	opacity: 0.1;
+}
+
+bound-editor #bound-ghost-layer span {
+	position: absolute;
+	display: block;
+	border: 1px solid #fff;
+}
+
+bound-editor #bound-box-layer span {
+	position: absolute;
+	display: block;
+	border: 1px solid #fff;
+}
+
+bound-editor.bigsnap #bound-box-layer span {
+	transition: all 0.08s cubic-bezier(0.13, 0.71, 0.6, 0.98) 0s;
+}
+
+bound-editor #bound-box-layer span::before {
+    display: block;
+    position: absolute;
+	content: '';
+    width: 10px;
+    height: 10px;
+    border-bottom: 1px solid white;
+    border-right: 1px solid white;
+    top: -10.5px;
+    left: -10.5px;
+}
+
+bound-editor #bound-box-layer span::after {
+    display: block;
+    position: absolute;
+	content: '';
+    width: 10px;
+    height: 10px;
+    border-top: 1px solid white;
+    border-left: 1px solid white;
+    bottom: -10.5px;
+    right: -10.5px;
+}
+
+bound-editor #bound-origin {
+	border-color: rgb(255, 183, 0);
+}

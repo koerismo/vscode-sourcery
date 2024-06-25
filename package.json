@@ -3,11 +3,19 @@
 	"publisher": "koerismo",
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"icon": "images/icon.png",
 	"engines": {
-		"vscode": "^1.89.0"
+		"vscode": "^1.90.0"
 	},
+	"keywords": [
+		"Source",
+		"Source Engine",
+		"Sourcery",
+		"VMT",
+		"VPK",
+		"MDL"
+	],
 	"categories": [
 		"Other"
 	],
@@ -279,5 +287,8 @@
 		"vtf-js": "link:../vtf.js",
 		"webpack": "^5.91.0",
 		"webpack-cli": "^5.1.4"
+	},
+	"dependencies": {
+		"@types/vscode-webview": "^1.57.5"
 	}
 }

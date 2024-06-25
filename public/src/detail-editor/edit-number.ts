@@ -1,4 +1,4 @@
-export class EditNumber extends HTMLInputElement {
+export class EditNumberElement extends HTMLInputElement {
 	_data?: Record<string, any>;
 	_key?: string;
 	
@@ -8,6 +8,7 @@ export class EditNumber extends HTMLInputElement {
 
 	setValue(v: number) {
 		this.value = this._formatValue(v);
+		if (this._data && this._key) this._data[this._key] = v;
 	}
 	
 	_formatValue(v: number) {
@@ -27,7 +28,8 @@ export class EditNumber extends HTMLInputElement {
 
 		// Correct value on update.
 		this.addEventListener('blur', () => {
-			this.value = this._formatValue(+this.value);
+			const nValue = +this.value;
+			this.setValue(nValue);
 			this.dispatchEvent(new CustomEvent('update', { detail: +this.value }));
 		});
 	}

@@ -2,38 +2,51 @@
 <html lang="en">
 	<head>
 		<meta charset="UTF-8">
-		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval' 'unsafe-inline';">
+		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval' 'unsafe-inline'; img-src 'self' data:;">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<link rel="stylesheet" href="$ROOT$/public/css/detail-editor.css" />
 	</head>
 	<body class="h">
 		<div class="v fill">
-			<div id="panel-sheets" class="panel panel-small">
-				<h2>Types</h2>
-				<div class="btn-container">
-					<div class="btn-list-add codicon codicon-add" onclick="FileManager.addType()"></div>
-					<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeType()"></div>
+			<div class="h small-v">
+				<div id="panel-types" class="panel fill">
+					<h2>Types</h2>
+					<div class="btn-container">
+						<div class="btn-list-add codicon codicon-add" onclick="FileManager.addType()"></div>
+						<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeType()"></div>
+					</div>
+					<table is="edit-table" id="table-types" class="edit-table"></table>
 				</div>
-				<table is="edit-table" id="table-types" class="edit-table"></table>
-			</div>
-			<div class="panel panel-small">
-				<h2>Groups</h2>
-				<div class="btn-container">
-					<div class="btn-list-add codicon codicon-add" onclick="FileManager.addGroup()"></div>
-					<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeGroup()"></div>
+				<div id="panel-groups" class="panel fill">
+					<h2>Groups</h2>
+					<div class="btn-container">
+						<div class="btn-list-add codicon codicon-add" onclick="FileManager.addGroup()"></div>
+						<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeGroup()"></div>
+					</div>
+					<table is="edit-table" id="table-groups" class="edit-table"></table>
 				</div>
-				<table is="edit-table" id="table-groups" class="edit-table"></table>
 			</div>
 			<div class="h fill">
-				<div class="panel fill">
-					<h2>Props</h2>
-					<div class="btn-container">
-						<div class="btn-list-add codicon codicon-add" onclick="FileManager.addModel()"></div>
-						<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeModel()"></div>
+				<div class="v small-h">
+					<div id="panel-props" class="panel fill">
+						<h2>Props</h2>
+						<div class="btn-container">
+							<div class="btn-list-add codicon codicon-add" onclick="FileManager.addModel()"></div>
+							<div class="btn-list-remove codicon codicon-remove" onclick="FileManager.removeModel()"></div>
+						</div>
+						<table is="edit-table" id="table-props" class="edit-table"></table>
 					</div>
-					<table is="edit-table" id="table-props" class="edit-table"></table>
+					<div class="panel">
+						<h2>Preview</h2>
+						<div class="prop-grid">
+							<label>Sprite Material</label>
+							<img onclick="FileManager.askToSetSpriteMat()" id="thumb-texture" class="edit-icon" />
+							<label>Ground Material</label>
+							<img onclick="FileManager.askToSetGroundMat()" id="thumb-ground" class="edit-icon" />
+						</div>
+					</div>
 				</div>
-				<div id="settings-panel" class="panel fill">
+				<div id="panel-settings" class="panel fill">
 					<h2>Settings</h2>
 					<div class="prop-grid">
 						<label>Kind</label>
@@ -44,15 +57,32 @@
 						</vscode-dropdown>
 						<label>Spawn Upright</label>
 						<vscode-checkbox id="settings-upright"></vscode-checkbox>
-						<div class="content" id="settings-category-sprite">
+						<div class="content" id="settings-category-sprite-common">
 							<label>Sprite</label>
 							<div class="h">
-								<canvas class="edit-icon"></canvas>
+								<img onclick="FileManager.openBoundEditor()" id="thumb-sprite" class="edit-icon" />
 								<div class="v">
-									<vscode-button>Copy</vscode-button>
-									<vscode-button>Paste</vscode-button>
+									<vscode-button onclick="FileManager.copySpriteBounds()">Copy</vscode-button>
+									<vscode-button onclick="FileManager.pasteSpriteBounds()">Paste</vscode-button>
 								</div>
 							</div>
+							<label>Size</label>
+							<div class="h">
+								<input id="settings-width"  is="edit-number" type="number" step="1" min="0">
+								<input id="settings-height" is="edit-number" type="number" step="1" min="0">
+							</div>
+							<label>Random Scale</label>
+							<input id="settings-scale-random" is="edit-number" type="number" min="0" max="1">
+							<label>Sway</label>
+							<input id="settings-sway" is="edit-number" type="number" min="0" max="10">
+						</div>
+						<div class="content" id="settings-category-sprite">
+							<label>Orientation</label>
+							<vscode-dropdown id="settings-sprite-orient">
+								<vscode-option value="0">Fixed</vscode-option>
+								<vscode-option value="1">Camera</vscode-option>
+								<vscode-option value="2">Z-Fixed</vscode-option>
+							</vscode-dropdown>
 						</div>
 						<div class="content" id="settings-category-shape">
 							<label>Shape Angle</label>
@@ -65,27 +95,15 @@
 							<input id="settings-model" disabled/>
 							<vscode-button style="grid-column: span 2;">Select</vscode-button>
 						</div>
-						<label>Size</label>
-						<div class="h">
-							<input id="settings-width"  is="edit-number" type="number" step="1" min="0">
-							<input id="settings-height" is="edit-number" type="number" step="1" min="0">
-						</div>
-						<label>Scale Range</label>
-						<input id="settings-scale-random" is="edit-number" type="number" min="0" max="1">
-						<label>Sway</label>
-						<input id="settings-sway" is="edit-number" type="number" min="0" max="10">
 					</div>
 				</div>
 			</div>
 		</div>
 		<div class="v fill">
-			<div>
-				<vscode-button>Set Detail Texture</vscode-button>
-				<vscode-button>Set Ground Preview</vscode-button>
-			</div>
 			<div class="panel v fill">
 			</div>
 		</div>
+		<bound-editor></bound-editor>
 		<script src="$ROOT$/public/dist/detail-editor.js"></script>
 	</body>
 </html>

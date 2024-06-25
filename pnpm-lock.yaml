@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@types/vscode-webview':
+        specifier: ^1.57.5
+        version: 1.57.5
     devDependencies:
       '@types/glob':
         specifier: ^8.1.0
@@ -229,6 +233,9 @@ packages:
 
   '@types/three@0.162.0':
     resolution: {integrity: sha512-0j5yZcVukVIhrhSIC7+LmBPkkMoMuEJ1AfYBZfgNytdYqYREMuiyXWhYOMeZLBElTEAlJIZn7r2W3vqTIgjWlg==}
+
+  '@types/vscode-webview@1.57.5':
+    resolution: {integrity: sha512-iBAUYNYkz+uk1kdsq05fEcoh8gJmwT3lqqFPN7MGyjQ3HVloViMdo7ZJ8DFIP8WOK74PjOEilosqAyxV2iUFUw==}
 
   '@types/vscode@1.90.0':
     resolution: {integrity: sha512-oT+ZJL7qHS9Z8bs0+WKf/kQ27qWYR3trsXpq46YDjFqBsMLG4ygGGjPaJ2tyrH0wJzjOEmDyg9PDJBBhWg9pkQ==}
@@ -1704,6 +1711,8 @@ snapshots:
       '@types/webxr': 0.5.16
       fflate: 0.6.10
       meshoptimizer: 0.18.1
+
+  '@types/vscode-webview@1.57.5': {}
 
   '@types/vscode@1.90.0': {}
 

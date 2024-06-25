@@ -1,0 +1,507 @@
+import * as assert from 'assert';
+import ViewBuffer from "stupid-buffer";
+import { ChoreoEventType, ChoreoEventFlags, ChoreoAbsTagType, CLOSECAPTION } from './scene-enum.js';
+
+// TODO:
+// - Finish flex tracks
+// - finish GetDuration
+// - Finish writing base function (see sceneimage.cpp)
+// - Cleanup?
+
+/** Source-style buffer with allocator integration. */
+// class SceneBuffer extends ViewBuffer {
+// 	// allocator!: SceneAllocator;
+
+// 	// read_pstr(type: PointerType, length?: number) {
+// 	// 	let readFunc;
+// 	// 	let readLength;
+// 	// 	switch (type) {
+// 	// 		case 'short':
+// 	// 		case 'i16': { readFunc = this.view.getInt16, readLength = 2; break; }
+// 	// 		case 'int':
+// 	// 		case 'i32': { readFunc = this.view.getInt32, readLength = 2; break; }
+// 	// 		case 'u16': { readFunc = this.view.getUint16, readLength = 4; break; }
+// 	// 		case 'u32': { readFunc = this.view.getUint32, readLength = 4; break; }
+// 	// 	}
+// 	// 	if (!readFunc) throw Error('whoops');
+// 	// 	const v = readFunc(this.pointer, this.little);
+// 	// 	this.pointer += readLength;
+// 	// 	return this.allocator.readString(v, length);
+// 	// }
+
+// 	// write_pstr(type: PointerType, value: string, allow_reuse?: boolean, length?: number) {
+// 	// 	if (length && value.length !== length) throw Error(`write_pstr: Expected string with length ${length}, but got ${value.length} instead!`);
+		
+// 	// 	let writeFunc;
+// 	// 	let writeLength;
+// 	// 	switch (type) {
+// 	// 		case 'short':
+// 	// 		case 'i16': { writeFunc = this.view.setInt16, writeLength = 2; break; }
+// 	// 		case 'int':
+// 	// 		case 'i32': { writeFunc = this.view.setInt32, writeLength = 2; break; }
+// 	// 		case 'u16': { writeFunc = this.view.setUint16, writeLength = 4; break; }
+// 	// 		case 'u32': { writeFunc = this.view.setUint32, writeLength = 4; break; }
+// 	// 	}
+// 	// 	if (!writeFunc) throw Error('whoops');
+// 	// 	const pos = this.pointer;
+// 	// 	const endian = this.little;
+// 	// 	this.pointer += writeLength;
+
+// 	// 	const allocFunc = allow_reuse ? this.allocator.writeOrFindString : this.allocator.writeString;
+// 	// 	allocFunc(value, !length, (ind) => {
+// 	// 		writeFunc(pos, ind, endian);
+// 	// 	});
+// 	// }
+	
+// 	// Source-style aliases
+
+// 	PutInt = this.write_i32;
+// 	PutShort = this.write_i16;
+// 	PutChar = this.write_i8;
+// 	PutUnsignedInt = this.write_u32;
+// 	PutUnsignedShort = this.write_u16;
+// 	PutUnsignedChar = this.write_u8;
+// 	PutFloat = this.write_f32;
+// }
+
+class GrowableSceneBuffer {
+	chunks: ViewBuffer[] = [];
+	activeChunk: ViewBuffer;
+
+	constructor(public readonly chunkSize: number) {
+		this.activeChunk = new ViewBuffer(chunkSize);
+		this.chunks.push(this.activeChunk);
+	}
+
+	protected nextChunk(size?: number) {
+		this.activeChunk = new ViewBuffer(size ?? this.chunkSize);
+		this.chunks.push(this.activeChunk);
+	}
+
+	protected ensureSpace(size: number) {
+		if (this.activeChunk.length - this.activeChunk.pointer < size) {
+			this.nextChunk(Math.max(size, this.chunkSize));
+		}
+	}
+
+	public flush() {
+		let size = 0;
+		for (const chunk of this.chunks) size += chunk.pointer;
+		const out = new Uint8Array(size);
+
+		let ptr = 0;
+		for (let i=0; i<this.chunks.length; i++) {
+			this.chunks[i] = new ViewBuffer(this.chunks[i].buffer, 0, this.chunks[i].pointer);
+			this.chunks[i].set(out, ptr);
+			ptr += this.chunks[i].length;
+		}
+
+		return out;
+	}
+
+	PutInt(value: number | Int32Array, little?: boolean | undefined) {
+		this.ensureSpace(4);
+		this.activeChunk.write_i32(value, little);
+	}
+	PutShort(value: number | Int16Array, little?: boolean | undefined) {
+		this.ensureSpace(2);
+		this.activeChunk.write_i16(value, little);
+	}
+	PutChar(value: number | Int8Array) {
+		this.ensureSpace(1);
+		this.activeChunk.write_i8(value);
+	}
+
+	PutUnsignedInt(value: number | Uint32Array, little?: boolean | undefined) {
+		this.ensureSpace(4);
+		this.activeChunk.write_u32(value, little);
+	}
+	PutUnsignedShort(value: number | Uint16Array, little?: boolean | undefined) {
+		this.ensureSpace(2);
+		this.activeChunk.write_u16(value, little);
+	}
+	PutUnsignedChar(value: number | Uint8Array) {
+		this.ensureSpace(1);
+		this.activeChunk.write_u8(value);
+	}
+
+	PutFloat(value: number | Float32Array, little?: boolean | undefined) {
+		this.ensureSpace(4);
+		this.activeChunk.write_f32(value, little);
+	}
+
+	PutString(str: string, length?: number | undefined) {
+		this.ensureSpace(str.length + +(length === undefined));
+		this.activeChunk.write_str(str, length);
+	}
+}
+
+/**  General-purpose class for allocating chunks of data. */
+// export class SceneAllocator {
+// 	chunks: Uint8Array[] = [];
+// 	length: number = 0;
+// 	// strings: [string, ((ind: number) => void)[]][] = [];
+	
+// 	allocate(size: number) {
+// 		const buf = new Uint8Array(size);
+// 		this.length += size;
+// 		this.chunks.push(buf);
+// 		const view = new SceneBuffer(buf.buffer);
+// 		// view.allocator = this;
+// 		return view;
+// 	}
+
+// 	// readString(ind: number, length?: number) {
+// 	// 	const view = new ViewBuffer(this.chunks[0]);
+// 	// 	view.pointer = ind;
+// 	// 	return view.read_str(length!);
+// 	// }
+	
+// 	// writeString(str: string, includeNull: boolean, cb: (ind: number) => void) {
+// 	// 	this.strings.push([
+// 	// 		includeNull ? str+'\0' : str,
+// 	// 		[cb]
+// 	// 	]);
+// 	// }
+
+// 	// writeOrFindString(str: string, includeNull: boolean, cb: (ind: number) => void) {
+// 	// 	if (includeNull) str += '\0';
+// 	// 	for (let i=0; i<this.strings.length; i++) {
+// 	// 		if (this.strings[i][0] === str) {
+// 	// 			this.strings[i][1].push(cb);
+// 	// 			return;
+// 	// 		}
+// 	// 	}
+// 	// 	this.writeString(str, includeNull, cb);
+// 	// }
+
+// 	flush() {
+// 		// Get strings length
+// 		let string_length = 0;
+// 		// for (let i=0; i<this.strings.length; i++) {
+// 		// 	const s = this.strings[i];
+// 		// 	string_length += s.length;
+// 		// }
+
+// 		// Make final array
+// 		const out = new Uint8Array(this.length + string_length);
+		
+// 		// Write strings
+// 		// const stringtable = new ViewBuffer(string_length);
+// 		// for (let i=0; i<this.strings.length; i++) {
+// 		// 	const item = this.strings[i];
+// 		// 	item[1].forEach(cb => cb(this.length + stringtable.pointer));
+// 		// 	stringtable.write_str(item[0], item[0].length);
+// 		// }
+		
+// 		// Write chunks
+// 		let pointer = 0;
+// 		for (let i=0; i<this.chunks.length; i++) {
+// 			const c = this.chunks[i];
+// 			c.set(out, pointer);
+// 			pointer += c.length;
+// 		}
+
+// 		// Copy strings into final buffer
+// 		// stringtable.set(out, pointer);
+
+// 		return out;
+// 	}
+// }
+
+export class SceneStringPool {
+	strings: string[] = [];
+
+	AddString(str: string) {
+		this.strings.push(str);
+		return this.strings.length - 1;
+	}
+
+	FindOrAddString(str: string) {
+		const ind = this.strings.indexOf(str);
+		if (ind !== -1) return ind;
+		return this.AddString(str);
+	}
+	
+	flush() {
+		return new TextEncoder().encode(this.strings.join('\0')+'\0');
+	}
+}
+
+const SCENE_IMAGE_ID = 'VSIF';
+const SCENE_IMAGE_VERSION = 2;
+
+// From choreoscene.h
+const SCENE_BINARY_TAG = 'bvcd';
+const SCENE_BINARY_VERSION = 0x04;
+
+export function WriteBinaryVCD(sourceName: string, scene: CChoreoScene) {
+	const buf = new GrowableSceneBuffer(128);
+	
+
+
+}
+
+class CChoreoScene {
+	events: CChoreoEvent[] = [];
+	actors: CChoreoActor[] = [];
+	ramp!: CCurveData;
+	ignorePhonemes: boolean = false;
+
+	GetDuration() {
+		return 0.0;
+	}
+
+	WriteBinary(buf: GrowableSceneBuffer, nTextVersionCRC: number, stringPool: SceneStringPool) {
+		buf.PutString(SCENE_BINARY_TAG, 4);
+		buf.PutChar(SCENE_BINARY_VERSION);
+		buf.PutInt(nTextVersionCRC); // TODO: WHY IS THIS IMPORTANT?
+
+		// Get orphan events
+		const eventlist: CChoreoEvent[] = [];
+		for (let i=0; i<this.events.length; i++) {
+			if (this.events[i].actor !== null) continue;
+			eventlist.push(this.events[i]);
+		}
+		
+		// Write orphan events to file
+		assert(eventlist.length <= 255);
+		buf.PutUnsignedChar(eventlist.length);
+		for (let i=0; i<eventlist.length; i++) {
+			eventlist[i].WriteBinary(buf, this, stringPool);
+		}
+
+		// Write actors to file
+		assert(this.actors.length <= 255);
+		buf.PutUnsignedChar(this.actors.length);
+		for (let i=0; i<this.actors.length; i++) {
+			this.actors[i].WriteBinary(buf, this, stringPool);
+		}
+
+		// Write scene ramp data
+		this.ramp.WriteBinary(buf);
+
+		// Ignore phonemes?
+		buf.PutUnsignedChar(+this.ignorePhonemes);
+	}
+
+	ReadBinary() {
+
+	}
+}
+
+class CChoreoEvent {
+	id = 0;
+	name: string = '';
+	type = ChoreoEventType.UNSPECIFIED;
+	startTime = 0.0;
+	endTime = -1.0;
+	ramp: CCurveData = new CCurveData();
+	flexTracks: CFlexAnimationTrack[] = [];
+	
+	// This is so stupid
+	parameters1 = '';
+	parameters2 = '';
+	parameters3 = '';
+
+	actor: CChoreoActor|null = null;
+	channel: CChoreoChannel|null = null;
+	scene: CChoreoScene;
+
+	// Various random properties
+	usingCombinedSoundFile = false;
+	combinedUsingGenderToken = false;
+	suppressCaptionAttenuation = false;
+	distanceToTarget = 0.0;
+	gestureSequenceDuration = 0.0;
+	loopCount = 0;
+
+	// WTF
+	usingRelativeTag = false;
+	relativeTagName = '';
+	relativeTagWav = '';
+
+	// Closed captions
+	ccType = CLOSECAPTION.CC_MASTER;
+	ccToken = '';
+
+	relativeTags: any[] = [];
+	timingTags: any[] = [];
+
+	flag_active = true;
+	flag_fixedLength = false;
+	flag_resumeCondition = false;
+	flag_lockBodyFacing = false;
+	flag_forceShortMovement = false;
+	flag_playOverScript = false;
+
+	constructor(scene: CChoreoScene) {
+		this.scene = scene;
+	}
+
+	GetAbsoluteTags(type: ChoreoAbsTagType): CEventAbsoluteTag[] {
+		throw Error('not implemented');
+	}
+
+	GetDuration() {
+		if (this.endTime === -1.0) return 0.0;
+		return this.endTime - this.startTime;
+	}
+
+	WriteBinary(buf: GrowableSceneBuffer, scene: CChoreoScene, stringPool: SceneStringPool) {
+		buf.PutChar(this.type);
+		buf.PutShort(stringPool.FindOrAddString(this.name));
+		
+		buf.PutFloat(this.startTime);
+		buf.PutFloat(this.endTime);
+
+		buf.PutShort(stringPool.FindOrAddString(this.parameters1));
+		buf.PutShort(stringPool.FindOrAddString(this.parameters2));
+		buf.PutShort(stringPool.FindOrAddString(this.parameters3));
+
+		// Event ramp data
+		this.ramp.WriteBinary(buf);
+
+		// Write flags
+		buf.PutUnsignedChar((
+			(+this.flag_resumeCondition    << 0) |
+			(+this.flag_lockBodyFacing     << 1) |
+			(+this.flag_fixedLength        << 2) |
+			(+this.flag_active             << 3) |
+			(+this.flag_forceShortMovement << 4) |
+			(+this.flag_playOverScript     << 5)
+		));
+
+		// Relative tags
+		assert(this.relativeTags.length <= 255);
+		buf.PutUnsignedChar(this.relativeTags.length);
+
+		for (let i=0; i<this.relativeTags.length; i++) {
+			const tag = this.relativeTags[i];
+			buf.PutShort(stringPool.FindOrAddString(tag.name));
+			buf.PutUnsignedChar((tag.percentage * 255) | 0);
+		}
+
+		// Timing tags
+		assert(this.timingTags.length <= 255);
+		buf.PutUnsignedChar(this.timingTags.length);
+
+		for (let i=0; i<this.timingTags.length; i++) {
+			const tag = this.timingTags[i];
+			buf.PutShort(stringPool.FindOrAddString(tag.name));
+			buf.PutUnsignedChar((tag.percentage * 255) | 0);
+		}
+
+		// For each tag type...
+		for (let type=0; type<ChoreoAbsTagType.NUM_ABS_TAG_TYPES; type++) {
+			const tags = this.GetAbsoluteTags(type);
+			assert(tags.length <= 255);
+			buf.PutUnsignedChar(tags.length);
+
+			for (let i=0; i<tags.length; i++) {
+				const tag = tags[i];
+				buf.PutShort(stringPool.FindOrAddString(tag.name));
+				buf.PutUnsignedShort((tag.percentage * 4096) | 0);
+			}
+		}
+
+		// Special case: Gesture event
+		if (this.type === ChoreoEventType.GESTURE) {
+			const has_duration = this.gestureSequenceDuration !== 0;
+			const duration = has_duration ? this.gestureSequenceDuration : -1;
+			buf.PutFloat(duration);
+		}
+
+		// Are we using a relative tag?
+		buf.PutChar(+this.usingRelativeTag);
+		if (this.usingRelativeTag) {
+			buf.PutShort(stringPool.FindOrAddString(this.relativeTagName));
+			buf.PutShort(stringPool.FindOrAddString(this.relativeTagWav));
+		}
+
+		// Flex animations
+		// TODO: look at SaveFlexAnimationsToBuffer in choreoevent.cpp
+		{
+			assert();
+			buf.PutUnsignedChar();
+		}
+
+		// Special case: Loop event
+		if (this.type === ChoreoEventType.LOOP) {
+			buf.PutChar(this.loopCount);
+		}
+
+		// Special case: Speak event
+		if (this.type === ChoreoEventType.SPEAK) {
+			buf.PutChar(this.ccType);
+			buf.PutShort(stringPool.FindOrAddString(this.ccToken));
+			
+			let flags = 0;
+
+			if (this.ccType !== CLOSECAPTION.CC_DISABLED &&
+				this.usingCombinedSoundFile) {
+				flags |= (1 << 0);
+			}
+
+			if (this.combinedUsingGenderToken) {
+				flags |= (1 << 1);
+			}
+
+			if (this.suppressCaptionAttenuation) {
+				flags |= (1 << 2);
+			}
+
+			buf.PutChar(flags);
+		}
+	}
+
+	ReadBinary() {
+
+	}
+}
+
+class CChoreoChannel {
+
+}
+
+class CChoreoActor {
+	WriteBinary(buf: GrowableSceneBuffer, scene: CChoreoScene, stringPool: SceneStringPool) {
+
+	}
+}
+
+class CCurveData {
+	samples: CExpressionSample[] = [];
+
+	GetCount() {
+		return this.samples.length;
+	}
+
+	WriteBinary(buf: GrowableSceneBuffer) {
+
+		assert(this.GetCount() <= 255);
+		
+	}
+}
+
+class CExpressionSample {
+
+}
+
+class CEventRelativeTag {
+	constructor(
+		public name: string,
+		public percentage: number,
+		public owner: CChoreoEvent) {
+		// Nothing, right now.
+	}
+}
+
+class CEventAbsoluteTag {
+	constructor(
+		public name: string,
+		public percentage: number,
+		public owner: CChoreoEvent) {
+		// Nothing, right now.
+	}
+}

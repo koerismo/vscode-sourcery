@@ -9,11 +9,12 @@ const isProduction = process.env.NODE_ENV === 'production';
 /** @type WebpackConfig */
 const config = {
     entry: {
-		'detail-editor': './public/src/detail-editor/index.ts',
+		'noclip': './public/src/shared/NoclipApi.ts',
+		'detail-editor': { import: './public/src/detail-editor/index.ts' },
+		'mdl-editor': { import: './public/src/mdl-editor/index.ts', dependOn: 'noclip' },
+		'vmt-editor': { import: './public/src/vmt-editor/index.ts', dependOn: 'noclip' },
 		'soundscape-editor': './public/src/soundscape-editor/index.ts',
-		'mdl-editor': './public/src/mdl-editor/index.ts',
 		'vtf-editor': './public/src/vtf-editor/index.ts',
-		'vmt-editor': './public/src/vmt-editor/index.ts',
 		'vmt-browser': './public/src/vmt-browser/index.ts',
 	},
     output: {
@@ -48,13 +49,14 @@ const config = {
             // Learn more about loaders from https://webpack.js.org/loaders/
         ],
     },
-	// optimization: {
-	// 	usedExports: true,
-	// 	sideEffects: true
-	// },
+	optimization: {
+		// runtimeChunk: 'single',
+		// usedExports: true,
+		// sideEffects: true
+	},
 	experiments: {
 		syncWebAssembly: true
-	}
+	},
 };
 
 module.exports = () => {
