@@ -1,4 +1,6 @@
-import { Checkbox, Dropdown, provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
+import '../../../node_modules/@vscode/codicons/dist/codicon.css';
+
+import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDropdown(), vsCodeOption());
 
 import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailOrientation, DetailProp } from './detail-file.js';
@@ -43,6 +45,7 @@ prop_table.setFormat([
 	{ title: 'Amount',  property: 'amount',  type: 'float',  width: 'auto', min: 0, max: 1 },
 ]);
 
+const prop_panel = document.querySelector<HTMLElement>('#panel-settings')!;
 const bound_editor = document.querySelector<BoundEditorElement>('bound-editor')!;
 const prop_editor = document.querySelector<EditPropElement>('edit-detail-prop')!;
 
@@ -310,20 +313,20 @@ class FileManager {
 			this.updateSpriteThumb();
 			
 			// Reset settings
-			prop_editor.classList.remove('disabled');
+			prop_panel.classList.remove('disabled');
 			this.updateSettings();
 		});
 
 		prop_table.addEventListener('deselect', () => {
 			// Disable settings
-			prop_editor.classList.add('disabled');
+			prop_panel.classList.add('disabled');
 		});
 
 		// Set up initial types table
 		type_table.setModel(this.file.details);
 		group_table.disabled = true;
 		prop_table.disabled = true;
-		prop_editor.classList.add('disabled');
+		prop_panel.classList.add('disabled');
 
 		// Hook icon update to bound editor close event
 		bound_editor.addEventListener('close', () => {

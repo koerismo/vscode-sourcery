@@ -1,5 +1,3 @@
-@import url('../../node_modules/@vscode/codicons/dist/codicon.css');
-
 body, html {
 	width: 100vw;
 	height: 100vh;
@@ -178,6 +176,17 @@ table.edit-table td > input:focus {
 div.panel:has(table.edit-table[disabled]),
 div.panel.disabled {
 	opacity: 0.5;
+}
+
+div.panel:has(table.edit-table[disabled])::after,
+div.panel.disabled::after {
+	content: '';
+	z-index: 2;
+	position: absolute;
+	left: 0;
+	top: 0;
+	right: 0;
+	bottom: 0;
 }
 
 /* =================================== INPUT WIDTHS =================================== */

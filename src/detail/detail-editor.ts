@@ -26,7 +26,6 @@ function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
 			if (d[key] !== undefined) out[key] = d[key];
 		}
 	}
-	console.log('filtered to', out, 'from', dict, 'keys =', (keys ?? d));
 	return out;
 }
 
