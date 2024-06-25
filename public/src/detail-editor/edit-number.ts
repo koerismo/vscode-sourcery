@@ -1,6 +1,10 @@
 export class EditNumberElement extends HTMLInputElement {
 	_data?: Record<string, any>;
 	_key?: string;
+
+	get optional() {
+		return this.hasAttribute('optional');
+	}
 	
 	static register() {
 		customElements.define('edit-number', this, { extends: 'input' });
@@ -27,7 +31,13 @@ export class EditNumberElement extends HTMLInputElement {
 		this.type = 'number';
 
 		// Correct value on update.
-		this.addEventListener('blur', () => {
+		this.addEventListener('blur', () => {			
+			if (this.optional && !this.value.length) {
+				this.dispatchEvent(new CustomEvent('update', { detail: undefined }));
+				if (this._data && this._key) this._data[this._key] = undefined;
+				return;
+			}
+
 			const nValue = +this.value;
 			this.setValue(nValue);
 			this.dispatchEvent(new CustomEvent('update', { detail: +this.value }));

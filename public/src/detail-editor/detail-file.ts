@@ -57,7 +57,7 @@ export interface DetailProp {
 
 	// Prop
 	amount: number;
-	upright?: boolean;
+	upright?: number;
 	minangle?: number;
 	maxangle?: number;
 	
@@ -69,9 +69,9 @@ export interface DetailProp {
 	
 	// Shapes
 	sprite_shape?: 'tri'|'cross';
-	sway: number;
-	shape_angle: number; // tri only
-	shape_size: number; // tri only
+	sway?: number;
+	shape_angle?: number; // tri only
+	shape_size?: number; // tri only
 
 	// Models
 	model?: string;

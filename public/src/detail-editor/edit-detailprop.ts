@@ -23,13 +23,14 @@ export class EditPropElement extends HTMLElement {
 	private category_shape_tri: HTMLElement;
 	private category_model: HTMLElement;
 
-	private input_amount: EditNumberElement;
 	private input_upright: Checkbox;
 	private input_kind: Dropdown;
 	private input_width: EditNumberElement;
 	private input_height: EditNumberElement;
 	private input_randscale: EditNumberElement;
 	private input_sway: EditNumberElement;
+	private input_angle_min: EditNumberElement;
+	private input_angle_max: EditNumberElement;
 
 	private input_spr_orient: Dropdown;
 
@@ -51,11 +52,13 @@ export class EditPropElement extends HTMLElement {
 				<vscode-option value="model">Model</vscode-option>
 			</vscode-dropdown>
 
-			<label>Amount</label>
-			<input id="settings-amount" is="edit-number" min="0" max="10000">
-			
 			<label>Spawn Upright</label>
 			<vscode-checkbox id="settings-upright"></vscode-checkbox>
+			<label>Placement Angle</label>
+			<div class="h">
+				<input id="settings-angle-min"  is="edit-number" step="0.1" min="0" max="180" optional>
+				<input id="settings-angle-max" is="edit-number" step="0.1" min="0" max="180" optional>
+			</div>
 			
 			<div class="content" id="settings-category-sprite-common">
 				<label>Sprite</label>
@@ -72,9 +75,9 @@ export class EditPropElement extends HTMLElement {
 					<input id="settings-height" is="edit-number" step="1" min="0">
 				</div>
 				<label>Random Scale</label>
-				<input id="settings-scale-random" is="edit-number" min="0" max="1">
+				<input id="settings-scale-random" is="edit-number" min="0" max="1" optional>
 				<label>Sway</label>
-				<input id="settings-sway" is="edit-number" min="0" max="10">
+				<input id="settings-sway" is="edit-number" min="0" max="10" optional>
 			</div>
 
 			<div class="content" id="settings-category-sprite">
@@ -96,9 +99,9 @@ export class EditPropElement extends HTMLElement {
 			
 			<div class="content" id="settings-category-shape-tri">
 				<label>Shape Angle</label>
-				<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180">
+				<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180" optional>
 				<label>Shape Radius</label>
-				<input id="settings-tri-radius" is="edit-number" type="number" min="0">
+				<input id="settings-tri-radius" is="edit-number" type="number" min="0" optional>
 			</div>
 
 			<div class="content" id="settings-category-model">
@@ -116,13 +119,14 @@ export class EditPropElement extends HTMLElement {
 		this.category_model = this.querySelector<HTMLElement>('#settings-category-model')!;
 
 		// Common
-		this.input_amount = this.querySelector<EditNumberElement>('#settings-amount')!;
 		this.input_upright = this.querySelector<Checkbox>('#settings-upright')!;
 		this.input_kind = this.querySelector<Dropdown>('#settings-kind')!;
 		this.input_width = this.querySelector<EditNumberElement>('#settings-width')!;
 		this.input_height = this.querySelector<EditNumberElement>('#settings-height')!;
 		this.input_randscale = this.querySelector<EditNumberElement>('#settings-scale-random')!;
 		this.input_sway = this.querySelector<EditNumberElement>('#settings-sway')!;
+		this.input_angle_min = this.querySelector<EditNumberElement>('#settings-angle-min')!;
+		this.input_angle_max = this.querySelector<EditNumberElement>('#settings-angle-max')!;
 
 		// Sprite
 		this.input_spr_orient = this.querySelector<Dropdown>('#settings-sprite-orient')!;
@@ -158,18 +162,19 @@ export class EditPropElement extends HTMLElement {
 
 		this.input_upright.addEventListener('input', () => {
 			if (!this._data) return;
-			this._data.upright = this.input_upright.checked;
+			this._data.upright = +this.input_upright.checked;
 		});
 	}
 
 	setModel(model?: DetailProp) {
 		this._data = model;
 		if (!this._data) return;
-		this.input_amount.setModel(this._data, 'amount');
 		this.input_width.setModel(this._data.spritesize, 'w');
 		this.input_height.setModel(this._data.spritesize, 'h');
 		this.input_randscale.setModel(this._data, 'spriterandomscale');
 		this.input_sway.setModel(this._data, 'sway');
+		this.input_angle_min.setModel(this._data, 'minangle');
+		this.input_angle_max.setModel(this._data, 'maxangle');
 
 		this.input_tri_angle.setModel(this._data, 'shape_angle');
 		this.input_tri_radius.setModel(this._data, 'shape_size');

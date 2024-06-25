@@ -191,7 +191,10 @@ class FileManager {
 		const all_prop_bounds = this.file.details.flatMap(detail => detail.groups.flatMap(group => group.props.flatMap(prop => prop.sprite)));
 		bound_editor.setGhosts(all_prop_bounds);
 
-		const current_prop = this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex].props[prop_table.selectedIndex];
+		const current_prop = this.getCurrentProp();
+		if (!current_prop) return;
+
+		current_prop.sprite.imageWidth = bound_editor.image.width;
 		bound_editor.editBounds(current_prop.sprite, current_prop.spritesize);
 	}
 
