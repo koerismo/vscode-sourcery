@@ -41,9 +41,9 @@ export class EditNumberElement extends HTMLInputElement {
 		super.addEventListener(type, listener, options);
 	}
 
-	setModel(data: Record<string, any>, key: string) {
+	setModel<T = Record<string,any>>(data: T, key: keyof T) {
 		this._data = data;
-		this._key = key;
+		this._key = key as string;
 		this.forceUpdate();
 	}
 

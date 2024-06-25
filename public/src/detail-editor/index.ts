@@ -4,6 +4,7 @@ provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDro
 import { Detail, DetailFile, DetailGroup, DetailMessage, DetailProp } from './detail-file.js';
 import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
+import { EditPropElement } from './edit-detailprop.js';
 
 import { Bound, BoundEditorElement } from './bound-editor.js';
 
@@ -22,6 +23,7 @@ console.log('Starting up detail editor webview...');
 EditTableElement.register();
 EditNumberElement.register();
 BoundEditorElement.register();
+EditPropElement.register();
 
 const type_table = document.querySelector<EditTableElement>('#table-types');
 type_table.setFormat([
@@ -42,23 +44,11 @@ prop_table.setFormat([
 ]);
 
 const bound_editor = document.querySelector<BoundEditorElement>('bound-editor');
-
-const settings = {
-	panel: document.querySelector<HTMLDivElement>('#settings-panel')!,
-	input_kind: document.querySelector<Dropdown>('#settings-kind')!,
-	input_upright: document.querySelector<Checkbox>('#settings-upright')!,
-	input_scale_random: document.querySelector<EditNumberElement>('#settings-shape')!,
-	input_sway: document.querySelector<EditNumberElement>('#settings-shape')!,
-	input_width: document.querySelector<EditNumberElement>('#settings-width')!,
-	input_height: document.querySelector<EditNumberElement>('#settings-height')!,
-	category_sprite: document.querySelector<HTMLDivElement>('#settings-category-sprite')!,
-	category_shape: document.querySelector<HTMLDivElement>('#settings-category-shape')!,
-	category_model: document.querySelector<HTMLDivElement>('#settings-category-model')!,
-};
+const prop_editor = document.querySelector<EditPropElement>('edit-detail-prop');
 
 /* ================================ MANAGER ================================ */
 
-function setElVisible(el: HTMLElement, visible: boolean) {
+export function setElVisible(el: HTMLElement, visible: boolean) {
 	el.style.display = visible ? '' : 'none';
 }
 
@@ -76,8 +66,11 @@ export function encodeBound(bound: Bound, width: number) {
 	return [x, y, w, h, width].join(' ');
 }
 
-export function decodeBound(bstr: string) {
-	const [x, y, w, h, _] = bstr.split(' ', 5).map(x => +x);
+export function decodeBound(bstr: string): Bound | null {
+	const values = bstr.split(' ', 5).map(x => +x);
+	if (values.length !== 5) return null;
+	if (!Object.values(values).every(x => !isNaN(x))) return null;
+	const [x, y, w, h, _] = values;
 	return {x, y, w, h};
 }
 
@@ -97,7 +90,8 @@ class FileManager {
 		return this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex];
 	}
 
-	static getCurrentProp() {
+	static getCurrentProp(): DetailProp|null {
+		if (!group_table.isSelected || !prop_table.isSelected) return null;
 		return this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex].props[prop_table.selectedIndex];
 	}
 	
@@ -105,16 +99,12 @@ class FileManager {
 
 	static setupSettings() {
 		this.updateSettings();
-		settings.input_kind.addEventListener('input', () => {
-			this.updateSettings();
-		});
 	}
 
 	static updateSettings() {
-		const category = settings.input_kind.value as 'sprite'|'shape'|'model';
-		setElVisible(settings.category_model, category === 'model');
-		setElVisible(settings.category_shape, category === 'shape');
-		setElVisible(settings.category_sprite, category === 'sprite');
+		const prop = this.getCurrentProp();
+		prop_editor.classList.toggle('disabled', prop === null);
+		if (prop) prop_editor.setModel(prop);
 	}
 
 	public static addType() {
@@ -210,9 +200,9 @@ class FileManager {
 	}
 
 	public static async copySpriteBounds() {
-		const bounds = this.getCurrentProp().sprite;
+		const bounds = this.getCurrentProp()?.sprite;
+		if (!bounds) return;
 		await navigator.clipboard.writeText(encodeBound(bounds, bound_editor.image.width));
-		this.updateSpriteThumb();
 	}
 
 	public static async pasteSpriteBounds() {
@@ -220,7 +210,7 @@ class FileManager {
 		const bstr = await navigator.clipboard.readText();
 		try {
 			const decoded = decodeBound(bstr);
-			if (!Object.values(decoded).every(x => !isNaN(x))) return;
+			if (!decoded) return;
 			bounds.x = decoded.x,
 			bounds.y = decoded.y,
 			bounds.w = decoded.w,
@@ -229,7 +219,7 @@ class FileManager {
 		catch(e) {
 			console.error(e);
 		}
-		
+
 		this.updateSpriteThumb();
 	}
 
@@ -279,20 +269,20 @@ class FileManager {
 			this.spriteThumb.src = makeThumb(bound_editor.getCroppedImage(current_prop.sprite));
 			
 			// Reset settings
-			settings.panel.classList.remove('disabled');
+			prop_editor.classList.remove('disabled');
 			this.updateSettings();
 		});
 
 		prop_table.addEventListener('deselect', () => {
 			// Disable settings
-			settings.panel.classList.add('disabled');
+			prop_editor.classList.add('disabled');
 		});
 
 		// Set up initial types table
 		type_table.setModel(this.file.details);
 		group_table.disabled = true;
 		prop_table.disabled = true;
-		settings.panel.classList.add('disabled');
+		prop_editor.classList.add('disabled');
 
 		// Hook icon update to bound editor close event
 		bound_editor.addEventListener('close', () => {

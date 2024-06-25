@@ -49,52 +49,7 @@
 				<div id="panel-settings" class="panel fill">
 					<h2>Settings</h2>
 					<div class="prop-grid">
-						<label>Kind</label>
-						<vscode-dropdown id="settings-kind">
-							<vscode-option value="sprite">Sprite</vscode-option>
-							<vscode-option value="shape">Shape</vscode-option>
-							<vscode-option value="model">Model</vscode-option>
-						</vscode-dropdown>
-						<label>Spawn Upright</label>
-						<vscode-checkbox id="settings-upright"></vscode-checkbox>
-						<div class="content" id="settings-category-sprite-common">
-							<label>Sprite</label>
-							<div class="h">
-								<img onclick="FileManager.openBoundEditor()" id="thumb-sprite" class="edit-icon" />
-								<div class="v">
-									<vscode-button onclick="FileManager.copySpriteBounds()">Copy</vscode-button>
-									<vscode-button onclick="FileManager.pasteSpriteBounds()">Paste</vscode-button>
-								</div>
-							</div>
-							<label>Size</label>
-							<div class="h">
-								<input id="settings-width"  is="edit-number" type="number" step="1" min="0">
-								<input id="settings-height" is="edit-number" type="number" step="1" min="0">
-							</div>
-							<label>Random Scale</label>
-							<input id="settings-scale-random" is="edit-number" type="number" min="0" max="1">
-							<label>Sway</label>
-							<input id="settings-sway" is="edit-number" type="number" min="0" max="10">
-						</div>
-						<div class="content" id="settings-category-sprite">
-							<label>Orientation</label>
-							<vscode-dropdown id="settings-sprite-orient">
-								<vscode-option value="0">Fixed</vscode-option>
-								<vscode-option value="1">Camera</vscode-option>
-								<vscode-option value="2">Z-Fixed</vscode-option>
-							</vscode-dropdown>
-						</div>
-						<div class="content" id="settings-category-shape">
-							<label>Shape Angle</label>
-							<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180">
-							<label>Shape Radius</label>
-							<input id="settings-tri-radius" is="edit-number" type="number" min="0">
-						</div>
-						<div class="content" id="settings-category-model">
-							<label>Model</label>
-							<input id="settings-model" disabled/>
-							<vscode-button style="grid-column: span 2;">Select</vscode-button>
-						</div>
+						<edit-detail-prop></edit-detail-prop>
 					</div>
 				</div>
 			</div>

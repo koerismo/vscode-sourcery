@@ -1,0 +1,181 @@
+import { EditNumberElement } from './edit-number.js';
+import { DetailOrientation, type DetailProp } from './detail-file.js';
+import { setElVisible } from './index.js';
+import { Checkbox, type Dropdown } from '@vscode/webview-ui-toolkit';
+
+const PropKind = {
+	sprite: 'sprite',
+	shape: 'shape',
+	model: 'model',
+} as const;
+
+const PropShape = {
+	tri: 'tri',
+	cross: 'cross',
+} as const;
+
+export class EditPropElement extends HTMLElement {
+	private _data?: DetailProp;
+
+	private category_sprite_common: HTMLElement;
+	private category_sprite: HTMLElement;
+	private category_shape: HTMLElement;
+	private category_shape_tri: HTMLElement;
+	private category_model: HTMLElement;
+
+	private input_amount: EditNumberElement;
+	private input_upright: Checkbox;
+	private input_kind: Dropdown;
+	private input_width: EditNumberElement;
+	private input_height: EditNumberElement;
+	private input_randscale: EditNumberElement;
+	private input_sway: EditNumberElement;
+
+	private input_spr_orient: Dropdown;
+
+	private input_shape: Dropdown;
+	private input_tri_angle: EditNumberElement;
+	private input_tri_radius: EditNumberElement;
+
+	static register() {
+		customElements.define('edit-detail-prop', this);
+	}
+
+	constructor() {
+		super();
+		this.innerHTML = `
+			<label>Kind</label>
+			<vscode-dropdown id="settings-kind">
+				<vscode-option value="sprite">Sprite</vscode-option>
+				<vscode-option value="shape">Shape</vscode-option>
+				<vscode-option value="model">Model</vscode-option>
+			</vscode-dropdown>
+
+			<label>Amount</label>
+			<input id="settings-amount" is="edit-number" min="0" max="10000">
+			
+			<label>Spawn Upright</label>
+			<vscode-checkbox id="settings-upright"></vscode-checkbox>
+			
+			<div class="content" id="settings-category-sprite-common">
+				<label>Sprite</label>
+				<div class="h">
+					<img onclick="FileManager.openBoundEditor()" id="thumb-sprite" class="edit-icon" />
+					<div class="v">
+						<vscode-button onclick="FileManager.copySpriteBounds()">Copy</vscode-button>
+						<vscode-button onclick="FileManager.pasteSpriteBounds()">Paste</vscode-button>
+					</div>
+				</div>
+				<label>Size</label>
+				<div class="h">
+					<input id="settings-width"  is="edit-number" step="1" min="0">
+					<input id="settings-height" is="edit-number" step="1" min="0">
+				</div>
+				<label>Random Scale</label>
+				<input id="settings-scale-random" is="edit-number" min="0" max="1">
+				<label>Sway</label>
+				<input id="settings-sway" is="edit-number" min="0" max="10">
+			</div>
+
+			<div class="content" id="settings-category-sprite">
+				<label>Orientation</label>
+				<vscode-dropdown id="settings-sprite-orient">
+					<vscode-option value="0">Flat</vscode-option>
+					<vscode-option value="1">Face Camera</vscode-option>
+					<vscode-option value="2">Z-Locked Camera</vscode-option>
+				</vscode-dropdown>
+			</div>
+			
+			<div class="content" id="settings-category-shape">
+				<label>Shape</label>
+				<vscode-dropdown id="settings-shape">
+					<vscode-option value="tri">Triangle</vscode-option>
+					<vscode-option value="cross">Cross</vscode-option>
+				</vscode-dropdown>
+			</div>
+			
+			<div class="content" id="settings-category-shape-tri">
+				<label>Shape Angle</label>
+				<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180">
+				<label>Shape Radius</label>
+				<input id="settings-tri-radius" is="edit-number" type="number" min="0">
+			</div>
+
+			<div class="content" id="settings-category-model">
+				<label>Model</label>
+				<input id="settings-model" disabled/>
+				<vscode-button style="grid-column: span 2;">Select</vscode-button>
+			</div>
+		`;
+		
+		// Categories
+		this.category_sprite_common = this.querySelector<HTMLElement>('#settings-category-sprite-common')!;
+		this.category_sprite = this.querySelector<HTMLElement>('#settings-category-sprite')!;
+		this.category_shape = this.querySelector<HTMLElement>('#settings-category-shape')!;
+		this.category_shape_tri = this.querySelector<HTMLElement>('#settings-category-shape-tri')!;
+		this.category_model = this.querySelector<HTMLElement>('#settings-category-model')!;
+
+		// Common
+		this.input_amount = this.querySelector<EditNumberElement>('#settings-amount')!;
+		this.input_upright = this.querySelector<Checkbox>('#settings-upright')!;
+		this.input_kind = this.querySelector<Dropdown>('#settings-kind')!;
+		this.input_width = this.querySelector<EditNumberElement>('#settings-width')!;
+		this.input_height = this.querySelector<EditNumberElement>('#settings-height')!;
+		this.input_randscale = this.querySelector<EditNumberElement>('#settings-scale-random')!;
+		this.input_sway = this.querySelector<EditNumberElement>('#settings-sway')!;
+
+		// Sprite
+		this.input_spr_orient = this.querySelector<Dropdown>('#settings-sprite-orient')!;
+
+		// Shape
+		this.input_shape = this.querySelector<Dropdown>('#settings-shape')!;
+		this.input_tri_angle = this.querySelector<EditNumberElement>('#settings-tri-angle')!;
+		this.input_tri_radius = this.querySelector<EditNumberElement>('#settings-tri-radius')!;
+
+		//
+		// ==================== INIT ====================
+		//
+
+		this.input_kind.addEventListener('input', () => {
+			if (!this._data) return;
+			setElVisible(this.category_sprite_common, this.input_kind.value !== PropKind.model);
+			setElVisible(this.category_sprite, this.input_kind.value === PropKind.sprite);
+			setElVisible(this.category_shape, this.input_kind.value === PropKind.shape);
+			setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
+			setElVisible(this.category_model, this.input_kind.value === PropKind.model);
+		});
+
+		this.input_spr_orient.addEventListener('input', () => {
+			if (!this._data) return;
+			this._data.detailOrientation = (+this.input_spr_orient.value) as DetailOrientation;
+		});
+
+		this.input_shape.addEventListener('input', () => {
+			if (!this._data) return;
+			this._data.sprite_shape = this.input_shape.value as ('tri'|'cross');
+			setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
+		});
+
+		this.input_upright.addEventListener('input', () => {
+			if (!this._data) return;
+			this._data.upright = this.input_upright.checked;
+		});
+	}
+
+	setModel(model?: DetailProp) {
+		this._data = model;
+		if (!this._data) return;
+		this.input_amount.setModel(this._data, 'amount');
+		this.input_width.setModel(this._data.spritesize, 'w');
+		this.input_height.setModel(this._data.spritesize, 'h');
+		this.input_randscale.setModel(this._data, 'spriterandomscale');
+		this.input_sway.setModel(this._data, 'sway');
+
+		this.input_tri_angle.setModel(this._data, 'shape_angle');
+		this.input_tri_radius.setModel(this._data, 'shape_size');
+	}
+
+	filterData() {
+		const kind = this.input_kind.value as keyof typeof PropKind;
+	}
+}

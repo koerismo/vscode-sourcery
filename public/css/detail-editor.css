@@ -382,3 +382,7 @@ bound-editor #bound-box-layer span::after {
 bound-editor #bound-origin {
 	border-color: rgb(255, 183, 0);
 }
+
+edit-detail-prop {
+	display: contents;
+}

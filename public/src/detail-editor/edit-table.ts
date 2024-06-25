@@ -14,6 +14,7 @@ export class EditTableElement extends HTMLTableElement {
 	private _data: Record<string, any>[] = [];
 	private _disabled: boolean = false;
 	private _selected_row: number = -2;
+	private _is_selected: boolean = false;
 
 	set disabled(v: boolean) {
 		if (v) {
@@ -33,6 +34,10 @@ export class EditTableElement extends HTMLTableElement {
 
 	get selectedIndex() {
 		return this._selected_row;
+	}
+	
+	get isSelected() {
+		return this._is_selected;
 	}
 
 	set selectedIndex(v: number) {
@@ -129,6 +134,7 @@ export class EditTableElement extends HTMLTableElement {
 	}
 
 	#selectRowNoSet(prev: number, index: number) {
+		this._is_selected = (index > -1);
 		if (prev >= 0 && this.firstElementChild.children.length > prev+1)
 			this.firstElementChild.children[prev+1].classList.remove('active');
 		if (index >= 0 && this.firstElementChild.children.length > index+1)
@@ -136,6 +142,7 @@ export class EditTableElement extends HTMLTableElement {
 	}
 
 	#selectRow(index: number) {
+		this._is_selected = (index > -1);
 		if (this._selected_row >= 0 && this.firstElementChild.children.length > this._selected_row+1)
 			this.firstElementChild.children[this._selected_row+1].classList.remove('active');
 		if (index >= 0 && this.firstElementChild.children.length > index+1) {
