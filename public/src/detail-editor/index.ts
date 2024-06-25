@@ -1,7 +1,7 @@
 import { Checkbox, Dropdown, provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDropdown(), vsCodeOption());
 
-import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailProp } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailOrientation, DetailProp } from './detail-file.js';
 import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
@@ -72,6 +72,31 @@ export function decodeBound(bstr: string): Bound | null {
 	if (!Object.values(values).every(x => !isNaN(x))) return null;
 	const [x, y, w, h, _] = values;
 	return {x, y, w, h};
+}
+
+export function makeDefaultProp(inherit: Partial<DetailProp>={}): DetailProp {
+	return {
+		name: 'Untitled',
+		kind: DetailKind.Sprite,
+		amount: 1.0,
+		sprite: { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 },
+		spritesize: { x: 0, y: 0, w: 0, h: 0 },
+		sprite_shape: 'cross',
+		detailOrientation: DetailOrientation.None,
+		...inherit
+	};
+}
+
+export function ensurePropIsValid(prop: Partial<DetailProp>): DetailProp {
+	prop.name ??= 'Untitled';
+	prop.kind ??= DetailKind.Sprite;
+	prop.amount ??= 1.0;
+	prop.sprite ??= { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 };
+	prop.spritesize ??= { x: 0, y: 0, w: 0, h: 0 };
+	prop.sprite_shape ??= 'cross';
+	prop.detailOrientation ??= DetailOrientation.None;
+
+	return prop as DetailProp;
 }
 
 declare global {
@@ -148,17 +173,7 @@ class FileManager {
 
 	public static addModel() {
 		if (prop_table.disabled) return;
-		const new_entry: DetailProp = {
-			name: 'Untitled',
-			kind: DetailKind.Sprite,
-
-			amount: 0,
-			sprite: { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 },
-			spritesize: { x: 0, y: 0, w: 0, h: 0 },
-			sway: 0,
-			shape_angle: 0,
-			shape_size: 0
-		};
+		const new_entry: DetailProp = makeDefaultProp();
 		const current_group = this.getCurrentGroup();
 		current_group.props.push(new_entry);
 		prop_table.forceUpdate();
@@ -273,6 +288,9 @@ class FileManager {
 		});
 
 		prop_table.addEventListener('select', () => {
+			// Validate the prop
+			ensurePropIsValid(this.getCurrentProp()!);
+
 			// Update sprite thumb
 			this.updateSpriteThumb();
 			
@@ -304,7 +322,6 @@ class FileManager {
 	static load(file: DetailFile) {
 		this.file = file;
 		this.setup();
-		
 	}
 
 	static save() {

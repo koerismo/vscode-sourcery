@@ -1,4 +1,4 @@
-import { Main } from '../shared/Main';
+// import { Main } from '../shared/Main';
 
 // declare function acquireVsCodeApi(): { postMessage(message: any): void };
 
@@ -33,4 +33,4 @@ export async function modFetch(resolvedPath: string): Promise<Uint8Array | null>
 }
 
 // God help us all
-const main = new Main();
+// const main = new Main();

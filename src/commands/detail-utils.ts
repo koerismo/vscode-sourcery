@@ -1,0 +1,18 @@
+import * as vscode from 'vscode';
+import { modFilesystem } from '../mod-mount.js';
+
+export async function createNewDetail() {
+	const workspace_uri = vscode.workspace.workspaceFolders?.[0]?.uri;
+	const file_uri = await vscode.window.showSaveDialog({
+		defaultUri: workspace_uri,
+		title: 'New Detail',
+		saveLabel: 'Create',
+		filters: { 'Valve Detail': ['vbsp'] },
+	});
+
+	if (!file_uri) return;
+
+	const content = new TextEncoder().encode('detail\n{\n}');
+	await vscode.workspace.fs.writeFile(file_uri, content);
+	vscode.commands.executeCommand('vscode.openWith', file_uri, 'sourcery.detail');
+}

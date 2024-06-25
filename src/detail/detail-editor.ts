@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind } from './detail-file.js';
 import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import EditorHTML from './editor.html';
@@ -11,6 +11,40 @@ function normalizePath(path: string) {
 	path =  ('/materials/' + path).replace(RE_SLASH, '/').toLowerCase();
 	if (!path.endsWith('.vtf')) path += '.vtf';
 	return path;
+}
+
+function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
+	const out: any = {};
+	const d = dict as any;
+	if (keys) {
+		for (const key of keys) {
+			if (d[key] !== undefined) out[key] = d[key];
+		}
+	}
+	else {
+		for (const key in dict) {
+			if (d[key] !== undefined) out[key] = d[key];
+		}
+	}
+	console.log('filtered to', out, 'from', dict, 'keys =', (keys ?? d));
+	return out;
+}
+
+function filterDetail(prop: DetailProp): DetailProp {
+	if (prop.kind === DetailKind.Sprite)
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'sprite', 'spritesize', 'spriterandomscale', 'sway', 'detailOrientation']);
+	if (prop.kind === DetailKind.Shape)
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'sprite', 'spritesize', 'spriterandomscale', 'sway', 'sprite_shape', 'shape_size', 'shape_angle']);
+	if (prop.kind === DetailKind.Model)
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'model', 'sway']);
+	throw Error('Invalid kind '+prop.kind+' !');
+}
+
+function detectDetailType(prop: DetailProp): DetailKind {
+	if (prop.detailOrientation !== undefined) return DetailKind.Sprite;
+	if (prop.sprite_shape !== undefined) return DetailKind.Shape;
+	if (prop.model !== undefined) return DetailKind.Model;
+	return DetailKind.Sprite;
 }
 
 export class ValveDetailDocument implements vscode.CustomDocument {
@@ -46,10 +80,10 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 							kvs[kv.key] = kv.value;
 						}
 					});
-					return {
-						name: prop.key,
-						...kvs
-					} as DetailProp;
+
+					const propBase = { name: prop.key, ...kvs } as DetailProp;
+					propBase.kind = detectDetailType(propBase);
+					return propBase;
 				});
 
 				return {
@@ -81,16 +115,12 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 				KV.pair('alpha', group.alpha);
 				for (const prop of group.props) {
 					KV.dir(prop.name);
-					// KV.pair('amount', prop.amount);
-					// if (prop.detailOrientation)	KV.pair('shape_size',	prop.shape_size);
-					// if (prop.shape_size)	KV.pair('shape_size',	prop.shape_size);
-					// if (prop.shape_angle)	KV.pair('shape_angle',	prop.shape_angle);
 
-					for (const key in prop) {
-						if (key === 'name' || key === 'kind') {
-							continue;
-						}
-						else if (key === 'sprite') {
+					// Keep only the relevant keys.
+					const filtered = filterDetail(prop);
+
+					for (const key in filtered) {
+						if (key === 'sprite') {
 							const {x, y, w, h, imageWidth} = prop[key];
 							KV.pair(key, [x, y, w, h, imageWidth].join(' '));
 						} else if (key === 'spritesize') {
@@ -98,7 +128,7 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 							KV.pair(key, [x, y, w, h].join(' '));
 						} else {
 							// @ts-expect-error Shit
-							KV.pair(key, prop[key]);
+							KV.pair(key, filtered[key]);
 						}
 					}
 					KV.back();

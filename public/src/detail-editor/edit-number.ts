@@ -59,6 +59,6 @@ export class EditNumberElement extends HTMLInputElement {
 
 	forceUpdate() {
 		if (!this._data || !this._key) return false;
-		this.value = this._data[this._key];
+		this.value = this._data[this._key] ?? '';
 	}
 }

@@ -16,6 +16,7 @@ import openVpk from './commands/open-vpk.js';
 import revealOriginal from './commands/reveal-original.js';
 import openVmtPreview from './commands/open-vmt-preview.js';
 import { copyModels, renameModel, compileModel } from './commands/model-utils.js';
+import { createNewDetail } from './commands/detail-utils.js';
 // import openVmtBrowser from './commands/open-browser';
 
 
@@ -68,6 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		vscode.commands.registerCommand('sourcery.mdl.copy', copyModels),
 		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),
+		vscode.commands.registerCommand('sourcery.detail.new', createNewDetail),
 		vscode.workspace.onDidRenameFiles(renameModel),
 		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);

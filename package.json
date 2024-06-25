@@ -56,6 +56,11 @@
 				"title": "Compile",
 				"category": "Model",
 				"icon": "$(server-process)"
+			},
+			{
+				"command": "sourcery.detail.new",
+				"title": "Create New Detail",
+				"category": "Detail"
 			}
 		],
 		"menus": {

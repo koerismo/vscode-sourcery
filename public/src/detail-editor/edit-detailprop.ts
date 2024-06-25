@@ -1,13 +1,7 @@
 import { EditNumberElement } from './edit-number.js';
-import { DetailOrientation, type DetailProp } from './detail-file.js';
+import { DetailKind, DetailOrientation, type DetailProp } from './detail-file.js';
 import { setElVisible } from './index.js';
 import { Checkbox, type Dropdown } from '@vscode/webview-ui-toolkit';
-
-const PropKind = {
-	sprite: 'sprite',
-	shape: 'shape',
-	model: 'model',
-} as const;
 
 const PropShape = {
 	tri: 'tri',
@@ -47,9 +41,9 @@ export class EditPropElement extends HTMLElement {
 		this.innerHTML = `
 			<label>Kind</label>
 			<vscode-dropdown id="settings-kind">
-				<vscode-option value="sprite">Sprite</vscode-option>
-				<vscode-option value="shape">Shape</vscode-option>
-				<vscode-option value="model">Model</vscode-option>
+				<vscode-option value="${DetailKind.Sprite}">Sprite</vscode-option>
+				<vscode-option value="${DetailKind.Shape}">Shape</vscode-option>
+				<vscode-option value="${DetailKind.Model}">Model</vscode-option>
 			</vscode-dropdown>
 
 			<label>Spawn Upright</label>
@@ -141,6 +135,8 @@ export class EditPropElement extends HTMLElement {
 		//
 
 		this.input_kind.addEventListener('input', () => {
+			if (!this._data) return;
+			this._data.kind = +this.input_kind.value;
 			this.updateKind();
 		});
 
@@ -152,7 +148,7 @@ export class EditPropElement extends HTMLElement {
 		this.input_shape.addEventListener('input', () => {
 			if (!this._data) return;
 			this._data.sprite_shape = this.input_shape.value as ('tri'|'cross');
-			setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
+			setElVisible(this.category_shape_tri, +this.input_kind.value === DetailKind.Shape && this.input_shape.value === PropShape.tri);
 		});
 
 		this.input_upright.addEventListener('input', () => {
@@ -163,17 +159,17 @@ export class EditPropElement extends HTMLElement {
 
 	updateKind() {
 		if (!this._data) return;
-		setElVisible(this.category_sprite_common, this.input_kind.value !== PropKind.model);
-		setElVisible(this.category_sprite, this.input_kind.value === PropKind.sprite);
-		setElVisible(this.category_shape, this.input_kind.value === PropKind.shape);
-		setElVisible(this.category_shape_tri, this.input_kind.value === PropKind.shape && this.input_shape.value === PropShape.tri);
-		setElVisible(this.category_model, this.input_kind.value === PropKind.model);
+		const kind_type: DetailKind = +this.input_kind.value;
+		setElVisible(this.category_sprite_common, kind_type !== DetailKind.Model);
+		setElVisible(this.category_sprite, kind_type === DetailKind.Sprite);
+		setElVisible(this.category_shape, kind_type === DetailKind.Shape);
+		setElVisible(this.category_shape_tri, kind_type === DetailKind.Shape && this.input_shape.value === PropShape.tri);
+		setElVisible(this.category_model, kind_type === DetailKind.Model);
 	}
 
 	setModel(model?: DetailProp) {
 		this._data = model;
 		if (!this._data) return;
-		this.updateKind();
 		this.input_width.setModel(this._data.spritesize, 'w');
 		this.input_height.setModel(this._data.spritesize, 'h');
 		this.input_randscale.setModel(this._data, 'spriterandomscale');
@@ -183,9 +179,13 @@ export class EditPropElement extends HTMLElement {
 
 		this.input_tri_angle.setModel(this._data, 'shape_angle');
 		this.input_tri_radius.setModel(this._data, 'shape_size');
-	}
 
-	filterData() {
-		const kind = this.input_kind.value as keyof typeof PropKind;
+		this.input_kind.value = this._data.kind.toString();
+		this.input_spr_orient.value = (this._data.detailOrientation ?? 0).toString();
+		this.input_shape.value = this._data.sprite_shape ?? 'cross';
+		this.input_upright.checked = !!(this._data.upright ?? false);
+
+		// Update UI section visibility
+		this.updateKind();
 	}
 }
