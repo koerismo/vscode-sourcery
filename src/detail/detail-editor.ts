@@ -5,6 +5,7 @@ import { outConsole } from '../extension.js';
 import EditorHTML from './editor.html';
 import * as assert from 'assert';
 import Vtf from 'vtf-js';
+import { MountServerManager } from '../mod-server.js';
 
 const RE_SLASH = /(\/|\\)+/g;
 function normalizePath(path: string) {
@@ -31,18 +32,18 @@ function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
 
 function filterDetail(prop: DetailProp): DetailProp {
 	if (prop.kind === DetailKind.Sprite)
-		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'sprite', 'spritesize', 'spriterandomscale', 'sway', 'detailOrientation']);
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'detailOrientation', 'sprite', 'spritesize', 'spriterandomscale', 'sway']);
 	if (prop.kind === DetailKind.Shape)
-		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'sprite', 'spritesize', 'spriterandomscale', 'sway', 'sprite_shape', 'shape_size', 'shape_angle']);
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'detailOrientation', 'sprite', 'spritesize', 'spriterandomscale', 'sway', 'sprite_shape', 'shape_size', 'shape_angle']);
 	if (prop.kind === DetailKind.Model)
-		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'model', 'sway']);
+		return filterNonNull(prop, ['amount', 'upright', 'minangle', 'maxangle', 'detailOrientation', 'model', 'sway']);
 	throw Error('Invalid kind '+prop.kind+' !');
 }
 
 function detectDetailType(prop: DetailProp): DetailKind {
-	if (prop.detailOrientation !== undefined) return DetailKind.Sprite;
-	if (prop.sprite_shape !== undefined) return DetailKind.Shape;
+	// https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L135-L164
 	if (prop.model !== undefined) return DetailKind.Model;
+	if (prop.sprite_shape !== undefined) return DetailKind.Shape;
 	return DetailKind.Sprite;
 }
 
@@ -93,7 +94,7 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 			});
 
 			return {
-				texture: detail.key,
+				type: detail.key,
 				density: detail.pair('density').float(),
 				groups: groups
 			};
@@ -107,7 +108,7 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 		const KV = root.factory();
 		KV.dir('detail');
 		for (const detail of file.details) {
-			KV.dir(detail.texture);
+			KV.dir(detail.type);
 			KV.pair('density', detail.density);
 			for (const group of detail.groups) {
 				KV.dir(group.name);
@@ -217,6 +218,9 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	}
 
 	async resolveCustomEditor(document: ValveDetailDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
+		// Make sure content server is live
+		await MountServerManager.startup();
+		
 		webviewPanel.webview.options = {
 			localResourceRoots: [
 				vscode.Uri.joinPath(this.context.extensionUri, 'public'),

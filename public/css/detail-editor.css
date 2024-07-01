@@ -394,3 +394,10 @@ bound-editor #bound-box-layer span::after {
 edit-detail-prop {
 	display: contents;
 }
+
+/* =================================== VIEWPORT =================================== */
+
+canvas#viewport {
+	width: 100% !important;
+	height: 100% !important;
+}

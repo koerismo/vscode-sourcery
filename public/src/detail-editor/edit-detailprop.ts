@@ -53,6 +53,13 @@ export class EditPropElement extends HTMLElement {
 				<input id="settings-angle-min"  is="edit-number" step="0.1" min="0" max="180" optional>
 				<input id="settings-angle-max" is="edit-number" step="0.1" min="0" max="180" optional>
 			</div>
+
+			<label>Orientation</label>
+			<vscode-dropdown id="settings-sprite-orient">
+				<vscode-option value="0">Flat</vscode-option>
+				<vscode-option value="1">Face Camera</vscode-option>
+				<vscode-option value="2">Z-Locked Camera</vscode-option>
+			</vscode-dropdown>
 			
 			<div class="content" id="settings-category-sprite-common">
 				<label>Sprite</label>
@@ -75,12 +82,6 @@ export class EditPropElement extends HTMLElement {
 			</div>
 
 			<div class="content" id="settings-category-sprite">
-				<label>Orientation</label>
-				<vscode-dropdown id="settings-sprite-orient">
-					<vscode-option value="0">Flat</vscode-option>
-					<vscode-option value="1">Face Camera</vscode-option>
-					<vscode-option value="2">Z-Locked Camera</vscode-option>
-				</vscode-dropdown>
 			</div>
 			
 			<div class="content" id="settings-category-shape">
@@ -134,26 +135,38 @@ export class EditPropElement extends HTMLElement {
 		// ==================== INIT ====================
 		//
 
+		for (const input of [
+			this.input_width, this.input_height,
+			this.input_randscale, this.input_sway,
+			this.input_angle_min, this.input_angle_max,
+			this.input_spr_orient,
+			this.input_tri_angle, this.input_tri_radius
+		]) input.addEventListener('update', this.emitUpdate.bind(this));
+
 		this.input_kind.addEventListener('input', () => {
 			if (!this._data) return;
 			this._data.kind = +this.input_kind.value;
 			this.updateKind();
+			this.emitUpdate();
 		});
 
 		this.input_spr_orient.addEventListener('input', () => {
 			if (!this._data) return;
 			this._data.detailOrientation = (+this.input_spr_orient.value) as DetailOrientation;
+			this.emitUpdate();
 		});
 
 		this.input_shape.addEventListener('input', () => {
 			if (!this._data) return;
 			this._data.sprite_shape = this.input_shape.value as ('tri'|'cross');
 			setElVisible(this.category_shape_tri, +this.input_kind.value === DetailKind.Shape && this.input_shape.value === PropShape.tri);
+			this.emitUpdate();
 		});
 
 		this.input_upright.addEventListener('change', () => {
 			if (!this._data) return;
 			this._data.upright = +this.input_upright.checked;
+			this.emitUpdate();
 		});
 	}
 
@@ -165,6 +178,10 @@ export class EditPropElement extends HTMLElement {
 		setElVisible(this.category_shape, kind_type === DetailKind.Shape);
 		setElVisible(this.category_shape_tri, kind_type === DetailKind.Shape && this.input_shape.value === PropShape.tri);
 		setElVisible(this.category_model, kind_type === DetailKind.Model);
+	}
+
+	emitUpdate() {
+		this.dispatchEvent(new Event('update'));
 	}
 
 	setModel(model?: DetailProp) {

@@ -44,7 +44,7 @@ export interface DetailFile {
 }
 
 export interface Detail {
-	texture: string;
+	type: string;
 	density: number;
 	groups: DetailGroup[];
 }

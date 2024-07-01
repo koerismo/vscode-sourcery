@@ -1,4 +1,6 @@
 import '../../../node_modules/@vscode/codicons/dist/codicon.css';
+import './viewport.js';
+import * as Viewport from './viewport.js';
 
 import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDropdown(), vsCodeOption());
@@ -29,7 +31,7 @@ EditPropElement.register();
 
 const type_table = document.querySelector<EditTableElement>('#table-types')!;
 type_table.setFormat([
-	{ title: 'Name',    property: 'texture', type: 'text',   width: '100%' },
+	{ title: 'Name',    property: 'type',    type: 'text',   width: '100%' },
 	{ title: 'Density', property: 'density', type: 'float',  width: 'auto', min: 0, max: 1_000_000 },
 ]);
  
@@ -115,6 +117,11 @@ class FileManager {
 	static textureThumb: HTMLImageElement = document.querySelector('#thumb-texture')!;
 	static spriteThumb: HTMLImageElement = document.querySelector('#thumb-sprite')!;
 
+	static getCurrentType(): Detail|null {
+		if (!type_table.isSelected || type_table.disabled) return null;
+		return this.file.details[type_table.selectedIndex] ?? null;
+	}
+
 	static getCurrentGroup() {
 		return this.file.details[type_table.selectedIndex].groups[group_table.selectedIndex];
 	}
@@ -138,7 +145,7 @@ class FileManager {
 
 	public static addType() {
 		const new_entry: Detail = {
-			texture: 'Untitled',
+			type: 'Untitled',
 			density: 1000.0,
 			groups: [],
 		};
@@ -198,7 +205,9 @@ class FileManager {
 		const resp = await askForTexture();
 		if (!resp) return console.log('User cancelled');
 		const [path, tex] = resp;
+
 		bound_editor.setImage(tex);
+		Viewport.setDetailTexture(tex);
 		this.textureThumb.src = bound_editor.thumbSrc!;
 	}
 
@@ -282,6 +291,9 @@ class FileManager {
 			// model_table.disabled = true;
 			// model_table.setModel([]);
 			// model_table.deselect();
+
+			// Update viewport preview
+			this.updateViewport();
 		});
 
 		type_table.addEventListener('deselect', () => {
@@ -322,6 +334,10 @@ class FileManager {
 			prop_panel.classList.add('disabled');
 		});
 
+		prop_editor.addEventListener('update', () => {
+			this.updateViewport();
+		});
+
 		// Set up initial types table
 		type_table.setModel(this.file.details);
 		group_table.disabled = true;
@@ -351,6 +367,14 @@ class FileManager {
 		if (!this.saved) return;
 		this.saved = false;
 		vscode.postMessage(<DetailMessage>{ type: 'markDirty' });
+	}
+
+	static _updateViewportTimeout: any | null = null;
+	static updateViewport() {
+		if (this._updateViewportTimeout) clearTimeout(this._updateViewportTimeout);
+		this._updateViewportTimeout = setTimeout(() => {
+			Viewport.setActiveDetail(this.getCurrentType() ?? undefined);
+		}, 50);
 	}
 }
 
