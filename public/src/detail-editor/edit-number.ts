@@ -1,3 +1,5 @@
+import { checkV } from "./math";
+
 export class EditNumberElement extends HTMLInputElement {
 	_data?: Record<string, any>;
 	_key?: string;
@@ -61,6 +63,8 @@ export class EditNumberElement extends HTMLInputElement {
 	setModel<T = Record<string,any>>(data: T, key: keyof T) {
 		this._data = data as Record<string, any>;
 		this._key = key as string;
+		
+		if (typeof data[key] !== 'number' && !(this.optional && data[key] === undefined)) throw Error(`Expected key ${<string>key} to be number, got ${typeof data[key]} instead!`);
 		this.forceUpdate();
 	}
 

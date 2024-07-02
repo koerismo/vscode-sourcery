@@ -1,8 +1,11 @@
 import * as Three from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails } from './viewport-detail.js';
-import { Detail, DetailKind, DetailOrientation } from './detail-file.js';
+import { Detail } from './detail-file.js';
 import { ImageDataLike } from './index.js';
+
+export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
 
 // Setup renderer
 const renderer = new Three.WebGLRenderer({ canvas: document.querySelector('#viewport')!, alpha: false, antialias: true });
@@ -21,6 +24,20 @@ scene.background = new Three.Color(0x222222);
 scene.add(new Three.GridHelper(512, 8));
 scene.add(new Three.AmbientLight(0xffffff));
 
+// Load text label
+new OBJLoader().load(URL_ROOT+'/public/assets/128x.obj', data => {
+	data.scale.multiplyScalar(1.5);
+	const d1 = data;
+	const d2 = data.clone();
+	d1.translateX(65);
+	d1.translateZ(60);
+	scene.add(d1);
+	d2.rotateY(-Math.PI/2);
+	d2.translateX(65);
+	d2.translateZ(-59);
+	scene.add(d2);
+});
+
 const planeMat = new Three.MeshBasicMaterial();
 const planeGeo = new Three.PlaneGeometry(128, 128, 4, 4).rotateX(-Math.PI/2);
 const plane = new Three.Mesh(planeGeo, planeMat);
@@ -32,11 +49,15 @@ const detailMat = new Three.MeshBasicMaterial({
 	alphaToCoverage: true,
 });
 
+let _resizeTimeout: any = null;
 window.addEventListener('resize', () => {
-	const bounds = renderer.domElement.getClientRects()[0];
-	renderer.setSize(bounds.width, bounds.height, false);
-	camera.aspect = bounds.width / bounds.height;
-	camera.updateProjectionMatrix();
+	if (_resizeTimeout) clearTimeout(_resizeTimeout);
+	_resizeTimeout = setTimeout(() => {
+		const bounds = renderer.domElement.getClientRects()[0];
+		renderer.setSize(bounds.width, bounds.height, false);
+		camera.aspect = bounds.width / bounds.height;
+		camera.updateProjectionMatrix();
+	}, 100);
 });
 
 // Initial camera position

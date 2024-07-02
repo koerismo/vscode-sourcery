@@ -30,9 +30,13 @@
 				"title": "Add Vpk to Workspace"
 			},
 			{
-				"command": "sourcery.game.reveal",
+				"command": "sourcery.game.revealFile",
 				"icon": "$(file-symlink-file)",
 				"title": "Reveal Original File"
+			},
+			{
+				"command": "sourcery.game.revealRoot",
+				"title": "Reveal Game Folder"
 			},
 			{
 				"command": "sourcery.vmt.preview",
@@ -157,7 +161,8 @@
 					"type": "string",
 					"default": "",
 					"examples": [
-						"~/.steam/steamapps/sourcemods/My Mod/"
+						"~/.steam/steamapps/sourcemods/My Mod/",
+						"../../"
 					]
 				},
 				"sourcery.game.binPath": {

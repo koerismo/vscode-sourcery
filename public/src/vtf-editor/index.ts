@@ -33,7 +33,7 @@ window.onmessage = (message) => {
 
 let scale = 1.0;
 window.onwheel = (event) => {
-	scale *= 1 + event.deltaY * 0.0005;
+	scale *= 1 - event.deltaY * 0.0005;
 	if (scale < 0.001) scale = 0.001;
 	if (scale > 1000) scale = 1000;
 	canvas.style.transform = 'scale('+scale+')';

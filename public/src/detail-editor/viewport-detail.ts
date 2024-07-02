@@ -151,12 +151,11 @@ function makeSpritePropGeo(prop: DetailProp): BufferGeometry {
 
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L322-L354
 function selectRandomGroup(d: Detail, alpha: number): DetailGroup {
-	let start: number, end: number;
-	for (start = 0; start < d.groups.length-1; start++) {
-		if (alpha < d.groups[start+1].alpha) break;
+	let start: number, end: number = 1;
+	for (start = 0; start < d.groups.length-1; start++, end++) {
+		if (alpha < d.groups[end].alpha) break;
 	}
 
-	end = start+1;
 	if (end >= d.groups.length) end--;
 	if (start === end) return d.groups[start];
 
@@ -167,10 +166,22 @@ function selectRandomGroup(d: Detail, alpha: number): DetailGroup {
 
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L360-L373
 function selectRandomDetail(g: DetailGroup): DetailProp | null {
-	const r = random();
+	let sum = 0;
+	
+	// TODO: Cache this result in the main function so we don't recalculate it for every prop
 	for (let i=0; i<g.props.length; i++) {
-		if (g.props[i].amount > r) return g.props[i];
+		sum += g.props[i].amount;
 	}
+	
+	if (sum < 1) sum = 1;
+	const r = random() * sum;
+	let accum = 0;
+	
+	for (let i=0; i<g.props.length; i++) {
+		accum += g.props[i].amount;
+		if (accum >= r) return g.props[i];
+	}
+
 	return null;
 }
 
@@ -386,10 +397,9 @@ export function updateViewportDetailUVs() {
 			uv[1].x, uv[0].y,
 		]);
 
-		// TODO: This is dumb code that assumes everything is a plane. DO NOT TRUST.
+		// TODO: This is dumb code that assumes everything is made of planes. DO NOT TRUST.
 		const target_uv_array = uvattribute.array;
 		const plane_count = uvattribute.count / 6;
-		console.log(plane_count, target_uv_array, new_uv_array);
 
 		let planeIdx = 0;
 		for (let i=0; i<plane_count; i++, planeIdx += new_uv_array.length) {

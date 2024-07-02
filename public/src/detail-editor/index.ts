@@ -39,13 +39,13 @@ const group_table = document.querySelector<EditTableElement>('#table-groups')!;
 group_table.setFormat([
 	{ title: 'Name',    property: 'name',    type: 'text',   width: '100%' },
 	{ title: 'Alpha',   property: 'alpha',   type: 'float',  width: 'auto', min: 0, max: 1 },
-]);
+], 'alpha');
 
 const prop_table = document.querySelector<EditTableElement>('#table-props')!;
 prop_table.setFormat([
 	{ title: 'Name',    property: 'name',    type: 'text',   width: '100%' },
 	{ title: 'Amount',  property: 'amount',  type: 'float',  width: 'auto', min: 0, max: 1 },
-]);
+], 'amount');
 
 const prop_panel = document.querySelector<HTMLElement>('#panel-settings')!;
 const bound_editor = document.querySelector<BoundEditorElement>('bound-editor')!;

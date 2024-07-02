@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind, DetailSpriteSize, DetailSpriteBound } from './detail-file.js';
 import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import EditorHTML from './editor.html';
@@ -47,9 +47,26 @@ function detectDetailType(prop: DetailProp): DetailKind {
 	return DetailKind.Sprite;
 }
 
+// Copy of "decodeBound" from frontend code
+export function decodeSprite(bstr: string): DetailSpriteBound {
+	const values = bstr.split(' ', 5).map(x => +x);
+	if (values.length !== 5) throw Error('Failed to parse sprite! (Bad length)');
+	if (!Object.values(values).every(x => !isNaN(x))) throw Error('Failed to parse sprite! (NaN)');
+	const [x, y, w, h, imageWidth] = values;
+	return {x, y, w, h, imageWidth};
+}
+
+// Copy of "decodeBound" from frontend code
+export function decodeSpriteSize(bstr: string): DetailSpriteSize {
+	const values = bstr.split(' ', 4).map(x => +x);
+	if (values.length !== 4) throw Error('Failed to parse spritesize! (Bad length)');
+	if (!Object.values(values).every(x => !isNaN(x))) throw Error('Failed to parse spritesize! (NaN)');
+	const [x, y, w, h] = values;
+	return {x, y, w, h};
+}
+
 export class ValveDetailDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
-	info: DetailFile|null = null;
 
 	constructor(uri: vscode.Uri) {
 		this.uri = uri;
@@ -59,48 +76,53 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 	}
 
 	async read_kv(): Promise<DetailFile> {
-		const data = await vscode.workspace.fs.readFile(this.uri);
-		const text = new TextDecoder().decode(data);
-		const root = parseVdf(text);
-		let detailRoot = root.dir('detail', null);
-		if (!detailRoot) return { details: [] };
+		const vdata = await vscode.workspace.fs.readFile(this.uri);
+		const vroot = parseVdf(new TextDecoder().decode(vdata));
+		const vfile = vroot.dir('detail', null) ?? new KeyVSet('detail');
+	
+		const dFile: DetailFile = { details: [] };
 
-		const details: Detail[] = detailRoot.dirs().map(detail => {
-			const groups: DetailGroup[] = detail.dirs().map(group => {
-				const props: DetailProp[] = group.dirs().map(prop => {
-					const kvs: Record<string, any> = {};
-					prop.pairs().forEach(kv => {
-						if (kv.key === 'sprite') {
-							const [x, y, w, h, imageWidth] = kv.value.split(' ').map(x => +x);
-							kvs[kv.key] = {x, y, w, h, imageWidth};
-						} else if (kv.key === 'spritesize') {
-							const [x, y, w, h] = kv.value.split(' ').map(x => +x);
-							kvs[kv.key] = {x, y, w, h};
-						} else {
-							kvs[kv.key] = kv.value;
-						}
-					});
-
-					const propBase = { name: prop.key, ...kvs } as DetailProp;
-					propBase.kind = detectDetailType(propBase);
-					return propBase;
-				});
-
-				return {
-					name: group.key,
-					alpha: group.pair('alpha').float(),
-					props: props
-				};
-			});
-
-			return {
-				type: detail.key,
-				density: detail.pair('density').float(),
-				groups: groups
+		for (const vDetail of vfile.dirs()) {
+			const dDetail: Detail = {
+				type: vDetail.key,
+				density: vDetail.pair('density').float(1000),
+				groups: [],
 			};
-		});
+			dFile.details.push(dDetail);
 
-		return { details };
+			for (const vGroup of vDetail.dirs()) {
+				const dGroup: DetailGroup = {
+					name: vGroup.key,
+					alpha: vGroup.pair('alpha').float(1.0),
+					props: [],
+				};
+				dDetail.groups.push(dGroup);
+
+				for (const vProp of vGroup.dirs()) {
+					const dProp: DetailProp = {
+						name:              vProp.key,
+						kind:              0, // REPLACED
+						amount:            vProp.pair('amount').float(1.0),
+						minangle:          vProp.pair('minangle', null)?.float(),
+						maxangle:          vProp.pair('maxangle', null)?.float(),
+						sprite:            decodeSprite(vProp.value('sprite')),
+						spritesize:        decodeSpriteSize(vProp.value('spritesize')),
+						spriterandomscale: vProp.pair('spriterandomscale', null)?.float(),
+						sway:              vProp.pair('sway', null)?.float(),
+						sprite_shape:      <'tri'|'cross'>vProp.value('sprite_shape', null),
+						shape_size:        vProp.pair('shape_size', null)?.float(),
+						shape_angle:       vProp.pair('shape_angle', null)?.float(),
+						detailOrientation: vProp.pair('detailOrientation', null)?.int(),
+					};
+
+					// Set kind based on detected type
+					dProp.kind = detectDetailType(dProp);
+					dGroup.props.push(dProp);
+				}
+			}
+		}
+
+		return dFile;
 	}
 
 	async write_kv(file: DetailFile) {

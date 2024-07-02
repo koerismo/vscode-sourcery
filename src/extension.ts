@@ -14,6 +14,7 @@ import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
 // Commands
 import openVpk from './commands/open-vpk.js';
 import revealOriginal from './commands/reveal-original.js';
+import { revealGamePath } from './commands/reveal-file.js';
 import openVmtPreview from './commands/open-vmt-preview.js';
 import { copyModels, renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
@@ -65,7 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
 	// Register auto-disposal subscriptions.
 	context.subscriptions.push(
 		vscode.commands.registerCommand('sourcery.vpk.open', openVpk),
-		vscode.commands.registerCommand('sourcery.game.reveal', revealOriginal),
+		vscode.commands.registerCommand('sourcery.game.revealFile', revealOriginal),
+		vscode.commands.registerCommand('sourcery.game.revealRoot', revealGamePath),
 		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		vscode.commands.registerCommand('sourcery.mdl.copy', copyModels),
 		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),

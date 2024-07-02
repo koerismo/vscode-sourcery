@@ -11,6 +11,7 @@ interface RowFormat {
 
 export class EditTableElement extends HTMLTableElement {
 	private _format: RowFormat[] = [];
+	private _sortKey: string|null = null;
 	private _data: Record<string, any>[] = [];
 	private _disabled: boolean = false;
 	private _selected_row: number = -2;
@@ -65,14 +66,21 @@ export class EditTableElement extends HTMLTableElement {
 		super.addEventListener(type, listener, options);
 	}
 
-	setFormat(format: RowFormat[]) {
+	setFormat(format: RowFormat[], sortKey: string|null=null) {
 		this._format = format;
+		this._sortKey = sortKey;
 		if (this._data) this.forceUpdate();
 	}
 
 	setModel(model: Record<string, any>[]) {
 		this._data = model;
 		if (this._format) this.forceUpdate();
+	}
+
+	#sort() {
+		const sortKey = this._sortKey;
+		if (!sortKey) return;
+		this._data.sort((a, b) => a[sortKey] - b[sortKey]);
 	}
 
 	#getValue(element: HTMLInputElement) {
@@ -109,10 +117,19 @@ export class EditTableElement extends HTMLTableElement {
 	
 		this.#setValue(input, row_data[format.property]);
 		
+		let isModified = false;
+
 		// Emit event on input
 		input.addEventListener('input', () => {
+			isModified = true;
 			row_data[format.property] = this.#getValue(input);
 			this.dispatchEvent(new Event('update'));
+		});
+
+		// Force re-sort on update
+		input.addEventListener('blur', () => {
+			if (isModified && this._sortKey) this.forceUpdate();
+			isModified = false;
 		});
 
 		// Blur on enter press
@@ -170,6 +187,8 @@ export class EditTableElement extends HTMLTableElement {
 	
 	forceUpdate() {
 		if (!this._format || !this._data) return false;
+		this.#sort();
+
 		const firstChild = this.firstElementChild!;
 		firstChild.replaceChildren(this.#createHeader());
 		for (let i=0; i<this._data.length; i++) {
