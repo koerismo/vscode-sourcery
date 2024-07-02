@@ -2,6 +2,7 @@ import { EditNumberElement } from './edit-number.js';
 import { DetailKind, DetailOrientation, type DetailProp } from './detail-file.js';
 import { setElVisible } from './index.js';
 import { Checkbox, type Dropdown } from '@vscode/webview-ui-toolkit';
+import { checkV } from './math.js';
 
 const PropShape = {
 	tri: 'tri',
@@ -96,7 +97,7 @@ export class EditPropElement extends HTMLElement {
 				<label>Shape Angle</label>
 				<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180" optional>
 				<label>Shape Radius</label>
-				<input id="settings-tri-radius" is="edit-number" type="number" min="0" optional>
+				<input id="settings-tri-radius" is="edit-number" type="number" optional>
 			</div>
 
 			<div class="content" id="settings-category-model">
@@ -152,7 +153,7 @@ export class EditPropElement extends HTMLElement {
 
 		this.input_spr_orient.addEventListener('input', () => {
 			if (!this._data) return;
-			this._data.detailOrientation = (+this.input_spr_orient.value) as DetailOrientation;
+			this._data.detailOrientation = +this.input_spr_orient.value;
 			this.emitUpdate();
 		});
 
@@ -187,6 +188,8 @@ export class EditPropElement extends HTMLElement {
 	setModel(model?: DetailProp) {
 		this._data = model;
 		if (!this._data) return;
+		this.validateModel();
+		
 		this.input_width.setModel(this._data.spritesize, 'w');
 		this.input_height.setModel(this._data.spritesize, 'h');
 		this.input_randscale.setModel(this._data, 'spriterandomscale');
@@ -204,5 +207,14 @@ export class EditPropElement extends HTMLElement {
 
 		// Update UI section visibility
 		this.updateKind();
+	}
+
+	validateModel() {
+		if (!this._data) return;
+		this._data.detailOrientation = checkV(this._data.detailOrientation, 0);
+		this._data.spriterandomscale = checkV(this._data.spriterandomscale, 0, 0, 1);
+		this._data.sway = checkV(this._data.sway, 0, 0);
+		this._data.shape_angle = checkV(this._data.shape_angle, 0, 0, 180);
+		this._data.shape_size = checkV(this._data.shape_angle, 0);
 	}
 }

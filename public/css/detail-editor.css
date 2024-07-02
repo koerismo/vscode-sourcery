@@ -398,6 +398,7 @@ edit-detail-prop {
 /* =================================== VIEWPORT =================================== */
 
 canvas#viewport {
+	background: #000;
 	width: 100% !important;
 	height: 100% !important;
 }

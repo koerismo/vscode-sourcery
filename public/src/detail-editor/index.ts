@@ -212,6 +212,12 @@ class FileManager {
 	}
 
 	public static async askToSetGroundMat() {
+		const resp = await askForTexture();
+		if (!resp) return console.log('User cancelled');
+		const [path, tex] = resp;
+		
+		Viewport.setGroundTexture(tex);
+		this.groundThumb.src = makeThumb(tex);
 	}
 
 	/* ================ BOUNDS ================ */
@@ -230,8 +236,10 @@ class FileManager {
 			current_prop.sprite.y = 0;
 			current_prop.sprite.w = bound_editor.image.width;
 			current_prop.sprite.h = bound_editor.image.height;
-			current_prop.sprite.imageWidth = bound_editor.image.width;
 		}
+
+		// Make sure that the size matches the current image
+		current_prop.sprite.imageWidth = bound_editor.image.width;
 		
 		// Attempt to start up the bounds editor
 		bound_editor.editBounds(current_prop.sprite, current_prop.spritesize);

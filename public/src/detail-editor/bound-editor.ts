@@ -1,5 +1,6 @@
 import { EditNumberElement } from './edit-number.js';
 import { type ImageDataLike, makeThumb } from './index.js';
+import { clamp, checkV } from './math.js';
 
 export const enum BoundDragType {
 	None,
@@ -19,18 +20,6 @@ export interface Bound {
 	y: number;
 	w: number;
 	h: number;
-}
-
-function clamp(v: number, a: number, b: number) {
-	return (v >= b ? b : (v <= a ? a : v));
-}
-
-function checkV(v: number|undefined, def: number, min?: number, max?: number) {
-	v ??= def;
-	if (isNaN(v)) v = def;
-	if (min !== undefined) v = Math.max(min, v);
-	if (max !== undefined) v = Math.min(max, v);
-	return v;
 }
 
 export class BoundEditorElement extends HTMLElement {

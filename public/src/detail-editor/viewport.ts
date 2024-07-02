@@ -5,7 +5,7 @@ import { Detail, DetailKind, DetailOrientation } from './detail-file.js';
 import { ImageDataLike } from './index.js';
 
 // Setup renderer
-const renderer = new Three.WebGLRenderer({ canvas: document.querySelector('#viewport')! });
+const renderer = new Three.WebGLRenderer({ canvas: document.querySelector('#viewport')!, alpha: false, antialias: true });
 const bounds = renderer.domElement.getClientRects()[0];
 renderer.setPixelRatio( window.devicePixelRatio );
 renderer.setSize( bounds.width, bounds.height );
@@ -21,11 +21,23 @@ scene.background = new Three.Color(0x222222);
 scene.add(new Three.GridHelper(512, 8));
 scene.add(new Three.AmbientLight(0xffffff));
 
+const planeMat = new Three.MeshBasicMaterial();
 const planeGeo = new Three.PlaneGeometry(128, 128, 4, 4).rotateX(-Math.PI/2);
-const plane = new Three.Mesh(planeGeo, new Three.MeshBasicMaterial({ color: 0x888888 }));
+const plane = new Three.Mesh(planeGeo, planeMat);
 scene.add(plane);
 
-const detailMat = new Three.MeshBasicMaterial({});
+const detailMat = new Three.MeshBasicMaterial({
+	side: Three.DoubleSide,
+	alphaTest: 0.5,
+	alphaToCoverage: true,
+});
+
+window.addEventListener('resize', () => {
+	const bounds = renderer.domElement.getClientRects()[0];
+	renderer.setSize(bounds.width, bounds.height, false);
+	camera.aspect = bounds.width / bounds.height;
+	camera.updateProjectionMatrix();
+});
 
 // Initial camera position
 camera.position.set(128, 128, 128);
@@ -57,18 +69,21 @@ export function setActiveDetail(detail: Detail|undefined) {
 }
 
 export function setDetailTexture(texture: ImageDataLike) {
-	detailMat.side = Three.DoubleSide;
+	if (detailMat.map) detailMat.map.dispose();
 	detailMat.map = new Three.DataTexture(texture.data, texture.width, texture.height, Three.RGBAFormat, Three.UnsignedByteType);
-	detailMat.map.flipY = true;
-	detailMat.alphaToCoverage = true;
-	detailMat.alphaTest = 0.5;
 	detailMat.map.magFilter = Three.LinearFilter;
 	detailMat.map.minFilter = Three.LinearFilter;
-	
 	detailMat.map.needsUpdate = true;
+	detailMat.map.colorSpace = Three.SRGBColorSpace;
 	detailMat.needsUpdate = true;
 }
 
 export function setGroundTexture(texture: ImageDataLike) {
-	// amogus
+	if (planeMat.map) planeMat.map.dispose();
+	planeMat.map = new Three.DataTexture(texture.data, texture.width, texture.height, Three.RGBAFormat, Three.UnsignedByteType);
+	planeMat.map.magFilter = Three.LinearFilter;
+	planeMat.map.minFilter = Three.LinearFilter;
+	planeMat.map.needsUpdate = true;
+	planeMat.map.colorSpace = Three.SRGBColorSpace;
+	planeMat.needsUpdate = true;
 }

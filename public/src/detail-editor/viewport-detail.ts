@@ -26,18 +26,20 @@ export interface DetailInstanceRecord {
 	angles: Euler;
 	orient: DetailOrientation;
 	sway: number;
+	scale: number;
 }
 
 export type MeshDetailsMap = Map<InstancedMesh, DetailInstanceRecord[]>;
 
 // #region Sprite Gen
+
 function plane_getDetailUVs(prop: DetailProp): [Vector2, Vector2] {
 	const x = prop.sprite.x,
 	      y = prop.sprite.y,
 	      flWidth = prop.sprite.w,
 	      flHeight = prop.sprite.h,
 	      flTextureSize = prop.sprite.imageWidth;
-	
+
 	const uv1 = new Vector2(
 		(x + .5) / flTextureSize,
 		(y + .5) / flTextureSize,
@@ -87,19 +89,46 @@ function makePlaneGeo(uv: [Vector2, Vector2], size: [Vector2, Vector2]) {
 	return geo1;
 }
 
-const rot90Matrix = new Matrix4().makeRotationY(Math.PI / 2);
-const rot120Matrix = new Matrix4().makeRotationY(Math.PI * 2 / 3);
-
 function makeSpritePropGeo(prop: DetailProp): BufferGeometry {
-	if (prop.kind === DetailKind.Sprite) {
-		return new PlaneGeometry(8, 8).translate(0, 4, 0);
-	}
-	else if (prop.kind === DetailKind.Shape) {
-		return new BoxGeometry(8, 8, 8);
+	if (prop.kind === DetailKind.Model) {
+		return new SphereGeometry(4, 8, 8);
 	}
 
-	return new SphereGeometry(4, 8, 8);
-	throw Error('whoops');
+	const plane_uv = plane_getDetailUVs(prop);
+	const plane_size = plane_getDetailSize(prop);
+	let plane = makePlaneGeo(plane_uv, plane_size);
+
+	if (prop.kind === DetailKind.Sprite) {
+		// Flat sprite
+		return plane;
+	}
+	
+	if (prop.sprite_shape === 'tri') {
+		// Apply tri shape transformations
+		plane.rotateX((prop.shape_angle ?? 0) / 180 * Math.PI);
+		plane.translate(0, 0, (prop.shape_size ?? 0) * prop.spritesize.w);
+	}
+
+	// Cross / tri shape
+	const plane2 = plane.clone().rotateY(Math.PI / 3 * 2);
+	const plane3 = plane.clone().rotateY(Math.PI / 3 * 4);
+
+	const combined_geo = new BufferGeometry();
+	const combined_verts = new Float32Array(6 * 3 * 3);
+	const combined_uvs = new Float32Array(6 * 2 * 3);
+
+	combined_verts.set(plane.getAttribute('position').array, 0);
+	combined_verts.set(plane2.getAttribute('position').array, 18);
+	combined_verts.set(plane3.getAttribute('position').array, 36);
+
+	combined_uvs.set(plane.getAttribute('uv').array, 0);
+	combined_uvs.set(plane2.getAttribute('uv').array, 12);
+	combined_uvs.set(plane3.getAttribute('uv').array, 24);
+
+	combined_geo.setAttribute('position', new BufferAttribute(combined_verts, 3));
+	combined_geo.setAttribute('uv', new BufferAttribute(combined_uvs, 2));
+
+	return combined_geo;
 }
 
 // #endregion
@@ -189,7 +218,7 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 			// const normal = new Vector3().copy(areaVec).divideScalar(-normalLength);
 			// placeDetail(model, point, normal);
 			const angles = new Euler(0.0, Math.random() * Math.PI * 2, 0.0);
-			const scale = model.spriterandomscale ? 1.0 + Math.random() * model.spriterandomscale : 1.0;
+			const scale = model.spriterandomscale ? 1.0 + (Math.random() - 0.5) * model.spriterandomscale : 1.0;
 			
 			// Append to list for later construction
 			if (model.kind === DetailKind.Model)
@@ -242,7 +271,7 @@ function createSpriteMeshes(detail: Detail, source: EmittedPropTarget, scene: Sc
 		mesh.setMatrixAt(index, matrix);
 
 		// Save instance entry to list for later transformation
-		meshDetailsDict.get(mesh)![index] = { origin: prop.pos, angles: prop.angles, orient: prop.model.detailOrientation!, sway: prop.model.sway ?? 0 };
+		meshDetailsDict.get(mesh)![index] = { scale: prop.scale, origin: prop.pos, angles: prop.angles, orient: prop.model.detailOrientation!, sway: prop.model.sway ?? 0 };
 	}
 	
 	// Update and add instances to scene
@@ -286,7 +315,6 @@ export function resetViewportDetails(detail: Detail|undefined, scene: Scene, geo
 
 }
 
-const VEC_UP = new Vector3(0, 1, 0);
 export function updateViewportDetails(camera: Camera, time: number) {
 	if (!g_currentInstances) return;
 	const camPos = camera.getWorldPosition(new Vector3());
@@ -306,6 +334,10 @@ export function updateViewportDetails(camera: Camera, time: number) {
 			}
 			else {
 				out.multiply(new Matrix4().makeRotationFromEuler(inst.angles));
+			}
+
+			if (inst.scale !== 1.0) {
+				out.multiply(new Matrix4().makeScale(inst.scale, inst.scale, inst.scale));
 			}
 			
 			// TODO: This is totally incorrect
