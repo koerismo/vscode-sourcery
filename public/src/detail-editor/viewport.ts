@@ -1,6 +1,6 @@
 import * as Three from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { resetViewportDetails, updateViewportDetails } from './viewport-detail.js';
+import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails } from './viewport-detail.js';
 import { Detail, DetailKind, DetailOrientation } from './detail-file.js';
 import { ImageDataLike } from './index.js';
 
@@ -66,6 +66,10 @@ function render(time: number) {
 
 export function setActiveDetail(detail: Detail|undefined) {
 	resetViewportDetails(detail, scene, planeGeo, detailMat);
+}
+
+export function updateActiveDetailBounds() {
+	updateViewportDetailUVs();
 }
 
 export function setDetailTexture(texture: ImageDataLike) {

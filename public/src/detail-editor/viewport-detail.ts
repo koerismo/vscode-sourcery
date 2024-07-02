@@ -8,6 +8,7 @@
 
 import { Detail, DetailFile, DetailGroup, DetailKind, DetailOrientation, DetailProp } from './detail-file.js';
 import { BoxGeometry, BufferAttribute, BufferGeometry, Camera, Euler, InstancedMesh, Material, Matrix, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Scene, SphereGeometry, Vec2, Vector2, Vector3 } from 'three';
+import { seededRandom } from 'three/src/math/MathUtils.js';
 
 export interface EmittedProp {
 	model: DetailProp;
@@ -21,17 +22,28 @@ export interface EmittedPropTarget {
 	models: EmittedProp[];
 }
 
-export interface DetailInstanceRecord {
-	origin: Vector3;
-	angles: Euler;
-	orient: DetailOrientation;
-	sway: number;
-	scale: number;
-}
+// export interface DetailInstanceRecord {
+// 	origin: Vector3;
+// 	angles: Euler;
+// 	orient: DetailOrientation;
+// 	sway: number;
+// 	scale: number;
+// }
 
-export type MeshDetailsMap = Map<InstancedMesh, DetailInstanceRecord[]>;
+export type MeshDetailsMap = Map<InstancedMesh, EmittedProp[]>;
 
 // #region Sprite Gen
+
+let initial_rng_index = 0;
+let rng_index = 0;
+
+function resetRandom() {
+	rng_index = initial_rng_index;
+}
+
+function random() {
+	return seededRandom(rng_index++);
+}
 
 function plane_getDetailUVs(prop: DetailProp): [Vector2, Vector2] {
 	const x = prop.sprite.x,
@@ -146,12 +158,12 @@ function selectRandomGroup(d: Detail, alpha: number): DetailGroup {
 
 	const dAlpha = d.groups[end].alpha - d.groups[start].alpha;
 	const dist = dAlpha ? (alpha - d.groups[start].alpha) / dAlpha : 0.0;
-	return d.groups[Math.random() > dist ? start : end];
+	return d.groups[random() > dist ? start : end];
 }
 
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L360-L373
 function selectRandomDetail(g: DetailGroup): DetailProp | null {
-	const r = Math.random();
+	const r = random();
 	for (let i=0; i<g.props.length; i++) {
 		if (g.props[i].amount > r) return g.props[i];
 	}
@@ -192,8 +204,8 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 		
 		// Take a sample and randomly place an object
 		for (let i=0; i<numSamples; i++) {
-			let u = Math.random(),
-				v = Math.random();
+			let u = random(),
+				v = random();
 			
 			// Flip if we're outside the triangle
 			if (v > 1 - u) {
@@ -217,8 +229,8 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 
 			// const normal = new Vector3().copy(areaVec).divideScalar(-normalLength);
 			// placeDetail(model, point, normal);
-			const angles = new Euler(0.0, Math.random() * Math.PI * 2, 0.0);
-			const scale = model.spriterandomscale ? 1.0 + (Math.random() - 0.5) * model.spriterandomscale : 1.0;
+			const angles = new Euler(0.0, random() * Math.PI * 2, 0.0);
+			const scale = model.spriterandomscale ? 1.0 + (random() - 0.5) * model.spriterandomscale : 1.0;
 			
 			// Append to list for later construction
 			if (model.kind === DetailKind.Model)
@@ -271,7 +283,7 @@ function createSpriteMeshes(detail: Detail, source: EmittedPropTarget, scene: Sc
 		mesh.setMatrixAt(index, matrix);
 
 		// Save instance entry to list for later transformation
-		meshDetailsDict.get(mesh)![index] = { scale: prop.scale, origin: prop.pos, angles: prop.angles, orient: prop.model.detailOrientation!, sway: prop.model.sway ?? 0 };
+		meshDetailsDict.get(mesh)![index] = prop;
 	}
 	
 	// Update and add instances to scene
@@ -299,7 +311,8 @@ export let g_currentMeshes: Map<DetailProp, InstancedMesh> | null = null;
 export let g_currentInstances: MeshDetailsMap | null = null;
 export function resetViewportDetails(detail: Detail|undefined, scene: Scene, geo: BufferGeometry, mat: Material) {
 	if (detail) {
-		console.log('making');
+		resetRandom();
+
 		const target: EmittedPropTarget = { sprites: [], models: [] };
 		emitDetailObjectsOnFace(geo, detail, target);
 
@@ -307,7 +320,6 @@ export function resetViewportDetails(detail: Detail|undefined, scene: Scene, geo
 		[g_currentMeshes, g_currentInstances] = createSpriteMeshes(detail, target, scene, mat);
 	}
 	else {
-		console.log('resetting');
 		if (g_currentMeshes) destroyOldMeshes(g_currentMeshes, scene);
 		g_currentMeshes = null;
 		g_currentInstances = null;
@@ -324,13 +336,13 @@ export function updateViewportDetails(camera: Camera, time: number) {
 	for (const [mesh, instances] of g_currentInstances) {
 		for (let i=0; i<instances.length; i++) {
 			const inst = instances[i];
-			let out = new Matrix4().makeTranslation(inst.origin);
+			let out = new Matrix4().makeTranslation(inst.pos);
 			
-			if (inst.orient === DetailOrientation.ZAxis) {
-				out.multiply(new Matrix4().lookAt(camPos, inst.origin, camera.up));
+			if (inst.model.detailOrientation === DetailOrientation.ZAxis) {
+				out.multiply(new Matrix4().lookAt(camPos, inst.pos, camera.up));
 			}
-			else if (inst.orient === DetailOrientation.AllAxes) {
-				out.multiply(new Matrix4().lookAt(camPos, inst.origin, camForward));
+			else if (inst.model.detailOrientation === DetailOrientation.AllAxes) {
+				out.multiply(new Matrix4().lookAt(camPos, inst.pos, camForward));
 			}
 			else {
 				out.multiply(new Matrix4().makeRotationFromEuler(inst.angles));
@@ -341,16 +353,44 @@ export function updateViewportDetails(camera: Camera, time: number) {
 			}
 			
 			// TODO: This is totally incorrect
-			if (inst.sway > 0.0) {
-				const s1 = Math.sin(time / 2000 + i) * inst.sway;
-				const s2 = Math.sin(time / 2000 - i) * inst.sway;
-				const sway = new Matrix4().makeShear(0, s1, 0, 0, s2, 0);
+			if (inst.model.sway! > 0.0) {
+				const s1 = Math.sin(time / 2000 + i) * inst.model.sway!;
+				const s2 = Math.sin(time / 2000 - i) * inst.model.sway!;
+				const sway = new Matrix4().makeShear(0, 0, s1, s2, 0, 0);
 				out.multiply(sway);
 			}
 
 			mesh.setMatrixAt(i, out);
 		}
 		mesh.instanceMatrix.needsUpdate = true;
+	}
+}
+
+export function updateViewportDetailUVs() {
+	if (!g_currentMeshes) return;
+	for (const [prop, mesh] of g_currentMeshes) {
+		const uv = plane_getDetailUVs(prop);
+		const uvattribute = mesh.geometry.getAttribute('uv');
+		const new_uv_array = new Float32Array([
+			uv[0].x, uv[0].y,
+			uv[0].x, uv[1].y,
+			uv[1].x, uv[1].y,
+			uv[0].x, uv[0].y,
+			uv[1].x, uv[1].y,
+			uv[1].x, uv[0].y,
+		]);
+
+		// TODO: This is dumb code that assumes everything is a plane. DO NOT TRUST.
+		const target_uv_array = uvattribute.array;
+		const plane_count = uvattribute.count / 6;
+		console.log(plane_count, target_uv_array, new_uv_array);
+
+		let planeIdx = 0;
+		for (let i=0; i<plane_count; i++, planeIdx += new_uv_array.length) {
+			target_uv_array.set(new_uv_array, planeIdx);
+		}
+
+		uvattribute.needsUpdate = true;
 	}
 }
 

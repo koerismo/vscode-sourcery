@@ -51,8 +51,8 @@ export class EditPropElement extends HTMLElement {
 			<vscode-checkbox id="settings-upright"></vscode-checkbox>
 			<label>Placement Angle</label>
 			<div class="h">
-				<input id="settings-angle-min"  is="edit-number" step="0.1" min="0" max="180" optional>
-				<input id="settings-angle-max" is="edit-number" step="0.1" min="0" max="180" optional>
+				<input id="settings-angle-min"  is="edit-number" step="0.1" min="0" max="180" optional placeholder="Min">
+				<input id="settings-angle-max" is="edit-number" step="0.1" min="0" max="180" optional placeholder="Max">
 			</div>
 
 			<label>Orientation</label>
@@ -73,13 +73,13 @@ export class EditPropElement extends HTMLElement {
 				</div>
 				<label>Size</label>
 				<div class="h">
-					<input id="settings-width"  is="edit-number" step="1" min="0">
-					<input id="settings-height" is="edit-number" step="1" min="0">
+					<input id="settings-width"  is="edit-number" step="1" min="0" placeholder="Width">
+					<input id="settings-height" is="edit-number" step="1" min="0" placeholder="Height">
 				</div>
 				<label>Random Scale</label>
-				<input id="settings-scale-random" is="edit-number" min="0" max="1" optional>
+				<input id="settings-scale-random" is="edit-number" min="0" max="1" step="0.01" optional>
 				<label>Sway</label>
-				<input id="settings-sway" is="edit-number" min="0" max="10" optional>
+				<input id="settings-sway" is="edit-number" min="0" max="10" step="0.01" optional>
 			</div>
 
 			<div class="content" id="settings-category-sprite">
@@ -97,7 +97,7 @@ export class EditPropElement extends HTMLElement {
 				<label>Shape Angle</label>
 				<input id="settings-tri-angle"  is="edit-number" type="number" min="0" max="180" optional>
 				<label>Shape Radius</label>
-				<input id="settings-tri-radius" is="edit-number" type="number" optional>
+				<input id="settings-tri-radius" is="edit-number" type="number" step="0.01" optional>
 			</div>
 
 			<div class="content" id="settings-category-model">
@@ -136,13 +136,15 @@ export class EditPropElement extends HTMLElement {
 		// ==================== INIT ====================
 		//
 
-		for (const input of [
+		const input_list = [
 			this.input_width, this.input_height,
 			this.input_randscale, this.input_sway,
 			this.input_angle_min, this.input_angle_max,
-			this.input_spr_orient,
 			this.input_tri_angle, this.input_tri_radius
-		]) input.addEventListener('update', this.emitUpdate.bind(this));
+		];
+
+		for (const input of input_list) input.addEventListener('update', this.emitUpdate.bind(this));
+		for (const input of input_list) input.addEventListener('input', this.emitUpdate.bind(this));
 
 		this.input_kind.addEventListener('input', () => {
 			if (!this._data) return;
@@ -181,8 +183,12 @@ export class EditPropElement extends HTMLElement {
 		setElVisible(this.category_model, kind_type === DetailKind.Model);
 	}
 
+	_emitUpdateTimeout: any = null;
 	emitUpdate() {
-		this.dispatchEvent(new Event('update'));
+		if (this._emitUpdateTimeout) clearTimeout(this._emitUpdateTimeout);
+		setTimeout(() => {
+			this.dispatchEvent(new Event('update'));
+		}, 10);
 	}
 
 	setModel(model?: DetailProp) {
@@ -215,6 +221,6 @@ export class EditPropElement extends HTMLElement {
 		this._data.spriterandomscale = checkV(this._data.spriterandomscale, 0, 0, 1);
 		this._data.sway = checkV(this._data.sway, 0, 0);
 		this._data.shape_angle = checkV(this._data.shape_angle, 0, 0, 180);
-		this._data.shape_size = checkV(this._data.shape_angle, 0);
+		this._data.shape_size = checkV(this._data.shape_size, 0);
 	}
 }

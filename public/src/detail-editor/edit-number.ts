@@ -10,8 +10,8 @@ export class EditNumberElement extends HTMLInputElement {
 		customElements.define('edit-number', this, { extends: 'input' });
 	}
 
-	setValue(v: number) {
-		this.value = this._formatValue(v);
+	setValue(v: number, feedback=true) {
+		if (feedback) this.value = this._formatValue(v);
 		if (this._data && this._key) this._data[this._key] = v;
 	}
 	
@@ -41,6 +41,13 @@ export class EditNumberElement extends HTMLInputElement {
 			const nValue = +this.value;
 			this.setValue(nValue);
 			this.dispatchEvent(new CustomEvent('update', { detail: +this.value }));
+		});
+
+		this.addEventListener('input', () => {
+			if (!this.value.length) return;
+			const nValue = +this.value;
+			if (isNaN(nValue)) return;
+			this.setValue(nValue, false);
 		});
 	}
 	

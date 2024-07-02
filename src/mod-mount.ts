@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 import { workspace, Uri, FileStat, FileType, Disposable } from 'vscode';
 import { GameSystem, ReadableFileSystem, SteamCache } from 'sfs-js';
-import { VSCodeSystem } from 'sfs-js/dist/fs.vsc.js';
+import { NodeSystem } from 'sfs-js/dist/fs.node.js';
 
 import { GetStringRegKey } from '@vscode/windows-registry';
 import { platform as getPlatform } from 'os';
-import { join, normalize } from 'path/posix';
+import { join, normalize, resolve } from 'path/posix';
 import { outConsole } from './extension.js';
 
 export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
@@ -55,7 +55,7 @@ function findSteamCache(fs: ReadableFileSystem): SteamCache {
 
 export let modFilesystem!: ModFilesystemProvider;
 export class ModFilesystemProvider implements vscode.FileSystemProvider {
-	vfs!: VSCodeSystem;
+	vfs!: ReadableFileSystem;
 	gfs!: GameSystem;
 	
 	static register() {
@@ -69,14 +69,18 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 	
 	constructor() {
-		const root = getWorkspaceUri();
-		if (!root) return;
+		const workspace_uri = getWorkspaceUri();
+		if (!workspace_uri) return;
+
+		const custom_root = vscode.workspace.getConfiguration('sourcery.game').get<string>('modPath');
+		const root = custom_root ? vscode.Uri.file(resolve(workspace_uri.path, custom_root)) : workspace_uri;
+
 		(async () => {
 			try {
 				// Check if gameinfo exists. vscode's api throws if it doesn't find it, so we skip the whole init.
 				await vscode.workspace.fs.stat(vscode.Uri.joinPath(root, 'gameinfo.txt'));
 	
-				this.vfs = new VSCodeSystem();
+				this.vfs = new NodeSystem();
 				const steam_cache = findSteamCache(this.vfs);
 				this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
 				this.gfs.validate().then(x => {
@@ -85,7 +89,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 				});
 			}
 			catch {
-				outConsole.log('No gameinfo found.');
+				outConsole.log('No gameinfo found at ', root.fsPath);
 			}
 		})();
 	}

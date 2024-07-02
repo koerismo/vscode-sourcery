@@ -355,6 +355,11 @@ class FileManager {
 		// Hook icon update to bound editor close event
 		bound_editor.addEventListener('close', () => {
 			this.updateSpriteThumb();
+			this.updateViewport();
+		});
+
+		bound_editor.addEventListener('update', () => {
+			Viewport.updateActiveDetailBounds();
 		});
 
 		// Initialize settings menu
@@ -382,7 +387,7 @@ class FileManager {
 		if (this._updateViewportTimeout) clearTimeout(this._updateViewportTimeout);
 		this._updateViewportTimeout = setTimeout(() => {
 			Viewport.setActiveDetail(this.getCurrentType() ?? undefined);
-		}, 50);
+		}, 20);
 	}
 }
 
