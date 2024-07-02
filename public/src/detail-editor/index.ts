@@ -359,6 +359,7 @@ class FileManager {
 		});
 
 		bound_editor.addEventListener('update', () => {
+			// TODO: Add some sort of rate limit?
 			Viewport.updateActiveDetailBounds();
 		});
 

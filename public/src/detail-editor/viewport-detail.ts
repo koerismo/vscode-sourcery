@@ -45,6 +45,10 @@ function random() {
 	return seededRandom(rng_index++);
 }
 
+function noopRandom() {
+	rng_index++;
+}
+
 function plane_getDetailUVs(prop: DetailProp): [Vector2, Vector2] {
 	const x = prop.sprite.x,
 	      y = prop.sprite.y,
@@ -230,7 +234,9 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 			// const normal = new Vector3().copy(areaVec).divideScalar(-normalLength);
 			// placeDetail(model, point, normal);
 			const angles = new Euler(0.0, random() * Math.PI * 2, 0.0);
-			const scale = model.spriterandomscale ? 1.0 + (random() - 0.5) * model.spriterandomscale : 1.0;
+			let scale = 1.0;
+			if (model.spriterandomscale) scale += (random() - 0.5) * model.spriterandomscale;
+			else noopRandom();
 			
 			// Append to list for later construction
 			if (model.kind === DetailKind.Model)
