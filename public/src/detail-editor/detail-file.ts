@@ -1,3 +1,9 @@
+export interface ImageDataLike {
+	width: number;
+	height: number;
+	data: Uint8Array;
+}
+
 export enum DetailOrientation {
 	None,
 	AllAxes,
@@ -25,6 +31,13 @@ export interface DetailSpriteSize {
 	h: number;
 }
 
+export interface DetailMessageAskData {
+	path: string;
+	basetexture: ImageDataLike;
+	basetexture2?: ImageDataLike;
+	// tooltexture?: ImageDataLike;
+}
+
 export type DetailMessage = {
 	type: 'markDirty';
 	error?: string;
@@ -35,7 +48,7 @@ export type DetailMessage = {
 } | {
 	type: 'ask';
 	kind: 'material'|'model';
-	data: [string, { width: number, height: number, data: Uint8Array }]|null;
+	data: DetailMessageAskData|null;
 	error?: string;
 };
 

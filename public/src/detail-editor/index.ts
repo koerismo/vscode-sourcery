@@ -5,7 +5,7 @@ import * as Viewport from './viewport.js';
 import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
 provideVSCodeDesignSystem().register(vsCodeButton(), vsCodeCheckbox(), vsCodeDropdown(), vsCodeOption());
 
-import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailOrientation, DetailProp } from './detail-file.js';
+import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailMessageAskData, DetailOrientation, DetailProp } from './detail-file.js';
 import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
@@ -204,20 +204,18 @@ class FileManager {
 	public static async askToSetSpriteMat() {
 		const resp = await askForTexture();
 		if (!resp) return console.log('User cancelled');
-		const [path, tex] = resp;
 
-		bound_editor.setImage(tex);
-		Viewport.setDetailTexture(tex);
+		bound_editor.setImage(resp.basetexture);
+		Viewport.setDetailTexture(resp.basetexture);
 		this.textureThumb.src = bound_editor.thumbSrc!;
 	}
 
 	public static async askToSetGroundMat() {
 		const resp = await askForTexture();
 		if (!resp) return console.log('User cancelled');
-		const [path, tex] = resp;
 		
-		Viewport.setGroundTexture(tex);
-		this.groundThumb.src = makeThumb(tex);
+		Viewport.setGroundTexture(resp.basetexture, resp.basetexture2);
+		this.groundThumb.src = makeThumb(resp.basetexture);
 	}
 
 	/* ================ BOUNDS ================ */
@@ -396,7 +394,7 @@ window.FileManager = FileManager;
 
 /* ================================ IO HANDLE ================================ */
 
-async function askForTexture(): Promise<[string, { width: number, height: number, data: Uint8Array }]|null> {
+async function askForTexture(): Promise<DetailMessageAskData|null> {
 	return new Promise(resolve => {
 		let cb = (event: MessageEvent<DetailMessage>) => {
 			if (event.data.type !== 'ask') return;
