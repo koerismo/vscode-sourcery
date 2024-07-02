@@ -1,7 +1,7 @@
 import * as Three from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails } from './viewport-detail.js';
-import { Detail, DetailKind, DetailOrientation } from './detail-file.js';
+import { Detail } from './detail-file.js';
 import { ImageDataLike } from './index.js';
 
 // Setup renderer
@@ -21,10 +21,32 @@ scene.background = new Three.Color(0x222222);
 scene.add(new Three.GridHelper(512, 8));
 scene.add(new Three.AmbientLight(0xffffff));
 
-const planeMat = new Three.MeshBasicMaterial();
-const planeGeo = new Three.PlaneGeometry(128, 128, 4, 4).rotateX(-Math.PI/2);
-const plane = new Three.Mesh(planeGeo, planeMat);
-scene.add(plane);
+let groundTex1: Three.DataTexture;
+let groundTex2: Three.DataTexture;
+
+const groundMat = new Three.ShaderMaterial({
+	vertexShader: `
+	void main() {
+		gl_Position = projectionMatrix * modelViewMatrix * Vector4(position, 1.0);
+	}`,
+	fragmentShader: `
+	attribute float alpha;
+	varying vec4 map;
+	varying vec4 map2;
+
+	void main() {
+		gl_FragColor = map * alpha + map2 * (1 - alpha); // vec4(1.0, 0.0, 0.0, 1.0);
+	}`,
+	uniforms: {
+		map: { value: null },
+		map2: { value: null }
+	}
+});
+
+const groundGeo = new Three.PlaneGeometry(128, 128, 4, 4).rotateX(-Math.PI/2).toNonIndexed();
+groundGeo.setAttribute('alpha', new Three.BufferAttribute(new Float32Array(6).fill(Math.random() > 0.5 ? 1 : 0), 1));
+const ground = new Three.Mesh(groundGeo, groundMat);
+scene.add(ground);
 
 const detailMat = new Three.MeshBasicMaterial({
 	side: Three.DoubleSide,
@@ -65,7 +87,7 @@ function render(time: number) {
 }
 
 export function setActiveDetail(detail: Detail|undefined) {
-	resetViewportDetails(detail, scene, planeGeo, detailMat);
+	resetViewportDetails(detail, scene, groundGeo, detailMat);
 }
 
 export function updateActiveDetailBounds() {
@@ -82,12 +104,12 @@ export function setDetailTexture(texture: ImageDataLike) {
 	detailMat.needsUpdate = true;
 }
 
-export function setGroundTexture(texture: ImageDataLike) {
-	if (planeMat.map) planeMat.map.dispose();
-	planeMat.map = new Three.DataTexture(texture.data, texture.width, texture.height, Three.RGBAFormat, Three.UnsignedByteType);
-	planeMat.map.magFilter = Three.LinearFilter;
-	planeMat.map.minFilter = Three.LinearFilter;
-	planeMat.map.needsUpdate = true;
-	planeMat.map.colorSpace = Three.SRGBColorSpace;
-	planeMat.needsUpdate = true;
+export function setGroundTexture(texture: ImageDataLike, texture2: ImageDataLike) {
+	if (groundTex1) groundTex1.dispose();
+	groundTex1 = new Three.DataTexture(texture.data, texture.width, texture.height, Three.RGBAFormat, Three.UnsignedByteType);
+	groundTex1.magFilter = Three.LinearFilter;
+	groundTex1.minFilter = Three.LinearFilter;
+	groundTex1.needsUpdate = true;
+	groundTex1.colorSpace = Three.SRGBColorSpace;
+	groundMat.needsUpdate = true;
 }

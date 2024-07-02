@@ -4,7 +4,7 @@ import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import EditorHTML from './editor.html';
 import * as assert from 'assert';
-import Vtf from 'vtf-js';
+import Vtf, { VImageData } from 'vtf-js';
 import { MountServerManager } from '../mod-server.js';
 
 const RE_SLASH = /(\/|\\)+/g;
@@ -279,14 +279,23 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 					const rootDir = matKV.dirs()[0];
 					assert(rootDir !== undefined);
 					const basetexPath = normalizePath(rootDir.value('$basetexture'));
+					const basetex2Path = normalizePath(rootDir.value('$basetexture2', ''));
 
 					const texFile = await vscode.workspace.fs.readFile(vscode.Uri.from({ scheme: 'mod', path: basetexPath }));
 					const decoded = Vtf.decode(texFile.buffer);
 					const imData = decoded.data.getImage(0, 0, 0, 0).convert(Uint8Array);
+
+					let imData2: VImageData|undefined;
+					if (basetex2Path) {
+						const texFile2 = await vscode.workspace.fs.readFile(vscode.Uri.from({ scheme: 'mod', path: basetex2Path }));
+						const decoded2 = Vtf.decode(texFile2.buffer);
+						imData2 = decoded2.data.getImage(0, 0, 0, 0).convert(Uint8Array);
+					}
+
 					return webviewPanel.webview.postMessage(<DetailMessage>{
 						type: 'ask',
 						kind: 'material',
-						data: [files[0].path, imData]
+						data: { path: files[0].path, basetexture: imData, basetexture2: imData2 }
 					});
 				}
 				catch (e) {
