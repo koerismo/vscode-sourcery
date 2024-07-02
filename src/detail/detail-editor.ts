@@ -301,7 +301,9 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 					const rootDir = matKV.dirs()[0];
 					assert(rootDir !== undefined);
 					const basetexPath = normalizePath(rootDir.value('$basetexture'));
-					const basetex2Path = normalizePath(rootDir.value('$basetexture2', ''));
+					
+					let basetex2Path = rootDir.value('$basetexture2', null);
+					if (basetex2Path) basetex2Path = normalizePath(basetex2Path);
 
 					const texFile = await vscode.workspace.fs.readFile(vscode.Uri.from({ scheme: 'mod', path: basetexPath }));
 					const decoded = Vtf.decode(texFile.buffer);

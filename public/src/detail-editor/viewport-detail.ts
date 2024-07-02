@@ -8,7 +8,7 @@
 
 import { Detail, DetailFile, DetailGroup, DetailKind, DetailOrientation, DetailProp } from './detail-file.js';
 import { BoxGeometry, BufferAttribute, BufferGeometry, Camera, Euler, InstancedMesh, Material, Matrix, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Scene, SphereGeometry, Vec2, Vector2, Vector3 } from 'three';
-import { seededRandom } from 'three/src/math/MathUtils.js';
+import { lerp, seededRandom } from 'three/src/math/MathUtils.js';
 
 export interface EmittedProp {
 	model: DetailProp;
@@ -151,8 +151,8 @@ function makeSpritePropGeo(prop: DetailProp): BufferGeometry {
 
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L322-L354
 function selectRandomGroup(d: Detail, alpha: number): DetailGroup {
-	let start: number, end: number = 1;
-	for (start = 0; start < d.groups.length-1; start++, end++) {
+	let start: number, end: number;
+	for (start = 0, end = 1; start < d.groups.length-1; start++, end++) {
 		if (alpha < d.groups[end].alpha) break;
 	}
 
@@ -187,17 +187,16 @@ function selectRandomDetail(g: DetailGroup): DetailProp | null {
 
 // https://github.com/ValveSoftware/source-sdk-2013/blob/0d8dceea4310fde5706b3ce1c70609d72a38efdf/mp/src/utils/vbsp/detailobjects.cpp#L633
 function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: EmittedPropTarget) {
-	// Thanks to https://stackoverflow.com/a/42167138
-	// Convert the geo to a non-indexed one so we get the correct vertex properties
-	face = face.toNonIndexed();
+	if (!detail.groups.length) return;
 
 	const vertAttribute = face.getAttribute('position');
 	const verts = vertAttribute.array;
 	const faceSize = vertAttribute.itemSize * 3;
-	// const alphaAttribute = face.getAttribute('alpha');
-	// const alphas = alphaAttribute.array;
+	const alphaAttribute = face.getAttribute('alpha');
+	const alphas = alphaAttribute.array;
 
-	for (let vertIdx=0; vertIdx<=verts.length-faceSize; vertIdx+=faceSize) {
+	let alphaIdx = 0;
+	for (let vertIdx=0; vertIdx<=verts.length-faceSize; vertIdx+=faceSize, alphaIdx+=3) {
 		// Compute area of triangle
 		const edge1 = new Vector3(
 			verts[vertIdx+0] - verts[vertIdx+3],
@@ -214,6 +213,11 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 		const normalLength = areaVec.length();
 		const area = 0.5 * normalLength;
 
+		// Store vert alphas for later
+		const v1Alpha = alphas[alphaIdx];
+		const v2Alpha = alphas[alphaIdx+1];
+		const v3Alpha = alphas[alphaIdx+2];
+
 		// Compute number of samples to take
 		const numSamples = area * detail.density * 0.000001;
 		
@@ -228,8 +232,8 @@ function emitDetailObjectsOnFace(face: BufferGeometry, detail: Detail, target: E
 				v = 1 - v;
 			}
 	
-			// TODO: Compute alpha
-			let alpha = 1.0;
+			// TODO: Compute alpha better
+			let alpha = (v1Alpha + v2Alpha + v3Alpha) / 3;
 
 			const group = selectRandomGroup(detail, alpha);
 			const model = selectRandomDetail(group);

@@ -4,6 +4,7 @@ import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails } from './viewport-detail.js';
 import { Detail } from './detail-file.js';
 import { ImageDataLike } from './index.js';
+import { clamp } from './math.js';
 
 export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
 
@@ -44,16 +45,27 @@ let groundTex2: Three.DataTexture;
 
 const groundMat = new Three.ShaderMaterial({
 	vertexShader: `
-	void main() {
-		gl_Position = projectionMatrix * modelViewMatrix * Vector4(position, 1.0);
-	}`,
-	fragmentShader: `
-	attribute float alpha;
-	varying vec4 map;
-	varying vec4 map2;
+	varying float vAlpha;
+	// varying vec3 vNormal;
+	varying vec2 vUv;
+
+	in float alpha;
 
 	void main() {
-		gl_FragColor = map * alpha + map2 * (1 - alpha); // vec4(1.0, 0.0, 0.0, 1.0);
+		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+		vUv = uv;
+		vAlpha = alpha;
+	}`,
+	fragmentShader: `
+	varying float vAlpha;
+	// varying vec3 vNormal;
+	varying vec2 vUv;
+	
+	uniform sampler2D map;
+	uniform sampler2D map2;
+
+	void main() {
+		gl_FragColor = texture(map, vUv) * vAlpha + texture(map2, vUv) * (1.0 - vAlpha); // vec4(1.0, 0.0, 0.0, 1.0);
 	}`,
 	uniforms: {
 		map: { value: null },
@@ -61,8 +73,22 @@ const groundMat = new Three.ShaderMaterial({
 	}
 });
 
-const groundGeo = new Three.PlaneGeometry(128, 128, 4, 4).rotateX(-Math.PI/2).toNonIndexed();
-groundGeo.setAttribute('alpha', new Three.BufferAttribute(new Float32Array(6 * 4 * 4).fill(Math.random() > 0.5 ? 1 : 0), 1));
+// Plane subdivision
+const SUBD = 8;
+
+// Thanks to https://stackoverflow.com/a/42167138
+// Convert the geo to a non-indexed one so we get the correct vertex properties
+const groundGeo = new Three.PlaneGeometry(128, 128, SUBD, SUBD).rotateX(-Math.PI/2).toNonIndexed();
+const groundVerts = groundGeo.getAttribute('position').array;
+const groundAlpha = new Float32Array(6 * SUBD * SUBD);
+for (let i=0; i<groundAlpha.length; i++) {
+	const x = groundVerts[i * 3];
+	const y = groundVerts[i * 3 + 2];
+	// groundAlpha[i] = y < x ? 1 : 0;
+	groundAlpha[i] = clamp(0.5 + (x - y) * 0.005, 0, 1);
+}
+
+groundGeo.setAttribute('alpha', new Three.BufferAttribute(groundAlpha, 1));
 const ground = new Three.Mesh(groundGeo, groundMat);
 scene.add(ground);
 
@@ -136,7 +162,7 @@ export function setGroundTexture(texture: ImageDataLike, texture2?: ImageDataLik
 	groundTex1.magFilter = Three.LinearFilter;
 	groundTex1.minFilter = Three.LinearFilter;
 	groundTex1.needsUpdate = true;
-	groundTex1.colorSpace = Three.SRGBColorSpace;
+	groundTex1.colorSpace = Three.LinearSRGBColorSpace;
 	groundMat.uniforms.map.value = groundTex1;
 	
 	if (texture2) {
@@ -144,7 +170,7 @@ export function setGroundTexture(texture: ImageDataLike, texture2?: ImageDataLik
 		groundTex2.magFilter = Three.LinearFilter;
 		groundTex2.minFilter = Three.LinearFilter;
 		groundTex2.needsUpdate = true;
-		groundTex2.colorSpace = Three.SRGBColorSpace;
+		groundTex2.colorSpace = Three.LinearSRGBColorSpace;
 		groundMat.uniforms.map2.value = groundTex2;
 	}
 	else {
