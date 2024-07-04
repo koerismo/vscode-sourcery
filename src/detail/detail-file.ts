@@ -35,7 +35,7 @@ export interface DetailMessageAskData {
 	path: string;
 	basetexture: ImageDataLike;
 	basetexture2?: ImageDataLike;
-	// tooltexture?: ImageDataLike;
+	tooltexture?: ImageDataLike;
 }
 
 export type DetailMessage = {
@@ -48,7 +48,7 @@ export type DetailMessage = {
 } | {
 	type: 'ask';
 	kind: 'material'|'model';
-	data: DetailMessageAskData|null;
+	data: string|null;
 	error?: string;
 };
 

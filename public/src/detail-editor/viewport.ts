@@ -1,12 +1,11 @@
 import * as Three from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails } from './viewport-detail.js';
+import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails, refreshViewport, g_imageSize } from './viewport-detail.js';
 import { Detail } from './detail-file.js';
 import { ImageDataLike } from './index.js';
 import { clamp } from './math.js';
-
-export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
+import { URL_ROOT } from './loaders.js';
 
 // Setup renderer
 const renderer = new Three.WebGLRenderer({ canvas: document.querySelector('#viewport')!, alpha: false, antialias: true });
@@ -65,7 +64,7 @@ const groundMat = new Three.ShaderMaterial({
 	uniform sampler2D map2;
 
 	void main() {
-		gl_FragColor = texture(map, vUv) * vAlpha + texture(map2, vUv) * (1.0 - vAlpha); // vec4(1.0, 0.0, 0.0, 1.0);
+		gl_FragColor = texture(map2, vUv) * vAlpha + texture(map, vUv) * (1.0 - vAlpha); // vec4(1.0, 0.0, 0.0, 1.0);
 	}`,
 	uniforms: {
 		map: { value: null },
@@ -81,14 +80,9 @@ const SUBD = 8;
 const groundGeo = new Three.PlaneGeometry(128, 128, SUBD, SUBD).rotateX(-Math.PI/2).toNonIndexed();
 const groundVerts = groundGeo.getAttribute('position').array;
 const groundAlpha = new Float32Array(6 * SUBD * SUBD);
-for (let i=0; i<groundAlpha.length; i++) {
-	const x = groundVerts[i * 3];
-	const y = groundVerts[i * 3 + 2];
-	// groundAlpha[i] = y < x ? 1 : 0;
-	groundAlpha[i] = clamp(0.5 + (x - y) * 0.005, 0, 1);
-}
+const groundAlphaAttribute = new Three.BufferAttribute(groundAlpha, 1);
 
-groundGeo.setAttribute('alpha', new Three.BufferAttribute(groundAlpha, 1));
+groundGeo.setAttribute('alpha', groundAlphaAttribute);
 const ground = new Three.Mesh(groundGeo, groundMat);
 scene.add(ground);
 
@@ -144,14 +138,20 @@ export function updateActiveDetailBounds() {
 	updateViewportDetailUVs();
 }
 
+// Directly expose refresh function
+export { refreshViewport };
+
 export function setDetailTexture(texture: ImageDataLike) {
 	if (detailMat.map) detailMat.map.dispose();
+	g_imageSize.width = texture.width;
+	g_imageSize.height = texture.height;
 	detailMat.map = new Three.DataTexture(texture.data, texture.width, texture.height, Three.RGBAFormat, Three.UnsignedByteType);
 	detailMat.map.magFilter = Three.LinearFilter;
 	detailMat.map.minFilter = Three.LinearFilter;
 	detailMat.map.needsUpdate = true;
 	detailMat.map.colorSpace = Three.SRGBColorSpace;
 	detailMat.needsUpdate = true;
+	updateViewportDetailUVs();
 }
 
 export function setGroundTexture(texture: ImageDataLike, texture2?: ImageDataLike) {
@@ -178,4 +178,21 @@ export function setGroundTexture(texture: ImageDataLike, texture2?: ImageDataLik
 	}
 
 	groundMat.needsUpdate = true;
+}
+
+export const GroundAlphaPresets = {
+	flat0(x: number, y: number) { return 0; },
+	flat1(x: number, y: number) { return 1; },
+	line(x: number, y: number) { return y < x ? 1 : 0; },
+	gradient(x: number, y: number) { return clamp(0.5 + (x - y) * 0.005, 0, 1); }
+} as const;
+
+export function setGroundAlpha(func: (x: number, y: number) => number) {
+	for (let i=0; i<groundAlpha.length; i++) {
+		const x = groundVerts[i * 3];
+		const y = groundVerts[i * 3 + 2];
+		groundAlpha[i] = func(x, y);
+	}
+
+	groundAlphaAttribute.needsUpdate = true;
 }

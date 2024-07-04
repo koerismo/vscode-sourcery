@@ -9,8 +9,9 @@ import { Detail, DetailFile, DetailGroup, DetailKind, DetailMessage, DetailMessa
 import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
-
 import { Bound, BoundEditorElement } from './bound-editor.js';
+import * as Loaders from './loaders.js';
+import { assert } from './math.js';
 
 export interface ImageDataLike {
 	width: number;
@@ -116,6 +117,12 @@ class FileManager {
 	static groundThumb: HTMLImageElement = document.querySelector('#thumb-ground')!;
 	static textureThumb: HTMLImageElement = document.querySelector('#thumb-texture')!;
 	static spriteThumb: HTMLImageElement = document.querySelector('#thumb-sprite')!;
+	static viewportModeButtons: HTMLButtonElement[] = [
+		document.querySelector('button#btn-viewport-flat0')!,
+		document.querySelector('button#btn-viewport-flat1')!,
+		document.querySelector('button#btn-viewport-line')!,
+		document.querySelector('button#btn-viewport-gradient')!
+	];
 
 	static getCurrentType(): Detail|null {
 		if (!type_table.isSelected || type_table.disabled) return null;
@@ -201,8 +208,8 @@ class FileManager {
 
 	/* ================ CLICKABLE THUMBS ================ */
 
-	public static async askToSetSpriteMat() {
-		const resp = await askForTexture();
+	public static async askToSetSpriteMat(path?: string) {
+		const resp = await askForTexture(path);
 		if (!resp) return console.log('User cancelled');
 
 		bound_editor.setImage(resp.basetexture);
@@ -215,7 +222,7 @@ class FileManager {
 		if (!resp) return console.log('User cancelled');
 		
 		Viewport.setGroundTexture(resp.basetexture, resp.basetexture2);
-		this.groundThumb.src = makeThumb(resp.basetexture);
+		this.groundThumb.src = makeThumb(resp.tooltexture ?? resp.basetexture);
 	}
 
 	/* ================ BOUNDS ================ */
@@ -280,12 +287,11 @@ class FileManager {
 	/* ================ INTERNAL ================ */
 
 	static setup() {
-		//TODO: THIS IS A HACK!!!! REPLACE THIS WHEN THE VIEWPORT IS IMPLEMENTED!
-		//ON FIRST ASK, THE HOST WILL RESPOND WITH THE DEFAULT TEXTURE.
-		this.askToSetSpriteMat();
+		this.askToSetSpriteMat('materials/detail/detailsprites.vmt');
 
 		document.body.addEventListener('input', this.markDirty.bind(this));
 		document.body.addEventListener('change', this.markDirty.bind(this));
+		document.body.addEventListener('keydown', this.handleKeyPress.bind(this));
 
 		// On type change, reset groups and models
 		type_table.addEventListener('select', () => {
@@ -381,6 +387,8 @@ class FileManager {
 		vscode.postMessage(<DetailMessage>{ type: 'markDirty' });
 	}
 
+	/* VIEWPORT */
+
 	static _updateViewportTimeout: any | null = null;
 	static updateViewport() {
 		if (this._updateViewportTimeout) clearTimeout(this._updateViewportTimeout);
@@ -388,26 +396,93 @@ class FileManager {
 			Viewport.setActiveDetail(this.getCurrentType() ?? undefined);
 		}, 20);
 	}
+
+	static _currentViewportMode = 0;
+	static setViewportMode(mode: number) {
+		this.viewportModeButtons[this._currentViewportMode].classList.remove('active');
+		this.viewportModeButtons[this._currentViewportMode = mode].classList.add('active');
+		Viewport.setGroundAlpha([
+			Viewport.GroundAlphaPresets.flat0,
+			Viewport.GroundAlphaPresets.flat1,
+			Viewport.GroundAlphaPresets.line,
+			Viewport.GroundAlphaPresets.gradient,
+		][mode]);
+		this.updateViewport();
+	}
+
+	static refreshViewport() {
+		Viewport.refreshViewport();
+		this.updateViewport();
+	}
+
+	/* KEYBINDS */
+
+	static handleKeyPress(event: KeyboardEvent) {
+		if (event.key === 'R' && event.shiftKey) {
+			event.preventDefault();
+			return this.refreshViewport();
+		}
+
+		if (event.key === '!' && event.shiftKey) { event.preventDefault(); return this.setViewportMode(0); }
+		if (event.key === '@' && event.shiftKey) { event.preventDefault(); return this.setViewportMode(1); }
+		if (event.key === '#' && event.shiftKey) { event.preventDefault(); return this.setViewportMode(2); }
+		if (event.key === '$' && event.shiftKey) { event.preventDefault(); return this.setViewportMode(3); }
+	}
 }
 
 window.FileManager = FileManager;
 
 /* ================================ IO HANDLE ================================ */
 
-async function askForTexture(): Promise<DetailMessageAskData|null> {
+async function askUser(kind: 'material'|'model'): Promise<string|null> {
 	return new Promise(resolve => {
 		let cb = (event: MessageEvent<DetailMessage>) => {
 			if (event.data.type !== 'ask') return;
 			window.removeEventListener('message', cb);
-			if (event.data.error) throw Error(event.data.error);
-			resolve(event.data.data);
+			
+			const message = event.data;
+			if (message.error) throw Error(event.data.error);
+			if (!message.data) return null;
+			resolve(message.data);
 		};
 		window.addEventListener('message', cb);
 		vscode.postMessage(<DetailMessage>{
 			type: 'ask',
-			kind: 'material',
+			kind,
 		});
 	});
+}
+
+async function askForTexture(path?: string): Promise<DetailMessageAskData|null> {
+	const matPath = path ?? await askUser('material');
+	if (!matPath) return null;
+
+	const vmt = await Loaders.loadVMT(matPath);
+	if (!vmt) return null;
+
+
+	// Normalize paths
+	let basetexturePath = vmt.data['$basetexture'];
+	if (basetexturePath) basetexturePath = Loaders.normalizePath(basetexturePath);
+	let basetexture2Path = vmt.data['$basetexture2'];
+	if (basetexture2Path) basetexture2Path = Loaders.normalizePath(basetexture2Path);
+	let tooltexturePath = vmt.data['%tooltexture'];
+	if (tooltexturePath) tooltexturePath = Loaders.normalizePath(tooltexturePath);
+
+	// Load textures
+	const basetexture = await Loaders.loadVtfAsImage(basetexturePath);
+	const basetexture2 = await Loaders.loadVtfAsImage(basetexture2Path);
+	const tooltexture = await Loaders.loadVtfAsImage(tooltexturePath);
+	
+	// Major whoopsie incoming
+	assert(basetexture);
+
+	return {
+		path: matPath,
+		basetexture,
+		basetexture2: basetexture2 ?? undefined,
+		tooltexture: tooltexture ?? undefined,
+	};
 }
 
 onmessage = (event: MessageEvent<DetailMessage>) => {

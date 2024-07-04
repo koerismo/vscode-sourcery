@@ -6,9 +6,10 @@
 // }, 1000);
 // console.log('NOCLIP SHOULD BE LOADED NOW!');
 
-import { Detail, DetailFile, DetailGroup, DetailKind, DetailOrientation, DetailProp } from './detail-file.js';
-import { BoxGeometry, BufferAttribute, BufferGeometry, Camera, Euler, InstancedMesh, Material, Matrix, Matrix4, Mesh, MeshBasicMaterial, PlaneGeometry, Scene, SphereGeometry, Vec2, Vector2, Vector3 } from 'three';
-import { lerp, seededRandom } from 'three/src/math/MathUtils.js';
+import { Detail, DetailGroup, DetailKind, DetailOrientation, DetailProp } from './detail-file.js';
+import { BufferAttribute, BufferGeometry, Camera, Euler, InstancedMesh, Material, Matrix4, Scene, SphereGeometry, Vector2, Vector3 } from 'three';
+import { seededRandom } from 'three/src/math/MathUtils.js';
+import { ImageDataLike } from './index.js';
 
 export interface EmittedProp {
 	model: DetailProp;
@@ -22,34 +23,31 @@ export interface EmittedPropTarget {
 	models: EmittedProp[];
 }
 
-// export interface DetailInstanceRecord {
-// 	origin: Vector3;
-// 	angles: Euler;
-// 	orient: DetailOrientation;
-// 	sway: number;
-// 	scale: number;
-// }
+export interface ImageSize {
+	width: number;
+	height: number;
+}
 
 export type MeshDetailsMap = Map<InstancedMesh, EmittedProp[]>;
 
 // #region Sprite Gen
 
-let initial_rng_index = 0;
-let rng_index = 0;
+let g_initialRandIndex = 0;
+let g_randIndex = 0;
 
 function resetRandom() {
-	rng_index = initial_rng_index;
+	g_randIndex = g_initialRandIndex;
 }
 
 function random() {
-	return seededRandom(rng_index++);
+	return seededRandom(g_randIndex++);
 }
 
 function noopRandom() {
-	rng_index++;
+	g_randIndex++;
 }
 
-function plane_getDetailUVs(prop: DetailProp): [Vector2, Vector2] {
+function plane_getDetailUVs(prop: DetailProp, image: ImageSize): [Vector2, Vector2] {
 	const x = prop.sprite.x,
 	      y = prop.sprite.y,
 	      flWidth = prop.sprite.w,
@@ -57,12 +55,12 @@ function plane_getDetailUVs(prop: DetailProp): [Vector2, Vector2] {
 	      flTextureSize = prop.sprite.imageWidth;
 
 	const uv1 = new Vector2(
-		(x + .5) / flTextureSize,
-		(y + .5) / flTextureSize,
+		(x + .5) / image.width, // flTextureSize,
+		(y + .5) / image.height, // flTextureSize,
 	);
 	const uv2 = new Vector2(
-		(x + flWidth - .5) / flTextureSize,
-		(y + flHeight - .5) / flTextureSize,
+		(x + flWidth - .5) / image.width, //flTextureSize,
+		(y + flHeight - .5) / image.height, // flTextureSize,
 	);
 
 	return [uv1, uv2];
@@ -110,7 +108,7 @@ function makeSpritePropGeo(prop: DetailProp): BufferGeometry {
 		return new SphereGeometry(4, 8, 8);
 	}
 
-	const plane_uv = plane_getDetailUVs(prop);
+	const plane_uv = plane_getDetailUVs(prop, g_imageSize);
 	const plane_size = plane_getDetailSize(prop);
 	let plane = makePlaneGeo(plane_uv, plane_size);
 
@@ -330,6 +328,7 @@ function destroyOldMeshes(instDict: Map<DetailProp, InstancedMesh>, scene: Scene
 
 export let g_currentMeshes: Map<DetailProp, InstancedMesh> | null = null;
 export let g_currentInstances: MeshDetailsMap | null = null;
+export let g_imageSize: ImageSize = { width: 1, height: 1 };
 export function resetViewportDetails(detail: Detail|undefined, scene: Scene, geo: BufferGeometry, mat: Material) {
 	if (detail) {
 		resetRandom();
@@ -390,7 +389,7 @@ export function updateViewportDetails(camera: Camera, time: number) {
 export function updateViewportDetailUVs() {
 	if (!g_currentMeshes) return;
 	for (const [prop, mesh] of g_currentMeshes) {
-		const uv = plane_getDetailUVs(prop);
+		const uv = plane_getDetailUVs(prop, g_imageSize);
 		const uvattribute = mesh.geometry.getAttribute('uv');
 		const new_uv_array = new Float32Array([
 			uv[0].x, uv[0].y,
@@ -412,6 +411,12 @@ export function updateViewportDetailUVs() {
 
 		uvattribute.needsUpdate = true;
 	}
+}
+
+/** Re-seeds the random number generator. */
+export function refreshViewport() {
+	// Re-seed random
+	g_initialRandIndex = (Math.random() * 0xffff) | 0;
 }
 
 // #endregion

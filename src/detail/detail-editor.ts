@@ -2,17 +2,9 @@ import * as vscode from 'vscode';
 import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind, DetailSpriteSize, DetailSpriteBound } from './detail-file.js';
 import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
+import { HOST_PORT, MountServerManager } from '../mod-server.js';
 import EditorHTML from './editor.html';
 import * as assert from 'assert';
-import Vtf, { VImageData } from 'vtf-js';
-import { MountServerManager } from '../mod-server.js';
-
-const RE_SLASH = /(\/|\\)+/g;
-function normalizePath(path: string) {
-	path =  ('/materials/' + path).replace(RE_SLASH, '/').toLowerCase();
-	if (!path.endsWith('.vtf')) path += '.vtf';
-	return path;
-}
 
 function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
 	const out: any = {};
@@ -236,7 +228,8 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	getHtml(view: vscode.Webview) {
 		return EditorHTML
 			.replaceAll('$ROOT$', view.asWebviewUri(this.context.extensionUri).toString())
-			.replaceAll('$CSP$', view.cspSource);
+			.replaceAll('$CSP$', view.cspSource)
+			.replaceAll('$HOST_PORT$', HOST_PORT.toString());
 	}
 
 	async resolveCustomEditor(document: ValveDetailDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
@@ -263,7 +256,6 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 			});
 		});
 
-		let hasAskedBefore = false;
 		this.askListener = webviewPanel.webview.onDidReceiveMessage(async (msg: DetailMessage) => {
 			if (msg.type === 'markDirty') {
 				this._onDidChangeCustomDocument.fire({ document });
@@ -271,64 +263,26 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 			}
 			
 			if (msg.type === 'ask') {
-				assert(msg.kind === 'material');
+				const for_mat = msg.kind === 'material';
 				
-				let files; // TODO: BAD!!!
+				let files = await vscode.window.showOpenDialog({
+					defaultUri: vscode.Uri.from({ scheme: 'mod', path: for_mat ? '/materials' : '/models' }),
+					filters: for_mat ? { 'Materials': ['vmt'] } : { 'Models': ['mdl'] }
+				});
 
-				//TODO: THIS IS A HACK!!!! REPLACE THIS WHEN THE VIEWPORT IS IMPLEMENTED!
-				//ON FIRST ASK, THE HOST WILL RESPOND WITH THE DEFAULT TEXTURE.
-				if (!hasAskedBefore) {
-					files = [vscode.Uri.from({ scheme: 'mod', path: '/materials/detail/detailsprites.vmt' })];
-					hasAskedBefore = true;
-				}
-				else {
-					files = await vscode.window.showOpenDialog({
-						defaultUri: vscode.Uri.from({ scheme: 'mod', path: '/materials' }),
-						filters: { 'Materials': ['vmt'] }
-					});
-	
-					if (!files || !files.length || files[0].scheme !== 'mod') {
-						return webviewPanel.webview.postMessage(<DetailMessage>{
-							type: 'ask',
-							data: null
-						});
-					}
-				}
-
-				try {
-					const matString = new TextDecoder().decode((await vscode.workspace.fs.readFile(files[0])).buffer);
-					const matKV = parseVdf(matString);
-					const rootDir = matKV.dirs()[0];
-					assert(rootDir !== undefined);
-					const basetexPath = normalizePath(rootDir.value('$basetexture'));
-					
-					let basetex2Path = rootDir.value('$basetexture2', null);
-					if (basetex2Path) basetex2Path = normalizePath(basetex2Path);
-
-					const texFile = await vscode.workspace.fs.readFile(vscode.Uri.from({ scheme: 'mod', path: basetexPath }));
-					const decoded = Vtf.decode(texFile.buffer);
-					const imData = decoded.data.getImage(0, 0, 0, 0).convert(Uint8Array);
-
-					let imData2: VImageData|undefined;
-					if (basetex2Path) {
-						const texFile2 = await vscode.workspace.fs.readFile(vscode.Uri.from({ scheme: 'mod', path: basetex2Path }));
-						const decoded2 = Vtf.decode(texFile2.buffer);
-						imData2 = decoded2.data.getImage(0, 0, 0, 0).convert(Uint8Array);
-					}
-
-					return webviewPanel.webview.postMessage(<DetailMessage>{
-						type: 'ask',
-						kind: 'material',
-						data: { path: files[0].path, basetexture: imData, basetexture2: imData2 }
-					});
-				}
-				catch (e) {
-					outConsole.error(e);
+				if (!files || !files.length || files[0].scheme !== 'mod') {
 					return webviewPanel.webview.postMessage(<DetailMessage>{
 						type: 'ask',
 						data: null
 					});
 				}
+
+				return webviewPanel.webview.postMessage(<DetailMessage>{
+					type: 'ask',
+					kind: msg.kind,
+					data: files[0].path
+				});
+
 			}
 		});
 	}

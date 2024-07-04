@@ -31,6 +31,7 @@ input:focus {
 /* =================================== BASE LAYOUT =================================== */
 
 h2 {
+	height: 14px;
 	color: var(--vscode-panelSectionHeader-foreground);
 	cursor: default;
 	text-transform: uppercase;
@@ -46,6 +47,15 @@ h2 {
 
 	/* Prevent shrinking. Maybe this is not a good idea? */
 	flex-shrink: 0;
+}
+
+.panel {
+	display: flex;
+	flex-direction: column;
+
+	position: relative;
+	border: 1px solid var(--vscode-panel-border);
+	background-color: var(--vscode-editorPane-background);
 }
 
 .h {
@@ -66,15 +76,6 @@ h2 {
 .h > .fill { width: 100% }
 tr > .fill { width: 100% }
 
-div.panel {
-	display: flex;
-	flex-direction: column;
-
-	position: relative;
-	border: 1px solid var(--vscode-panel-border);
-	background-color: var(--vscode-editorPane-background);
-}
-
 div.small-v {
 	height: max(min(160px, 20vmin), 80px);
 	/* flex-shrink: 0;
@@ -85,6 +86,24 @@ div.small-h {
 	width: max(min(160px, 100vw), 300px);
 	/* flex-shrink: 0;
 	flex-grow: 0; */
+}
+
+button.square {
+	background-color: transparent;
+	border: none;
+	margin: 0;
+	padding: 9px;
+	color: var(--vscode-icon-foreground);
+	cursor: pointer;
+}
+
+button.square:hover {
+	background-color: var(--vscode-button-secondaryBackground);
+	color: var(--vscode-button-secondaryForeground);
+}
+
+button.bordered {
+	border: 1px solid var(--vscode-panel-border);
 }
 
 /* =================================== TABLE =================================== */
@@ -215,18 +234,20 @@ div.btn-container {
 	top: 0;
 }
 
-div.btn-list-add,
-div.btn-list-remove {
+/* button.btn-list-add,
+button.btn-list-remove {
+	margin: 0;
+	border: none;
 	padding: 9px;
 	color: var(--vscode-icon-foreground);
 	cursor: pointer;
 }
 
-div.btn-list-add:hover,
-div.btn-list-remove:hover {
+button.btn-list-add:hover,
+button.btn-list-remove:hover {
 	background-color: var(--vscode-button-secondaryBackground);
 	color: var(--vscode-button-secondaryForeground);
-}
+} */
 
 div.panel:has(table.edit-table[disabled]) div.btn-container div {
 	cursor: default;
@@ -401,4 +422,29 @@ canvas#viewport {
 	background: #000;
 	width: 100% !important;
 	height: 100% !important;
+}
+
+div#viewport-options button {
+	aspect-ratio: 1/1;
+	height: auto;
+	color: var(--vscode-panel-border);
+	border: 1px solid currentColor;
+	cursor: pointer;
+	opacity: 1.0;
+}
+
+div#viewport-options button#btn-viewport-flat0 { background-color: transparent; }
+div#viewport-options button#btn-viewport-flat1 { background-color: currentColor }
+div#viewport-options button#btn-viewport-line     { background: linear-gradient(-45deg, currentColor 50%, transparent 50%) }
+div#viewport-options button#btn-viewport-gradient { background: linear-gradient(-45deg, currentColor 35%, transparent 65%) }
+
+div#viewport-options button:hover {
+	opacity: 0.8;
+}
+
+
+div#viewport-options button.active {
+	opacity: 1.0;
+	color: var(--vscode-foreground);
+	cursor: default;
 }

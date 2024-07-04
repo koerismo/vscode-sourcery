@@ -19,7 +19,7 @@ export class MountServerManager {
 	}
 	
 	static async startup(): Promise<void> {
-		if (this.#server) return Promise.resolve() ;
+		if (this.#server) return Promise.resolve();
 		console.log('Starting up mod filesystem server...');
 		return new Promise(resolve => {
 			this.#server = createServer(async (req, res) => {

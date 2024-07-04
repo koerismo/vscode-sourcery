@@ -16,6 +16,14 @@ export function checkV(
 	return v;
 }
 
+class AssertionError extends Error {
+	name = 'AssertionError';
+}
+
+export function assert(x: any, message: string='Assertion failed!'): asserts x {
+	if (!x) throw new AssertionError(message);
+}
+
 // Sourced from:
 // https://gist.github.com/tommyettinger/46a874533244883189143505d203312c?permalink_comment_id=4854318#gistcomment-4854318
 // export function splitmix32(s: number) {

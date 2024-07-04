@@ -84,7 +84,7 @@
 			],
 			"editor/title": [
 				{
-					"command": "sourcery.game.reveal",
+					"command": "sourcery.game.revealFile",
 					"when": "resourceScheme == mod",
 					"group": "navigation"
 				},
