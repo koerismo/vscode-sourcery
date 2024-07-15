@@ -162,21 +162,21 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	private readonly context: vscode.ExtensionContext;
 	private sessions: Record<string, vscode.WebviewPanel> = {};
 	private askListener?: vscode.Disposable;
+	
+	static editor: ValveDetailEditorProvider;
 
 	static register(context: vscode.ExtensionContext) {
-		const editor = new this(context);
-		const commandDisposable = vscode.window.registerCustomEditorProvider('sourcery.detail', editor, {
+		this.editor = new this(context);
+		const commandDisposable = vscode.window.registerCustomEditorProvider('sourcery.detail', this.editor, {
 			supportsMultipleEditorsPerDocument: false,
 			webviewOptions: { enableFindWidget: false, retainContextWhenHidden: true }
 		});
 
 		return new vscode.Disposable(() => {
-			editor.dispose();
+			this.editor.dispose();
 			commandDisposable.dispose();
 		});
 	}
-
-	
 	
 	constructor(context: vscode.ExtensionContext) {
 		this.context = context;
@@ -185,6 +185,18 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	dispose() {
 		this.askListener?.dispose();
 	}
+
+	async sendMessageWithResponse<T extends DetailMessage['type']>(session: vscode.WebviewPanel, message: DetailMessage, respType: T): Promise<DetailMessage & { type: T }> {
+		return new Promise((resolve, reject) => {
+			const listen = session.webview.onDidReceiveMessage((msg: DetailMessage) => {
+				if (msg.type !== respType) return;
+				if (msg.error) return reject(msg.error);
+				listen.dispose();
+				resolve(msg as (DetailMessage & { type: T }));
+			});
+			session.webview.postMessage(message);
+		});
+	}
 	
 	// onDidChangeCustomDocument: vscode.Event<vscode.CustomDocumentEditEvent<vscode.CustomDocument>> | vscode.Event<vscode.CustomDocumentContentChangeEvent<vscode.CustomDocument>>;
 	private _onDidChangeCustomDocument = new vscode.EventEmitter<vscode.CustomDocumentContentChangeEvent<vscode.CustomDocument>>();
@@ -192,23 +204,16 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 		return this._onDidChangeCustomDocument.event;
 	}
 	
-	saveCustomDocument(document: ValveDetailDocument, cancellation: vscode.CancellationToken): Promise<void> {
+	async saveCustomDocument(document: ValveDetailDocument, cancellation: vscode.CancellationToken): Promise<void> {
 		const webviewPanel = this.sessions[document.uri.path];
-		return new Promise((resolve, reject) => {
-			const listener = webviewPanel.webview.onDidReceiveMessage((msg: DetailMessage) => {
-				if (msg.type !== 'save') return;
-				if (msg.error) return reject(msg.error);
-				if (!msg.data) {
-					outConsole.error('No data returned from webview!!! WTF?');
-					reject('No data returned from webview!!! WTF?');
-					return;
-				}
-				document.write_kv(msg.data);
-				listener.dispose();
-				resolve();
-			});
-			webviewPanel.webview.postMessage(<DetailMessage>{ type: 'save' });
-		});
+		const msg = await this.sendMessageWithResponse(webviewPanel, { type: 'save' }, 'save');
+		
+		if (!msg.data) {
+			outConsole.error('No data returned from webview!!! WTF?');
+			throw Error('No data returned from webview!!! WTF?');
+		}
+
+		document.write_kv(msg.data);
 	}
 
 	saveCustomDocumentAs(document: ValveDetailDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Promise<void> {
@@ -246,12 +251,19 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 		// Save session for later message IO
 		this.sessions[document.uri.path] = webviewPanel;
 
+		let params: Record<string, string> | undefined;
+		if (document.uri.query.length) {
+			const parsed = Object.fromEntries(new URLSearchParams(document.uri.query).entries());
+			params = parsed;
+		}
+
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 		const readyListener = webviewPanel.webview.onDidReceiveMessage(async (msg: DetailMessage) => {
 			readyListener.dispose();
 			webviewPanel.webview.postMessage(<DetailMessage>{
 				type: 'load',
 				data: await document.read_kv(),
+				params: params,
 			});
 		});
 

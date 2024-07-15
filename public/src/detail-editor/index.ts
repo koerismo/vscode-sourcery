@@ -213,8 +213,8 @@ class FileManager {
 		this.textureThumb.src = bound_editor.thumbSrc!;
 	}
 
-	public static async askToSetGroundMat() {
-		const resp = await askForTexture();
+	public static async askToSetGroundMat(path?: string) {
+		const resp = await askForTexture(path);
 		if (!resp) return console.log('User cancelled');
 		
 		Viewport.setGroundTexture(resp.basetexture, resp.basetexture2);
@@ -381,6 +381,23 @@ class FileManager {
 		vscode.postMessage(<DetailMessage>{ type: 'markDirty' });
 	}
 
+	static initFromMaterial(props: Record<string, string|undefined>) {
+		if (props.sprite) this.askToSetGroundMat(props.sprite);
+		if (props.ground) this.askToSetGroundMat(props.ground);
+		if (props.detailtype) {
+			const index = this.file.details.map(x => x.type).indexOf(props.detailtype);
+			if (index !== -1) type_table.selectedIndex = index;
+		}
+		if (props.detailgroup) {
+			const index = this.getCurrentType()!.groups.map(x => x.name).indexOf(props.detailgroup);
+			if (index !== -1) group_table.selectedIndex = index;
+		}
+		if (props.detailprop) {
+			const index = this.getCurrentGroup()!.props.map(x => x.name).indexOf(props.detailprop);
+			if (index !== -1) prop_table.selectedIndex = index;
+		}
+	}
+
 	/* VIEWPORT */
 
 	static _updateViewportTimeout: any | null = null;
@@ -490,6 +507,7 @@ onmessage = (event: MessageEvent<DetailMessage>) => {
 	if (message.type === 'load') {
 		console.log('Loading file...');
 		FileManager.load(message.data!);
+		if (message.params) FileManager.initFromMaterial(message.params);
 		return;
 	}
 

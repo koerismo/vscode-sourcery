@@ -48,6 +48,10 @@ function deltaLineCharFromString(str: string): [number, number] {
 	return [lineCount, lastLineLength];
 }
 
+function encodeQuery(object: any): string {
+	return Object.keys(object).map(key => encodeURIComponent(key)+'='+encodeURIComponent(object[key])).join('&');
+}
+
 const RE_TEX_ALPHA = /(_a|alpha|mask|_exp|exponent|envmap)\..+$/i;
 const RE_TEX_METAL = /(metal|metallic)\..+$/i;
 const RE_TEX_ROUGH = /(rough|roughness)\..+$/i;
@@ -204,7 +208,8 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 				if (link.key === '%detailtype') {
 					const linkSource = await findDetailSource(link.value);
 					if (linkSource) {
-						link.target = linkSource;
+						const gamePath = relative(modFilesystem.gfs.modroot, document.uri.path);
+						link.target = linkSource.with({ query: encodeQuery({ ground: gamePath, detailtype: link.value }) });
 						links.push(link);
 					}
 					continue;

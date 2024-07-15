@@ -14,7 +14,7 @@ let cacheLastUpdated = 0;
 let detailCache: { uri: vscode.Uri, types: string[] }[] = [];
 
 export async function ensureCacheUpdated() {
-	if (Date.now() - cacheLastUpdated > 120_000) return await updateDetailCache();
+	if (Date.now() - cacheLastUpdated > 300_000) return await updateDetailCache();
 	return;
 }
 

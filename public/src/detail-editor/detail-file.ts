@@ -44,6 +44,7 @@ export type DetailMessage = {
 } | {
 	type: 'load'|'save'|'ready';
 	data?: DetailFile;
+	params?: Record<string, string|undefined>;
 	error?: string;
 } | {
 	type: 'ask';

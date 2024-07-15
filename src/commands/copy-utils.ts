@@ -1,7 +1,4 @@
 import * as vscode from 'vscode';
-import { join, normalize, posix, relative, parse, resolve } from 'path';
-import { platform } from 'os';
-
 import { outConsole } from '../extension.js';
 import { getWorkspaceUri, modFilesystem } from '../mod-mount.js';
 import { copyModel } from './model-utils.js';
@@ -17,9 +14,9 @@ export async function copyFiles(uri?: vscode.Uri|vscode.Uri[], target_root?: vsc
 	}
 	else {
 		const result = await vscode.window.showOpenDialog({
-			title: 'Select Model',
+			title: 'Select Assets',
 			canSelectMany: true,
-			filters: {'Model': ['mdl']},
+			filters: {'Model': ['mdl'], 'Material': ['vmt'], 'Texture': ['vtf'], 'Map': ['bsp', 'vmf', 'vmx'], 'Detail': ['vbsp']},
 			defaultUri: vscode.Uri.from({ scheme: 'mod', path: '/models' }),
 		});
 
