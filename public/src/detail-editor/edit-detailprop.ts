@@ -2,7 +2,7 @@ import { EditNumberElement } from './edit-number.js';
 import { DetailKind, DetailOrientation, type DetailProp } from './detail-file.js';
 import { setElVisible } from './index.js';
 import { Checkbox, type Dropdown } from '@vscode/webview-ui-toolkit';
-import { checkV } from './math.js';
+import { checkV } from '../shared/three/utils.js';
 
 const PropShape = {
 	tri: 'tri',
@@ -22,6 +22,8 @@ export class EditPropElement extends HTMLElement {
 	private input_kind: Dropdown;
 	private input_width: EditNumberElement;
 	private input_height: EditNumberElement;
+	private input_u: EditNumberElement;
+	private input_v: EditNumberElement;
 	private input_randscale: EditNumberElement;
 	private input_sway: EditNumberElement;
 	private input_angle_min: EditNumberElement;
@@ -71,6 +73,11 @@ export class EditPropElement extends HTMLElement {
 						<vscode-button onclick="FileManager.pasteSpriteBounds()">Paste</vscode-button>
 					</div>
 				</div>
+				<label>Origin</label>
+				<div class="h">
+					<input id="settings-origin-u"  is="edit-number" step="0.01" min="0" max="1" placeholder="U">
+					<input id="settings-origin-v" is="edit-number" step="0.01" min="0" max="1" placeholder="V">
+				</div>
 				<label>Size</label>
 				<div class="h">
 					<input id="settings-width"  is="edit-number" step="1" min="0" placeholder="Width">
@@ -117,6 +124,8 @@ export class EditPropElement extends HTMLElement {
 		// Common
 		this.input_upright = this.querySelector<Checkbox>('#settings-upright')!;
 		this.input_kind = this.querySelector<Dropdown>('#settings-kind')!;
+		this.input_u = this.querySelector<EditNumberElement>('#settings-origin-u')!;
+		this.input_v = this.querySelector<EditNumberElement>('#settings-origin-v')!;
 		this.input_width = this.querySelector<EditNumberElement>('#settings-width')!;
 		this.input_height = this.querySelector<EditNumberElement>('#settings-height')!;
 		this.input_randscale = this.querySelector<EditNumberElement>('#settings-scale-random')!;
@@ -138,6 +147,7 @@ export class EditPropElement extends HTMLElement {
 
 		const input_list = [
 			this.input_width, this.input_height,
+			this.input_u, this.input_v,
 			this.input_randscale, this.input_sway,
 			this.input_angle_min, this.input_angle_max,
 			this.input_tri_angle, this.input_tri_radius
@@ -173,6 +183,12 @@ export class EditPropElement extends HTMLElement {
 		});
 	}
 
+	updateOrigin() {
+		if (!this._data) return;
+		this.input_u.forceUpdate();
+		this.input_v.forceUpdate();
+	}
+
 	updateKind() {
 		if (!this._data) return;
 		const kind_type: DetailKind = +this.input_kind.value;
@@ -196,6 +212,8 @@ export class EditPropElement extends HTMLElement {
 		if (!this._data) return;
 		this.validateModel();
 		
+		this.input_u.setModel(this._data.spritesize, 'x');
+		this.input_v.setModel(this._data.spritesize, 'y');
 		this.input_width.setModel(this._data.spritesize, 'w');
 		this.input_height.setModel(this._data.spritesize, 'h');
 		this.input_randscale.setModel(this._data, 'spriterandomscale');

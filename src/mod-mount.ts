@@ -57,7 +57,7 @@ export let modFilesystem!: ModFilesystemProvider;
 export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	vfs!: ReadableFileSystem;
 	gfs!: GameSystem;
-	
+
 	static register() {
 		const editor = new this();
 		modFilesystem = editor;

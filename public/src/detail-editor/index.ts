@@ -10,14 +10,10 @@ import { EditTableElement } from './edit-table.js';
 import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
 import { Bound, BoundEditorElement } from './bound-editor.js';
-import * as Loaders from './loaders.js';
-import { assert } from './math.js';
+import * as Loaders from '../shared/three/loaders.js';
+import { assert } from '../shared/three/utils.js';
+import { ImageDataLike } from '../shared/three/imagelike.js';
 
-export interface ImageDataLike {
-	width: number;
-	height: number;
-	data: Uint8Array;
-}
 
 // declare function acquireVsCodeApi(): { postMessage(message: any): void };
 const vscode = acquireVsCodeApi();
@@ -300,10 +296,6 @@ class FileManager {
 			group_table.setModel(this.file.details[type_table.selectedIndex].groups);
 			group_table.deselect();
 
-			// model_table.disabled = true;
-			// model_table.setModel([]);
-			// model_table.deselect();
-
 			// Update viewport preview
 			this.updateViewport();
 		});
@@ -360,11 +352,13 @@ class FileManager {
 		bound_editor.addEventListener('close', () => {
 			this.updateSpriteThumb();
 			this.updateViewport();
+			prop_editor.updateOrigin();
 		});
 
 		bound_editor.addEventListener('update', () => {
 			// TODO: Add some sort of rate limit?
 			Viewport.updateActiveDetailBounds();
+			prop_editor.updateOrigin();
 		});
 
 		// Initialize settings menu

@@ -3,9 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { resetViewportDetails, updateViewportDetailUVs, updateViewportDetails, refreshViewport, g_imageSize } from './viewport-detail.js';
 import { Detail } from './detail-file.js';
-import { ImageDataLike } from './index.js';
-import { clamp } from './math.js';
-import { URL_ROOT } from './loaders.js';
+import { ImageDataLike } from '../shared/three/imagelike.js';
+import { clamp } from '../shared/three/utils.js';
+import { URL_ROOT } from '../shared/three/loaders.js';
 
 // Setup renderer
 const renderer = new Three.WebGLRenderer({ canvas: document.querySelector('#viewport')!, alpha: false, antialias: true });

@@ -12,12 +12,14 @@ import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
 // import { MaterialBrowserManager } from './vmt-browser';
 
 // Commands
-import openVpk from './commands/open-vpk.js';
+import { copyFiles } from './commands/copy-utils.js';
 import revealOriginal from './commands/reveal-original.js';
+import openVpk from './commands/open-vpk.js';
 import { revealGamePath } from './commands/reveal-file.js';
-import openVmtPreview from './commands/open-vmt-preview.js';
-import { copyModels, renameModel, compileModel } from './commands/model-utils.js';
+import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
+// import { setupWatchConfig, startWatch } from './commands/watch.js';
+// import openVmtPreview from './commands/open-vmt-preview.js';
 // import openVmtBrowser from './commands/open-browser';
 
 
@@ -68,11 +70,13 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.vpk.open', openVpk),
 		vscode.commands.registerCommand('sourcery.game.revealFile', revealOriginal),
 		vscode.commands.registerCommand('sourcery.game.revealRoot', revealGamePath),
-		vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
-		vscode.commands.registerCommand('sourcery.mdl.copy', copyModels),
+		vscode.commands.registerCommand('sourcery.game.copy', copyFiles),
 		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),
 		vscode.commands.registerCommand('sourcery.detail.new', createNewDetail),
 		vscode.workspace.onDidRenameFiles(renameModel),
+		// vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
+		// vscode.commands.registerCommand('sourcery.vtf.configWatch', setupWatchConfig),
+		// vscode.commands.registerCommand('sourcery.vtf.watch', startWatch),
 		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);
 

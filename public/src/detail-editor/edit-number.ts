@@ -1,4 +1,4 @@
-import { checkV } from "./math";
+import { checkV } from '../shared/three/utils.js';
 
 export class EditNumberElement extends HTMLInputElement {
 	_data?: Record<string, any>;

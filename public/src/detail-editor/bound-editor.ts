@@ -1,6 +1,7 @@
 import { EditNumberElement } from './edit-number.js';
-import { type ImageDataLike, makeThumb } from './index.js';
-import { clamp, checkV } from './math.js';
+import { makeThumb } from './index.js';
+import { clamp, checkV } from '../shared/three/utils.js';
+import type { ImageDataLike } from '../shared/three/imagelike.js';
 
 export const enum BoundDragType {
 	None,
@@ -121,7 +122,7 @@ export class BoundEditorElement extends HTMLElement {
 	private _onCancel() {
 		if (!this.bTarget) return this.closeEditor();
 		Object.assign(this.bTarget!, this.bOriginal);
-		Object.assign(this.oTarget!, this.oOriginal);
+		if (this.oTarget) Object.assign(this.oTarget!, this.oOriginal);
 		this.closeEditor();
 	}
 
@@ -303,6 +304,7 @@ export class BoundEditorElement extends HTMLElement {
 		this.bTarget = target as Bound;
 		this.oTarget = origin;
 		this.bOriginal = Object.assign({}, target as Bound);
+		this.oOriginal = origin ? Object.assign({}, origin) : undefined;
 
 		// Enable editor
 		this.classList.add('active');

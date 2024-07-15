@@ -1,8 +1,12 @@
 import * as Three from 'three';
 import { json as parseToJson } from 'fast-vdf';
-import { ImageDataLike } from './index.js';
+import { ImageDataLike } from './imagelike.js';
 import { VEncodedImageData, VFormats, Vtf } from 'vtf-js';
-import { assert } from './math.js';
+import { assert } from './utils.js';
+
+// @ts-expect-error No types
+import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
+declare const SourceModelLoader: typeof Three.Loader;
 
 export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
 export const SERVER_PORT = document.querySelector('head meta[name=port]')!.getAttribute('content')!;
@@ -16,6 +20,16 @@ export function normalizePath(path: string, root: string='materials/', ext: stri
 	path = ('/' + root + path).replace(RE_SLASH, '/').toLowerCase();
 	if (ext !== null && !path.endsWith(ext)) path += ext;
 	return path;
+}
+
+/** Load with GPU acceleration via three. */
+export function loadSourceModel(path: string): Promise<Three.Group> {
+	return new Promise(resolve => {
+		new SourceModelLoader().load(path, (out) => {
+			const { group, vvd, mdl, vtx, materials } = <any>out;
+			resolve(group);
+		});
+	});
 }
 
 export async function loadVMT(path: string): Promise<{ shader: string, data: Record<string, string> }|null> {

@@ -1,7 +1,9 @@
 import * as vscode from 'vscode';
-import { modFilesystem } from '../mod-mount.js';
-import { join, normalize, posix, relative } from 'path';
+import { join, normalize, posix, relative, parse, resolve } from 'path';
 import { platform } from 'os';
+
+import { modFilesystem } from '../mod-mount.js';
+import { outConsole } from '../extension.js';
 
 const COPYLIST = [
 	'.mdl',
@@ -36,55 +38,32 @@ async function ifExists(path: string) {
 }
 
 
-// Invoked by command
-export async function copyModels(uri?: vscode.Uri|vscode.Uri[], target_root?: vscode.Uri) {
-	let files: vscode.Uri[];
+// Invoked by copyFiles
+export async function copyModel(source: vscode.Uri, target: vscode.Uri) {
+	const sourceNoExt = source.path.slice(0, -4);
+	const targetNoExt = source.path.slice(0, -4);
 
-	if (uri) {
-		if (!Array.isArray(uri)) files = [uri];
-		else files = uri;
-	}
-	else {
-		const result = await vscode.window.showOpenDialog({
-			title: 'Select Model',
-			canSelectMany: true,
-			filters: {'Model': ['mdl']},
-			defaultUri: vscode.Uri.from({ scheme: 'mod', path: '/models' }),
-		});
-
-		if (!(result !== undefined && result.length > 0)) return;
-		files = result;
+	let isReplacing = false;
+	for (const item of COPYLIST) {
+		const path_to   = target.with({ path: targetNoExt + item });
+		try {
+			vscode.workspace.fs.stat(path_to);
+			isReplacing = true;
+		}
+		catch {
+			// i love errors!!! :D
+		}
 	}
 
-	target_root ??= vscode.workspace.workspaceFolders?.[0]?.uri;
-	if (!target_root) return console.error(`No workspace open and no target folder provided!`);
+	if (isReplacing) {
+		const response = await vscode.window.showWarningMessage('Overwrite existing model files?', 'Continue', 'Cancel');
+		if (!response || response === 'Cancel') return;
+	}
 
-	// file = mod:// path
-	// origin = vpk:// or file:// path
-	// target = file:// path (in workspace)
-	for (let file of files) {
-		let origin = file;
-		if (file.scheme === 'mod') {
-			origin = (await modFilesystem.findFileUri(file))!;
-			if (!origin) continue;
-		}
-
-		// TODO: Rework this to be prettier
-		const target = vscode.Uri.joinPath(target_root, file.path);
-		let sliced_from = origin.path.slice(0, -4);
-		let sliced_to = target.path.slice(0, -4);
-		if (platform() === 'win32') {
-			sliced_from = '/'+sliced_from;
-		}
-
-		if (origin.scheme !== 'vpk' && origin.path === target.path) return console.error(`Cancelled copy from identical source/target location!`);
-		
-		for (const item of COPYLIST) {
-			const path_from = origin.with({ path: sliced_from + item });
-			const path_to   = target.with({ path: sliced_to + item });
-			vscode.workspace.fs.copy(path_from, path_to, { overwrite: false });
-		}
-
+	for (const item of COPYLIST) {
+		const path_from = source.with({ path: sourceNoExt + item });
+		const path_to   = target.with({ path: targetNoExt + item });
+		vscode.workspace.fs.copy(path_from, path_to, { overwrite: true });
 	}
 }
 
@@ -141,6 +120,9 @@ export async function renameModel(e: vscode.FileRenameEvent) {
 
 // Invoked by command
 export async function compileModel(uri?: vscode.Uri, notebook?: boolean): Promise<void> {
+	const config = vscode.workspace.getConfiguration('sourcery.game');
+	const manualBinPath = config.get<string>('binPath');
+
 	uri ??= vscode.window.activeTextEditor?.document.uri || vscode.window.activeNotebookEditor?.notebook.uri;
 	notebook ??= uri === vscode.window.activeNotebookEditor?.notebook.uri;
 
@@ -149,22 +131,26 @@ export async function compileModel(uri?: vscode.Uri, notebook?: boolean): Promis
 		return;
 	}
 
-	if (!modFilesystem.isReady()) {
+	let gameRoot: string;
+	if (modFilesystem.isReady()) {
+		gameRoot = modFilesystem.gfs.gameroot ?? modFilesystem.gfs.modroot;
+	}
+	else if (manualBinPath !== undefined) {
+		gameRoot = resolve(manualBinPath, '../');
+	}
+	else {
 		vscode.window.showErrorMessage('Cannot resolve mod:// path with no active game!');
 		return;
 	}
-
-	// Default to game root if available, otherwise use mod root.
-	const game_root = modFilesystem.gfs.gameroot ?? modFilesystem.gfs.modroot;
 	
 	let studiomdl_path: string | undefined;
 	if (platform() === 'win32') studiomdl_path = (
-		(await ifExists(join(game_root, 'bin/studiomdl.exe'))) ??
-		(await ifExists(join(game_root, 'bin/win64/studiomdl.exe')))
+		(await ifExists(join(gameRoot, 'bin/studiomdl.exe'))) ??
+		(await ifExists(join(gameRoot, 'bin/win64/studiomdl.exe')))
 	);
 	else studiomdl_path = (
-		(await ifExists(join(game_root, 'bin/studiomdl'))) ??
-		(await ifExists(join(game_root, 'bin/linux64/studiomdl')))
+		(await ifExists(join(gameRoot, 'bin/studiomdl'))) ??
+		(await ifExists(join(gameRoot, 'bin/linux64/studiomdl')))
 	);
 
 	if (studiomdl_path === undefined) {

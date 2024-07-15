@@ -9,7 +9,7 @@
 import { Detail, DetailGroup, DetailKind, DetailOrientation, DetailProp } from './detail-file.js';
 import { BufferAttribute, BufferGeometry, Camera, Euler, InstancedMesh, Material, Matrix4, Scene, SphereGeometry, Vector2, Vector3 } from 'three';
 import { seededRandom } from 'three/src/math/MathUtils.js';
-import { ImageDataLike } from './index.js';
+import { ImageDataLike } from '../shared/three/imagelike.js';
 
 export interface EmittedProp {
 	model: DetailProp;
