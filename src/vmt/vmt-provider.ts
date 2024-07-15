@@ -7,6 +7,7 @@ import { extname, dirname, basename, join, relative, sep } from 'path';
 import * as decodeImage from 'image-decode';
 import { Vtf, VFilters, VFlags, VFormats, VImageData, VMipmapProvider, VDataCollection } from 'vtf-js';
 import { platform } from 'os';
+import { findDetailSource, getDetailTypes } from '../mod-details.js';
 
 const IS_WIN32 = platform() === 'win32';
 
@@ -91,6 +92,7 @@ const LINKABLE = new Set([
 	'$texture3',
 
 	'%tooltexture',
+	'%detailtype',
 
 	// Subrect shader exclusive?
 	'$material',
@@ -149,12 +151,6 @@ interface VmtDocumentLink extends vscode.DocumentLink {
 	value_range: vscode.Range;
 }
 
-// function removeFileSuffix(s: string) {
-// 	const dotpos = s.lastIndexOf('.');
-// 	if (dotpos === -1) return s;
-// 	return s.slice(0, dotpos);
-// }
-
 function getLineLink(line: string, line_index: number, acceptable: Set<string>, root: vscode.Uri, suffix: string=''): VmtDocumentLink|null {
 	const match = line.match(RE_LINE);
 	if (!match) return null;
@@ -205,6 +201,15 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 			const link = getLineLink(line, i, LINKABLE, root, '.vtf');
 		
 			if (link) {
+				if (link.key === '%detailtype') {
+					const linkSource = await findDetailSource(link.value);
+					if (linkSource) {
+						link.target = linkSource;
+						links.push(link);
+					}
+					continue;
+				}
+
 				if (link.value === 'env_cubemap') continue;
 				if (link.value.startsWith('_rt_')) continue;
 
@@ -246,8 +251,15 @@ export class VmtAutocompleteProvider implements vscode.CompletionItemProvider {
 		
 		const inside_quote = line.match(RE_LINE_START);
 		if (!inside_quote) return [];
-		if (!LINKABLE.has(inside_quote[2].toLowerCase())) return [];
+		const vdf_key = inside_quote[2].toLowerCase();
+		if (!LINKABLE.has(vdf_key)) return [];
 		const current_path = inside_quote[3];
+
+		if (vdf_key === '%detailtype') {
+			return (await getDetailTypes()).map(x => {
+				return { label: x };
+			});
+		}
 
 		const items = await getPathAutocomplete(current_path, 'materials/');
 		const filtered = items.filter(x => {
