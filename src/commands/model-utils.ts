@@ -41,13 +41,13 @@ async function ifExists(path: string) {
 // Invoked by copyFiles
 export async function copyModel(source: vscode.Uri, target: vscode.Uri) {
 	const sourceNoExt = source.path.slice(0, -4);
-	const targetNoExt = source.path.slice(0, -4);
+	const targetNoExt = target.path.slice(0, -4);
 
 	let isReplacing = false;
 	for (const item of COPYLIST) {
 		const path_to   = target.with({ path: targetNoExt + item });
 		try {
-			vscode.workspace.fs.stat(path_to);
+			await vscode.workspace.fs.stat(path_to);
 			isReplacing = true;
 		}
 		catch {

@@ -14,9 +14,11 @@
 		"Sourcery",
 		"VMT",
 		"VPK",
-		"MDL"
+		"MDL",
+		"VBSP"
 	],
 	"categories": [
+		"Visualization",
 		"Other"
 	],
 	"activationEvents": [
@@ -25,10 +27,6 @@
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
-			{
-				"command": "sourcery.vpk.open",
-				"title": "Add Vpk to Workspace"
-			},
 			{
 				"command": "sourcery.game.revealFile",
 				"icon": "$(file-symlink-file)",
@@ -39,21 +37,21 @@
 				"title": "Reveal Game Folder"
 			},
 			{
+				"command": "sourcery.game.copy",
+				"title": "Copy To Mod",
+				"category": "Game",
+				"icon": "$(file-copy-file)"
+			},
+			{
+				"command": "sourcery.vpk.open",
+				"title": "Add Vpk to Workspace"
+			},
+			{
 				"command": "sourcery.vmt.preview",
+				"enablement": "false",
 				"icon": "$(symbol-color)",
 				"category": "Material",
 				"title": "Open Material Preview"
-			},
-			{
-				"command": "sourcery.vmt.browse",
-				"category": "Material",
-				"title": "Open Material Browser"
-			},
-			{
-				"command": "sourcery.mdl.copy",
-				"title": "Copy To Mod",
-				"category": "Model",
-				"icon": "$(file-copy-file)"
 			},
 			{
 				"command": "sourcery.mdl.compile",
@@ -74,10 +72,6 @@
 					"when": "resourceExtname == .vpk"
 				},
 				{
-					"command": "sourcery.mdl.copy",
-					"when": "resourceExtname == .mdl"
-				},
-				{
 					"command": "sourcery.mdl.compile",
 					"when": "resourceExtname == .qc"
 				}
@@ -86,11 +80,6 @@
 				{
 					"command": "sourcery.game.revealFile",
 					"when": "resourceScheme == mod",
-					"group": "navigation"
-				},
-				{
-					"command": "sourcery.vmt.preview",
-					"when": "resourceExtname == .vmt",
 					"group": "navigation"
 				},
 				{
@@ -270,7 +259,7 @@
 		"@types/glob": "^8.1.0",
 		"@types/mocha": "^10.0.6",
 		"@types/node": "~16.18.98",
-		"@types/three": "^0.162.0",
+		"@types/three": "^0.166.0",
 		"@types/vscode": "^1.90.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
@@ -291,10 +280,11 @@
 		"node-loader": "^2.0.0",
 		"raw-loader": "^4.0.2",
 		"sfs-js": "link:../sfs-js",
+		"source-engine-model-loader": "github:gkjohnson/source-engine-model-loader",
 		"struxt": "^3.5.4",
 		"stupid-buffer": "^1.0.0",
 		"style-loader": "^4.0.0",
-		"three": "^0.165.0",
+		"three": "^0.166.0",
 		"ts-loader": "^9.5.1",
 		"typescript": "^5.3.3",
 		"vtf-js": "link:../vtf.js",
