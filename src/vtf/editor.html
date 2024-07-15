@@ -1,34 +1,36 @@
 <!DOCTYPE html>
-		<html lang="en">
-			<head>
-				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval';">
-				<meta name="viewport" content="width=device-width, initial-scale=1.0">
-				<link rel="stylesheet" href="$ROOT$/public/css/vtf-editor.css" />
-			</head>
-			<body>
-				<canvas id="image"></canvas>
-				<div id="info">
-					<label>Version</label>
-					<code id="info-version"></code>
-					<label>Size</label>
-					<code id="info-size"></code>
-					<label>Format</label>
-					<code id="info-format"></code>
-					<label>Mipmaps</label>
-					<code id="info-mipmaps"></code>
-					<label>Frames</label>
-					<code id="info-frames"></code>
-					<label>Faces</label>
-					<code id="info-faces"></code>
-					<label>Slices</label>
-					<code id="info-slices"></code>
-				</div>
-				<div id="actions">
-					<!-- <vscode-button>Export</vscode-button> -->
-					<button class="color rgb">RGB</button>
-					<button class="color a">A</button>
-				</div>
-				<script src="$ROOT$/public/dist/vtf-editor.js"></script>
-			</body>
-		</html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval';">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<meta name="root" content="$ROOT$">
+		<meta name="port" content="$HOST_PORT$">
+		<link rel="stylesheet" href="$ROOT$/public/css/vtf-editor.css" />
+	</head>
+	<body>
+		<canvas id="image"></canvas>
+		<div id="info">
+			<label>Version</label>
+			<code id="info-version"></code>
+			<label>Size</label>
+			<code id="info-size"></code>
+			<label>Format</label>
+			<code id="info-format"></code>
+			<label>Mipmaps</label>
+			<code id="info-mipmaps"></code>
+			<label>Frames</label>
+			<code id="info-frames"></code>
+			<label>Faces</label>
+			<code id="info-faces"></code>
+			<label>Slices</label>
+			<code id="info-slices"></code>
+		</div>
+		<div id="actions">
+			<!-- <vscode-button>Export</vscode-button> -->
+			<button class="color rgb">RGB</button>
+			<button class="color a">A</button>
+		</div>
+		<script src="$ROOT$/public/dist/vtf-editor.js"></script>
+	</body>
+</html>

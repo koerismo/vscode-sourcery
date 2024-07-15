@@ -23,7 +23,7 @@ export async function getPathAutocomplete(path: string, prefix: string): Promise
 	return out;
 }
 
-function getWorkspaceUri() {
+export function getWorkspaceUri() {
 	if (!workspace.workspaceFolders?.length) return undefined; // throw new Error('No active workspace!');
 	return workspace.workspaceFolders[0].uri;
 }

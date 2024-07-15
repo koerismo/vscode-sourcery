@@ -359,10 +359,13 @@ export function updateViewportDetails(camera: Camera, time: number) {
 			let out = new Matrix4().makeTranslation(inst.pos);
 			
 			if (inst.model.detailOrientation === DetailOrientation.ZAxis) {
-				out.multiply(new Matrix4().lookAt(camPos, inst.pos, camera.up));
+				const lookAt = new Matrix4().makeRotationY(Math.atan(
+					(inst.pos.x - camera.position.x) / (inst.pos.z - camera.position.z)
+				) + Math.PI * +(inst.pos.z > camera.position.z));
+				out.multiply(lookAt);
 			}
 			else if (inst.model.detailOrientation === DetailOrientation.AllAxes) {
-				out.multiply(new Matrix4().lookAt(camPos, inst.pos, camForward));
+				out.multiply(new Matrix4().lookAt(camPos, inst.pos, camera.up));
 			}
 			else {
 				out.multiply(new Matrix4().makeRotationFromEuler(inst.angles));

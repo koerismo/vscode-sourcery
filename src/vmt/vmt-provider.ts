@@ -8,15 +8,43 @@ import * as decodeImage from 'image-decode';
 import { Vtf, VFilters, VFlags, VFormats, VImageData, VMipmapProvider, VDataCollection } from 'vtf-js';
 import { platform } from 'os';
 
+const IS_WIN32 = platform() === 'win32';
+
 const RE_SLASH = /(\/|\\)+/g;
 const RE_LINE_ONLYKEY = /^\s*("?)([$%][^"\s]+)\1\s*\"?$/;
 const RE_LINE_START = /^\s*("?)([$%][^"\s]+)\1\s+(?:"?)([^"\s]*)/;
 const RE_LINE = /^\s*("?)([$%][^"\s]+)\1\s+("?)([^"\s]*)\3/;
 const RE_MODEL_PATH = /^(?:\/|\\)?props?(_\w+)?(?:\/|\\)/;
 
+const RE_WIN_PATH = /^\w\:\\/;
+const RE_LINUX_PATH = /^\//;
+const RE_PLATFORM_PATH = IS_WIN32 ? RE_WIN_PATH : RE_LINUX_PATH;
 const RE_PATH_SPLIT = /(?:\s)(\w\:\\|\/)/g;
-function splitPaths(paths: string): string[] {
-	return paths.replace(RE_PATH_SPLIT, '\n$1').split('\n');
+function getPathsFromString(paths: string): string[] | null {
+	let pathList: string[] = [];
+	if (paths.includes('\n'))  pathList = paths.trim().split('\n');
+	else                       pathList = paths.replace(RE_PATH_SPLIT, '\n$1').split('\n');
+
+	for (let i=0; i<pathList.length; i++) {
+		if (!RE_PLATFORM_PATH.test(pathList[i])) return null;
+	}
+
+	return pathList;
+}
+
+function stringCount(str: string, pattern: string): number {
+	let i = -1;
+	let count = 0;
+	while ((i = str.indexOf(pattern, i+1)) !== -1) count++;
+	return count;
+}
+
+function deltaLineCharFromString(str: string): [number, number] {
+	const lineCount = stringCount(str, '\n');
+	if (lineCount === 0) return [0, str.length];
+	const lastLineIndex = str.lastIndexOf('\n');
+	const lastLineLength = str.length - lastLineIndex - 1;
+	return [lineCount, lastLineLength];
 }
 
 const RE_TEX_ALPHA = /(_a|alpha|mask|_exp|exponent|envmap)\..+$/i;
@@ -113,7 +141,6 @@ const RT_TEXTURES: vscode.CompletionItem[] = [
 export enum ActionCodes {
 	UNKNOWN,
 	FIX_MODEL_PATH,
-	UPLOAD_TEXTURE,
 }
 
 interface VmtDocumentLink extends vscode.DocumentLink {
@@ -308,8 +335,8 @@ function generateToolTexture(textures: VImageData[]) {
 function resizeIfNeeded<T extends VImageData>(texture: T, max_size: number): T {
 	if (texture.width <= max_size && texture.height <= max_size) return texture;
 	const scale_factor = max_size / Math.max(texture.width, texture.height);
-	const new_width = texture.width * scale_factor;
-	const new_height = texture.height * scale_factor;
+	const new_width = Math.ceil(texture.width * scale_factor);
+	const new_height = Math.ceil(texture.height * scale_factor);
 	return texture.resize(new_width, new_height, VTF_RESIZE_OPTIONS) as T;
 }
 
@@ -378,6 +405,13 @@ export class VmtChangeListener {
 			if (change.text.length <= 3) return;
 			if (change.text[0] !== sep && change.text[2] !== sep) return;
 
+			// Extract paths
+			const start_pos = change.range.start;
+			const end_pos = change.range.start.translate(...deltaLineCharFromString(change.text));
+
+			const paths_split = getPathsFromString(change.text);
+			if (paths_split === null) return outConsole.log('Paths did not match regex.');
+
 			// Get key
 			const linerange = new vscode.Range(change.range.start.with({ character: 0 }), change.range.start);
 			const linematch = event.document.getText(linerange).match(RE_LINE_ONLYKEY);
@@ -392,16 +426,13 @@ export class VmtChangeListener {
 			// Get new Vtf path
 			const dir = dirname(event.document.uri.path);
 			let new_path = join( dir, basename(event.document.uri.path, '.vmt') + POSTFIX[key] + '.vtf');
-			if (platform() === 'win32' && new_path.startsWith('\\')) new_path = new_path.slice(1);
+			if (IS_WIN32 && new_path.startsWith('\\')) new_path = new_path.slice(1);
 			const new_name = relative(join(modFilesystem.gfs.modroot, 'materials'), new_path.slice(0, -4)).replaceAll('\\', '/');
 
 			if (!config.get('convertOnPasteOverwrite') && existsSync(new_path)) return outConsole.log('Ignoring paste. File already exists with the same name!');
 
-			// Extract paths
-			const paths_lines_split = change.text.split('\n');
-			const paths_split = change.text.includes('\n') ? paths_lines_split : splitPaths(change.text);
+			
 			if (paths_split.length > 3 && !is_tooltexture) return;
-
 			let path_color = paths_split[0];
 			let path_alpha = paths_split[1];
 			let paths_mrao: [string, string, string] | null = null;
@@ -578,13 +609,7 @@ export class VmtChangeListener {
 			outConsole.log('Finished!');
 
 			// =====================================
-
-			// This stupid fucking bit determines the range that was pasted into the document.
-			const target_line = change.range.start.line + paths_lines_split.length - 1;
-			let target_char = paths_lines_split[paths_lines_split.length-1].length;
-			if (target_line === change.range.start.line) target_char += change.range.end.character;
-			const paste_range = change.range.with(change.range.start, new vscode.Position(target_line, target_char));
-
+		
 			if (is_tooltexture) vscode.window.showInformationMessage('Updated %tooltexture texture automagically!');
 			else if (using_alpha) vscode.window.showInformationMessage('Updated alpha-masked texture automagically!');
 			else if (using_mrao) vscode.window.showInformationMessage('Updated MRAO texture automagically!');
@@ -595,7 +620,7 @@ export class VmtChangeListener {
 			outConsole.log('Saving Vtf to', new_path);
 			vscode.workspace.fs.writeFile(vscode.Uri.file(new_path), new Uint8Array(vtf_out));
 			vscode.window.activeTextEditor?.edit(editor => {
-				editor.replace(paste_range, new_name);
+				editor.replace(new vscode.Range(start_pos, end_pos), new_name);
 			});
 	}
 }

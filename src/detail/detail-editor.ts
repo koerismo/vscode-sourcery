@@ -4,7 +4,6 @@ import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import { HOST_PORT, MountServerManager } from '../mod-server.js';
 import EditorHTML from './editor.html';
-import * as assert from 'assert';
 
 function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
 	const out: any = {};

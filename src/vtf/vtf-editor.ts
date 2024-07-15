@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { VFormats, Vtf } from 'vtf-js';
+import { HOST_PORT } from '../mod-server.js';
 import EditorHTML from './editor.html';
 
 export class ValveTextureDocument implements vscode.CustomDocument {
@@ -48,7 +49,8 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 	getHtml(view: vscode.Webview) {
 		return EditorHTML
 			.replaceAll('$ROOT$', view.asWebviewUri(this.context.extensionUri).toString())
-			.replaceAll('$CSP$', view.cspSource);
+			.replaceAll('$CSP$', view.cspSource)
+			.replaceAll('$HOST_PORT$', HOST_PORT.toString());
 	}
 	
 	async resolveCustomEditor(document: ValveTextureDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {

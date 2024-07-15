@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { MdlInfo, readInfo, writeInfo } from './mdl-skins.js';
 import { outConsole } from '../extension.js';
+import { HOST_PORT } from '../mod-server.js';
 import EditorHTML from './editor.html';
 
 export class ValveModelDocument implements vscode.CustomDocument {
@@ -52,8 +53,9 @@ export class ValveModelEditorProvider implements vscode.CustomReadonlyEditorProv
 		};
 
 		return EditorHTML
-			.replaceAll('$ROOT$', this.context.extensionUri.toString())
-			.replaceAll('$CSP$', view.cspSource);
+			.replaceAll('$ROOT$', view.asWebviewUri(this.context.extensionUri).toString())
+			.replaceAll('$CSP$', view.cspSource)
+			.replaceAll('$HOST_PORT$', HOST_PORT.toString());
 	}
 	
 	async resolveCustomEditor(document: ValveModelDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {

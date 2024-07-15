@@ -445,6 +445,6 @@ div#viewport-options button:hover {
 
 div#viewport-options button.active {
 	opacity: 1.0;
-	color: var(--vscode-foreground);
+	color: var(--vscode-icon-foreground);
 	cursor: default;
 }
