@@ -1,33 +1,120 @@
-//@ts-nocheck
-
 console.log('Starting up Vtf preview webview...');
 
-const canvas = document.querySelector('canvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
+const ctx = canvas.getContext('2d')!;
+let image: ImageData|null = null;
+let image_no_alpha: ImageData|null = null;
+let image_alpha: ImageData|null = null;
 
-/** @typedef {{ type: 'update', width: number, height: number, data: Uint8Array } | { type: 'error', message: string }} ViewerUpdate */
+type ViewerUpdate = {
+	type: 'update';
+	width: number;
+	height: number;
+	data: Uint8Array;
 
-/** @param {MessageEvent<ViewerUpdate>} message */
-window.onmessage = (message) => {
+	format: string;
+	version: number;
+	mipmaps: number;
+	frames: number;
+	faces: number;
+	slices: number;
+} | {
+	type: 'error';
+	message: string;
+};
+
+function removeAlpha(image: ImageData): ImageData {
+	const out = new Uint8ClampedArray(image.data.length);
+	for (let i=0; i<out.length; i+=4) {
+		out[i]   = image.data[i],
+		out[i+1] = image.data[i+1],
+		out[i+2] = image.data[i+2],
+		out[i+3] = 255;
+	}
+	return new ImageData(out, image.width, image.height);
+}
+
+function onlyAlpha(image: ImageData): ImageData {
+	const out = new Uint8ClampedArray(image.data.length);
+	for (let i=0; i<out.length; i+=4) {
+		out[i]   = image.data[i+3],
+		out[i+1] = image.data[i+3],
+		out[i+2] = image.data[i+3],
+		out[i+3] = 255;
+	}
+	return new ImageData(out, image.width, image.height);
+}
+
+class ViewManager {
+	static canvas: HTMLCanvasElement = document.querySelector('canvas')!;
+	static ctx: CanvasRenderingContext2D = this.canvas.getContext('2d')!;
+	static button_color: HTMLButtonElement = document.querySelector('button.rgb')!;
+	static button_alpha: HTMLButtonElement = document.querySelector('button.a')!;
+	static using_color: boolean = true;
+	static using_alpha: boolean = true;
+
+	static image: ImageData;
+	static imageA?: ImageData;
+	static imageRGB?: ImageData;
+
+	static {
+		this.button_color.addEventListener('click', () => this.toggleColor());
+		this.button_alpha.addEventListener('click', () => this.toggleAlpha());
+	}
+
+	static setImage(image: ImageData): void {
+		this.image = image;
+		this.imageA = undefined;
+		this.imageRGB = undefined;
+		this.toggleAlpha(true, false);
+		this.toggleColor(true, false);
+		this.updateImage();
+	}
+
+	static toggleColor(force?: boolean, doUpdate=true): void {
+		if (this.using_color && !this.using_alpha) return this.toggleAlpha(true);
+		this.using_color = force ?? !this.using_color;
+		this.button_color.classList.toggle('off', !this.using_color);
+		if (doUpdate) this.updateImage();
+	}
+
+	static toggleAlpha(force?: boolean, doUpdate=true): void {
+		if (this.using_alpha && !this.using_color) return this.toggleColor(true);
+		this.using_alpha = force ?? !this.using_alpha;
+		this.button_alpha.classList.toggle('off', !this.using_alpha);
+		if (doUpdate) this.updateImage();
+	}
+
+	static updateImage(): void {
+		let img: ImageData;
+		if (this.using_color && this.using_alpha) img = this.image;
+		else if (this.using_alpha) img = this.imageA ?? (this.imageA = onlyAlpha(this.image));
+		else if (this.using_color) img = this.imageRGB ?? (this.imageRGB = removeAlpha(this.image));
+		else throw Error('whoops');
+		this.canvas.width = img.width;
+		this.canvas.height = img.height;
+		this.ctx.putImageData(img, 0, 0);
+	}
+}
+
+window.onmessage = (message: MessageEvent<ViewerUpdate>) => {
 	const update = message.data;
 
 	if (update.type === 'error') {
 		document.body.innerHTML = `<code></code>`;
-		document.body.firstChild.innerText = update.message;
+		(<HTMLElement>document.body.firstChild).innerText = update.message;
 	}
 
 	if (update.type === 'update') {
-		const image = new ImageData(new Uint8ClampedArray(update.data), update.width, update.height);
-		canvas.width = update.width;
-		canvas.height = update.height;
-		ctx.putImageData(image, 0, 0);
-		document.querySelector('#info-version')!.innerText = '7.' + update.version;
-		document.querySelector('#info-size')!.innerText = update.width + 'x' + update.height;
-		document.querySelector('#info-format')!.innerText = update.format;
-		document.querySelector('#info-mipmaps')!.innerText = update.mipmaps;
-		document.querySelector('#info-frames')!.innerText = update.frames;
-		document.querySelector('#info-faces')!.innerText = update.faces;
-		document.querySelector('#info-slices')!.innerText = update.slices;
+		image = new ImageData(new Uint8ClampedArray(update.data), update.width, update.height);
+		ViewManager.setImage(image);
+		document.querySelector<HTMLElement>('#info-version')!.innerText = '7.' + update.version;
+		document.querySelector<HTMLElement>('#info-size')!.innerText = update.width + 'x' + update.height;
+		document.querySelector<HTMLElement>('#info-format')!.innerText = update.format;
+		document.querySelector<HTMLElement>('#info-mipmaps')!.innerText = update.mipmaps.toString();
+		document.querySelector<HTMLElement>('#info-frames')!.innerText = update.frames.toString();
+		document.querySelector<HTMLElement>('#info-faces')!.innerText = update.faces.toString();
+		document.querySelector<HTMLElement>('#info-slices')!.innerText = update.slices.toString();
 	}
 };
 

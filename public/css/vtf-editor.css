@@ -54,5 +54,6 @@ button.color {
 	line-height: 32px;
 }
 
-button.rgb { color: var(--vscode-extensionButton-prominentHoverBackground) }
+button.rgb { color: var(--vscode-extensionButton-prominentForeground) }
 button.a { color: var(--vscode-extensionButton-prominentForeground) }
+button.off { opacity: 0.4 }
