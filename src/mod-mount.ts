@@ -5,7 +5,7 @@ import { NodeSystem } from 'sfs-js/dist/fs.node.js';
 
 import { GetStringRegKey } from '@vscode/windows-registry';
 import { platform as getPlatform } from 'os';
-import { join, normalize, resolve } from 'path/posix';
+import { join, normalize, resolve } from 'path';
 import { outConsole } from './extension.js';
 
 export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
