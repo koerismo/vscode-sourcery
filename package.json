@@ -4,6 +4,7 @@
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
 	"version": "0.0.6",
+	"license": "GPL-3.0-only",
 	"icon": "images/icon.png",
 	"engines": {
 		"vscode": "^1.91.0"
@@ -13,6 +14,7 @@
 		"Source Engine",
 		"Sourcery",
 		"VMT",
+		"VTF",
 		"VPK",
 		"MDL",
 		"VBSP"
