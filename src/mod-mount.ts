@@ -73,12 +73,13 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 		if (!workspace_uri) return;
 
 		const custom_root = vscode.workspace.getConfiguration('sourcery.game').get<string>('modPath');
-		const root = custom_root ? vscode.Uri.file(resolve(workspace_uri.path, custom_root)) : workspace_uri;
+		const root = custom_root ? vscode.Uri.file(resolve(workspace_uri.fsPath, custom_root)) : workspace_uri;
 
 		(async () => {
 			try {
 				// Check if gameinfo exists. vscode's api throws if it doesn't find it, so we skip the whole init.
 				await vscode.workspace.fs.stat(vscode.Uri.joinPath(root, 'gameinfo.txt'));
+				outConsole.log(`Using gameinfo at '${root.fsPath}'`);
 	
 				this.vfs = new NodeSystem();
 				const steam_cache = findSteamCache(this.vfs);
@@ -89,7 +90,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 				});
 			}
 			catch {
-				outConsole.log('No gameinfo found at ', root.fsPath);
+				outConsole.log(`No gameinfo found at '${root.fsPath}'`);
 			}
 		})();
 	}

@@ -208,7 +208,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 				if (link.key === '%detailtype') {
 					const linkSource = await findDetailSource(link.value);
 					if (linkSource) {
-						const gamePath = relative(modFilesystem.gfs.modroot, document.uri.path);
+						const gamePath = relative(modFilesystem.gfs.modroot, document.uri.fsPath);
 						link.target = linkSource.with({ query: encodeQuery({ ground: gamePath, detailtype: link.value }) });
 						links.push(link);
 					}

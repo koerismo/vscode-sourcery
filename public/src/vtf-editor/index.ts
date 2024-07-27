@@ -1,7 +1,5 @@
 console.log('Starting up Vtf preview webview...');
 
-const canvas = document.querySelector<HTMLCanvasElement>('canvas')!;
-const ctx = canvas.getContext('2d')!;
 let image: ImageData|null = null;
 let image_no_alpha: ImageData|null = null;
 let image_alpha: ImageData|null = null;
@@ -60,6 +58,15 @@ class ViewManager {
 	static {
 		this.button_color.addEventListener('click', () => this.toggleColor());
 		this.button_alpha.addEventListener('click', () => this.toggleAlpha());
+
+		let scale = 1.0;
+		window.addEventListener('wheel', (event) => {
+			scale *= 1 - event.deltaY * 0.0005;
+			if (scale < 0.001) scale = 0.001;
+			if (scale > 1000) scale = 1000;
+			this.canvas.style.transform = 'scale('+scale+')';
+		});
+
 	}
 
 	static setImage(image: ImageData): void {
@@ -116,12 +123,4 @@ window.onmessage = (message: MessageEvent<ViewerUpdate>) => {
 		document.querySelector<HTMLElement>('#info-faces')!.innerText = update.faces.toString();
 		document.querySelector<HTMLElement>('#info-slices')!.innerText = update.slices.toString();
 	}
-};
-
-let scale = 1.0;
-window.onwheel = (event) => {
-	scale *= 1 - event.deltaY * 0.0005;
-	if (scale < 0.001) scale = 0.001;
-	if (scale > 1000) scale = 1000;
-	canvas.style.transform = 'scale('+scale+')';
 };
