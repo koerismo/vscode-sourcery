@@ -57,6 +57,7 @@ export let modFilesystem!: ModFilesystemProvider;
 export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	vfs!: ReadableFileSystem;
 	gfs!: GameSystem;
+	workdir!: string;
 
 	static register() {
 		const editor = new this();
@@ -74,6 +75,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 
 		const custom_root = vscode.workspace.getConfiguration('sourcery.game').get<string>('modPath');
 		const root = custom_root ? vscode.Uri.file(resolve(workspace_uri.fsPath, custom_root)) : workspace_uri;
+		if (custom_root) this.workdir = workspace_uri.fsPath;
 
 		(async () => {
 			try {
@@ -86,6 +88,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 				this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
 				this.gfs.validate().then(x => {
 					if (!x) return;
+					this.workdir ??= this.gfs.modroot;
 					vscode.window.showInformationMessage(`${this.gfs.name} initialized!`);
 				});
 			}

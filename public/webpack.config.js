@@ -13,9 +13,9 @@ const config = {
 		'detail-editor': { import: './public/src/detail-editor/index.ts' },
 		'mdl-editor': { import: './public/src/mdl-editor/index.ts' }, // , dependOn: 'noclip' 
 		'vmt-editor': { import: './public/src/vmt-editor/index.ts' }, // , dependOn: 'noclip' 
+		// 'vmt-browser': './public/src/vmt-browser/index.ts',
 		'soundscape-editor': './public/src/soundscape-editor/index.ts',
 		'vtf-editor': './public/src/vtf-editor/index.ts',
-		'vmt-browser': './public/src/vmt-browser/index.ts',
 	},
     output: {
         path: path.resolve(__dirname, 'dist'),

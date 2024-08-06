@@ -35,7 +35,7 @@ export async function updateDetailCache() {
 			const vdir = vroot.dir('detail', null);
 			if (!vdir) return resolve();
 
-			const types = vdir.all().map(x => x.key);
+			const types = vdir.dirs().map(x => x.key);
 			entries.push({ uri, types });
 			return resolve();
 		}));

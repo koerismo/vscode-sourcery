@@ -106,7 +106,7 @@ export async function renameModel(e: vscode.FileRenameEvent) {
 		const mdl_bytes = new Uint8Array(await vscode.workspace.fs.readFile(file.newUri));
 		const mdl_name_bytes = new Uint8Array(mdl_bytes.buffer, 12, 64);
 		// const old_mdl_name = new TextDecoder().decode(mdl_name_bytes);
-		const new_mdl_name = posix.normalize(relative(join(modFilesystem.gfs.modroot, 'models'), file.newUri.path));
+		const new_mdl_name = posix.normalize(relative(join(modFilesystem.workdir, 'models'), file.newUri.path));
 		
 		mdl_name_bytes.fill(0);
 		new TextEncoder().encodeInto(new_mdl_name, mdl_name_bytes);

@@ -208,7 +208,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 				if (link.key === '%detailtype') {
 					const linkSource = await findDetailSource(link.value);
 					if (linkSource) {
-						const gamePath = relative(modFilesystem.gfs.modroot, document.uri.fsPath);
+						const gamePath = relative(modFilesystem.workdir, document.uri.fsPath);
 						link.target = linkSource.with({ query: encodeQuery({ ground: gamePath, detailtype: link.value }) });
 						links.push(link);
 					}
@@ -444,7 +444,7 @@ export class VmtChangeListener {
 			const dir = dirname(event.document.uri.path);
 			let new_path = join( dir, basename(event.document.uri.path, '.vmt') + POSTFIX[key] + '.vtf');
 			if (IS_WIN32 && new_path.startsWith('\\')) new_path = new_path.slice(1);
-			const new_name = relative(join(modFilesystem.gfs.modroot, 'materials'), new_path.slice(0, -4)).replaceAll('\\', '/');
+			const new_name = relative(join(modFilesystem.workdir, 'materials'), new_path.slice(0, -4)).replaceAll('\\', '/');
 
 			if (!config.get('convertOnPasteOverwrite') && existsSync(new_path)) return outConsole.log('Ignoring paste. File already exists with the same name!');
 
