@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { MdlInfo, readInfo, writeInfo } from './mdl-skins.js';
+import { MdlInfo, readInfo, writeInfo } from './mdl-io.js';
 import { outConsole } from '../extension.js';
 import { HOST_PORT } from '../mod-server.js';
 import EditorHTML from './editor.html';
