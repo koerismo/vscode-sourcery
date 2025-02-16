@@ -1,5 +1,7 @@
 # Sourcery
 
+This repository, as of February 2025, serves as a public reference for anyone wanting to make their own vscode extension that interacts with the Source Engine's formats. It is not recommended using this for anything other than the detail editor. If you do choose to, please...
+
 ### [READ KNOWN ISSUES BEFORE USING THIS EXTENSION](#known-issues)
 
 ## Features
