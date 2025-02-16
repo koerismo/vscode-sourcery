@@ -67,6 +67,8 @@ export async function copyModel(source: vscode.Uri, target: vscode.Uri) {
 	}
 }
 
+const RE_SLASH = /(\/|\\)+/g;
+
 // Invoked by vscode.workspace.onDidRenameFiles
 export async function renameModel(e: vscode.FileRenameEvent) {
 
@@ -76,8 +78,8 @@ export async function renameModel(e: vscode.FileRenameEvent) {
 	for (const file of e.files) {
 		if (!file.oldUri.path.endsWith('.mdl')) continue;
 		if (!file.newUri.path.endsWith('.mdl')) continue;
-		const old_path_prefix = file.oldUri.path.slice(0, -4);
-		const new_path_prefix = file.newUri.path.slice(0, -4);
+		const old_path_prefix = file.oldUri.path.slice(0, -4).replace(RE_SLASH, '/');
+		const new_path_prefix = file.newUri.path.slice(0, -4).replace(RE_SLASH, '/');
 		let rename_count = 0;
 
 		// Check that we aren't overwriting anything. Even if the file isn't getting copied, it could still cause problems!
@@ -106,7 +108,7 @@ export async function renameModel(e: vscode.FileRenameEvent) {
 		const mdl_bytes = new Uint8Array(await vscode.workspace.fs.readFile(file.newUri));
 		const mdl_name_bytes = new Uint8Array(mdl_bytes.buffer, 12, 64);
 		// const old_mdl_name = new TextDecoder().decode(mdl_name_bytes);
-		const new_mdl_name = posix.normalize(relative(join(modFilesystem.workdir, 'models'), file.newUri.path));
+		const new_mdl_name = posix.normalize(posix.relative(posix.join(modFilesystem.workdir, 'models'), file.newUri.path));
 		
 		mdl_name_bytes.fill(0);
 		new TextEncoder().encodeInto(new_mdl_name, mdl_name_bytes);
