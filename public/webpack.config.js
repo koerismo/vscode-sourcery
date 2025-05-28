@@ -25,6 +25,7 @@ const config = {
         // Learn more about plugins from https://webpack.js.org/configuration/plugins/
     ],
 	resolve: {
+        fallback: { path: false, fs: false },
 		extensions: ['.tsx', '.ts', '.jsx', '.js', '...'],
 		extensionAlias: {
 			'.js': ['.js', '.ts'],
@@ -32,7 +33,7 @@ const config = {
 	},
     module: {
 		parser: {
-			javascript : { importMeta: false }
+			javascript : { importMeta: false },
 		},
         rules: [
             {

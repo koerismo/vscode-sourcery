@@ -59,7 +59,9 @@ export function makeThumb(imdata: ImageDataLike) {
     const ctx = canvas.getContext('2d')!;
     canvas.width = imdata.width;
     canvas.height = imdata.height;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(imdata.data.buffer), imdata.width), 0, 0);
+	// TODO: This freaks out if the data isnt a unique copy even though
+	// we already ensure all data is unique coming out of the virtual filesystem
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imdata.data), imdata.width), 0, 0);
     return canvas.toDataURL();
 }
 
@@ -469,7 +471,7 @@ async function askForTexture(path?: string): Promise<DetailMessageAskData|null> 
 	if (!matPath) return null;
 
 	const vmt = await Loaders.loadVMT(matPath);
-	if (!vmt) return null;
+	if (!vmt) { console.warn('vmt at', matPath, 'could not be loaded!'); return null; }
 
 
 	// Normalize paths
@@ -484,9 +486,14 @@ async function askForTexture(path?: string): Promise<DetailMessageAskData|null> 
 	const basetexture = await Loaders.loadVtfAsImage(basetexturePath);
 	const basetexture2 = await Loaders.loadVtfAsImage(basetexture2Path);
 	const tooltexture = await Loaders.loadVtfAsImage(tooltexturePath);
+
+	console.log('askForTexture: PICKED!', basetexture);
 	
 	// Major whoopsie incoming
-	assert(basetexture);
+	if (!basetexture) {
+		console.error(`Could not use vmt "${path}"! No basetexture?`, vmt);
+		return null;
+	}
 
 	return {
 		path: matPath,

@@ -73,7 +73,7 @@ export class MaterialBrowserManager {
 				if (!data) continue;
 
 				try {
-					const vtf = Vtf.decode(data.buffer, false, true);
+					const vtf = await Vtf.decode(data.buffer, false, true);
 					const [width, height] = vtf.data.getSize(0, 0, 0, 0);
 					const image = vtf.data.getImage(+(width >= 1024) + +(width >= 512) + +(width >= 256), 0, 0, 0);
 					this.panel.webview.postMessage({ type: 'update', data: { data: image.data, width: image.width, height: image.height }, index: index });

@@ -288,10 +288,14 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 					});
 				}
 
+				// fuck this
+				let pickedPath = files[0].path;
+				if (!pickedPath.startsWith('/')) pickedPath = '/'+pickedPath;
+
 				return webviewPanel.webview.postMessage(<DetailMessage>{
 					type: 'ask',
 					kind: msg.kind,
-					data: files[0].path
+					data: pickedPath
 				});
 
 			}

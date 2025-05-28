@@ -17,7 +17,7 @@ export class ValveTextureDocument implements vscode.CustomDocument {
 	async getVtf(allow_cache=true) {
 		if (allow_cache && this.cache !== null) return this.cache;
 		const data = await vscode.workspace.fs.readFile(this.uri);
-		return (this.cache = Vtf.decode(data));
+		return (this.cache = await Vtf.decode(data));
 	}
 }
 

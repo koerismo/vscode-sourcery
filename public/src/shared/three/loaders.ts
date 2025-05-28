@@ -34,10 +34,13 @@ export function loadSourceModel(path: string): Promise<Three.Group> {
 
 export async function loadVMT(path: string): Promise<{ shader: string, data: Record<string, string> }|null> {
 	const resp = await localFetch(path);
-	if (!resp.ok) return null;
+	// if (!resp.ok) return null;
+	if (!resp.ok) { console.warn('Fetch failed on url', path); return null; }
 	const body = await resp.text();
-	if (!body.length) return null;
-	const vmtData = parseToJson(body) as any;
+	// if (!body.length) return null;
+	if (!body.length) { console.warn('Empty file on url', path); return null; }
+	// case sensitivity my balls
+	const vmtData = parseToJson(body.toLowerCase()) as any;
 	const shaderName = Object.keys(vmtData)[0];
 	if (!shaderName) return null;
 	return { shader: shaderName, data: vmtData[shaderName] };
@@ -54,7 +57,7 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 	assert(resp.ok);
 
 	const body = await resp.arrayBuffer();
-	const vtf = Vtf.decode(body);
+	const vtf = await Vtf.decode(body);
 	let slice = vtf.data.getImage(0, 0, 0, 0, true);
 
 	let isCompressed = false;
@@ -112,7 +115,7 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 	}
 
 	const tex = (isCompressed ? 
-		new Three.CompressedTexture([slice], slice.width, slice.height, <Three.CompressedPixelFormat>pixelFormat)
+		new Three.CompressedTexture([slice as VEncodedImageData], slice.width, slice.height, <Three.CompressedPixelFormat>pixelFormat)
 		:
 		new Three.DataTexture(slice.data, slice.width, slice.height, <Three.PixelFormat>pixelFormat, texType)
 	);
@@ -130,6 +133,6 @@ export async function loadVtfAsImage(path?: string): Promise<ImageDataLike|null>
 	if (!resp.ok) return null;
 
 	const body = await resp.arrayBuffer();
-	const vtf = Vtf.decode(body);
+	const vtf = await Vtf.decode(body);
 	return vtf.data.getImage(0, 0, 0, 0).convert(Uint8Array);
 }

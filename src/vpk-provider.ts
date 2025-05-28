@@ -36,10 +36,9 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 		}
 
 		outConsole.log('Reading new vpk', vpk_path);
-		this.cache[vpk_path] = new VpkSystem(vfs, vpk_path);
-		await this.cache[vpk_path].validate().then(x => {
-			outConsole.log('VPK STATE:', vpk_path, x);
-		});
+		const newVpk = this.cache[vpk_path] = new VpkSystem(vfs, vpk_path);
+		const newVpkLoaded = await newVpk.validate();
+		outConsole.log('VPK STATE:', vpk_path, newVpkLoaded);
 		return vpk_path;
 	}
 

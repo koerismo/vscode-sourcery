@@ -369,11 +369,11 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 	let vtfout: ArrayBuffer|null = null;
 	
 	if (ext === '.vtf') {
-		vtf = Vtf.decode(buffer, false, true);
+		vtf = await Vtf.decode(buffer, false, true);
 		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer;
 		else {
 			vtf.version = idealVersion;
-			if (requireEncode) vtfout = vtf.encode();
+			if (requireEncode) vtfout = await vtf.encode();
 		}
 	}
 
@@ -389,11 +389,11 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 		const vcollection = new VMipmapProvider([[[new VImageData(image.data, image.width, image.height)]]], VTF_CONVERT_OPTIONS);
 		vtf = new Vtf(vcollection, {
 			version: idealVersion,
-			compression: idealVersion === 6 ? 5 : 0,
+			compression_level: idealVersion === 6 ? 5 : 0,
 			format: has_alpha ? idealFormatAlpha : idealFormat,
 			flags: has_alpha ? VFlags.EightBitAlpha : 0
 		});
-		if (requireEncode) vtfout = vtf.encode();
+		if (requireEncode) vtfout = await vtf.encode();
 	}
 
 	return { vtf, out: vtfout };
@@ -553,10 +553,10 @@ export class VmtChangeListener {
 				vtf = new Vtf(vcollection, {
 					format: ideal_format,
 					version: ideal_version,
-					compression: ideal_version === 6 ? 6 : 0,
+					compression_level: ideal_version === 6 ? 6 : 0,
 				});
 
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else if (using_alpha) {
 				outConsole.log('Attempting to merge alpha textures...');
@@ -582,7 +582,7 @@ export class VmtChangeListener {
 				const vcollection = new VMipmapProvider([[[im_color]]], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted_color.vtf);
 				vtf.format = ideal_format_alpha;
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else if (using_mrao) {
 				outConsole.log('Attempting to merge MRAO textures...');
@@ -615,7 +615,7 @@ export class VmtChangeListener {
 				const vcollection = new VMipmapProvider([[[target]]], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted[0].vtf);
 				vtf.format = ideal_format;
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else {
 				const conv_color = await convertToVtf(path_color, ideal_version, ideal_format, ideal_format_alpha, true, true);
@@ -633,7 +633,7 @@ export class VmtChangeListener {
 			else vscode.window.showInformationMessage('Updated texture automagically!');
 			
 			// Write file
-			outConsole.log(`Vtf information: version=${vtf.version}, format=${VFormats[vtf.format]}, compression=${vtf.compression}`);
+			outConsole.log(`Vtf information: version=${vtf.version}, format=${VFormats[vtf.format]}, compression=${vtf.compression_level}`);
 			outConsole.log('Saving Vtf to', new_path);
 			vscode.workspace.fs.writeFile(vscode.Uri.file(new_path), new Uint8Array(vtf_out));
 			vscode.window.activeTextEditor?.edit(editor => {
