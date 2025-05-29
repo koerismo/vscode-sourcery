@@ -35,7 +35,7 @@ This repository, as of February 2025, serves as a public reference for anyone wa
 - VPKs will occasionally fail operations on first load. If a VPK appears empty or broken or a model fails to copy, try it again!
 - `mount.cfg` files will not contribute mounts to the project.
 
-## Depdendencies
+## Dependencies
 
 - This project relies on StefanH's Source Engine vscode extension to register the formats that sourcery supplies with autocompletion and syntax highlighting.
 - This project use's gkjohnson's `source-engine-model-loader` plugin for three.js. This is intended for the detail editor and model preview, neither of which are considered ready for integration as of v0.0.6.
