@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { join, normalize, posix, relative, parse, resolve } from 'path';
+import { join, normalize, relative, parse, resolve } from 'path';
 import { platform } from 'os';
 
 import { modFilesystem } from '../mod-mount.js';
@@ -107,14 +107,16 @@ export async function renameModel(e: vscode.FileRenameEvent) {
 		// Edit the internal model path to match the new name
 		const mdl_bytes = new Uint8Array(await vscode.workspace.fs.readFile(file.newUri));
 		const mdl_name_bytes = new Uint8Array(mdl_bytes.buffer, 12, 64);
-		// const old_mdl_name = new TextDecoder().decode(mdl_name_bytes);
-		const new_mdl_name = posix.normalize(posix.relative(posix.join(modFilesystem.workdir, 'models'), file.newUri.path));
+		const old_mdl_name = new TextDecoder().decode(mdl_name_bytes);
+		const new_mdl_name = normalize(relative(join(modFilesystem.workdir, 'models'), file.newUri.path));
 		
 		mdl_name_bytes.fill(0);
 		new TextEncoder().encodeInto(new_mdl_name, mdl_name_bytes);
-		// console.log('Old mdl name =', old_mdl_name);
-		// console.log('New mdl name =', new_mdl_name);
-		
+		console.log('Old mdl name =', old_mdl_name);
+		console.log('New mdl name =', new_mdl_name);
+
+		return;
+
 		vscode.workspace.fs.writeFile(file.newUri, mdl_bytes);
 		vscode.window.showInformationMessage(`Smart-renamed ${rename_count} model partner files!`);
 	}

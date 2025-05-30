@@ -1,15 +1,21 @@
 {
-  "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "noImplicitAny": true,
-	"moduleResolution": "Bundler",
-    "module": "ESNext",
-	"lib": ["DOM", "ESNext"],
-    "target": "ESNext",
-    "allowJs": true,
-	"rootDir": "./src/",
-	"outDir": "./dist/",
-	"strict": true
-  },
-  "include": ["./src/*/index.ts"],
+	"compilerOptions": {
+		"allowSyntheticDefaultImports": true,
+		"noImplicitAny": true,
+		"moduleResolution": "Bundler",
+		"module": "ESNext",
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
+		"target": "ESNext",
+		"allowJs": true,
+		"rootDir": "./src/",
+		// HACK: if webpack complains about symlinked node_modules not being in the root dir, just remove it
+		"outDir": "./dist/",
+		"strict": true
+	},
+	"include": [
+		"./src/*/index.ts"
+	],
 }

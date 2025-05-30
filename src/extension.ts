@@ -11,17 +11,20 @@ import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
 // import { MaterialBrowserManager } from './vmt-browser';
 
+// Set up node-native compression methods
+import './vtf/vtf-setup.js';
+
 // Commands
 import { copyFiles } from './commands/copy-utils.js';
 import revealOriginal from './commands/reveal-original.js';
 import openVpk from './commands/open-vpk.js';
+import retargetVtf from './commands/retarget-vtf.js';
 import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
 // import openVmtBrowser from './commands/open-browser';
-
 
 function formatDT() {
 	const d = new Date();
@@ -73,6 +76,7 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.game.copy', copyFiles),
 		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),
 		vscode.commands.registerCommand('sourcery.detail.new', createNewDetail),
+		vscode.commands.registerCommand('sourcery.vtf.retarget', retargetVtf),
 		vscode.workspace.onDidRenameFiles(renameModel),
 		// vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		// vscode.commands.registerCommand('sourcery.vtf.configWatch', setupWatchConfig),

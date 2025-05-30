@@ -139,6 +139,19 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 		return out;
 	}
 
+	getVtfVersion(): number {
+		switch (modFilesystem.gfs?.appid) {
+			case '440000':	// P2:CE
+			case '669270':	// Momentum
+			case '601360':	// Revolution
+				return 6;
+			case '620':		// Portal 2
+			case '730':		// CS:GO
+				return 5;
+		}
+		return 3;
+	}
+
 	writeFile(uri: Uri, content: Uint8Array, options: { readonly create: boolean; readonly overwrite: boolean; }): void | Thenable<void> {
 		throw new Error('Method not implemented.');
 	}

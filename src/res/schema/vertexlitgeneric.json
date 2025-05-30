@@ -1,0 +1,12 @@
+{
+	"VertexLitGeneric": {
+		"type": "object",
+		"warnings": [],
+		"properties": {
+			"$basetexture": { "type": "path", "format": "texture" },
+			"$bumpmap": { "type": "path", "format": "texture" },
+			"$color": { "type": ["color", "float"] },
+			"$color2": { "type": ["color", "float"] }
+		}
+	}
+}

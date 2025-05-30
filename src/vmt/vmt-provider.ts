@@ -357,11 +357,11 @@ function resizeIfNeeded<T extends VImageData>(texture: T, max_size: number): T {
 	return texture.resize(new_width, new_height, VTF_RESIZE_OPTIONS) as T;
 }
 
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false, skipDGAsk: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false, skipDGAsk: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
 	const buffer = (await readFile(path)).buffer;
 	const ext = extname(path);
 	
@@ -509,19 +509,7 @@ export class VmtChangeListener {
 			}
 
 			// Match ideal vtf version
-			let ideal_version: 1|2|3|4|5|6;
-			switch (modFilesystem.gfs?.appid) {
-				case '440000':
-				case '669270':
-					ideal_version = 6;
-					break;
-				case '620':
-				case '730':
-					ideal_version = 5;
-					break;
-				default:
-					ideal_version = 3;
-			}
+			const ideal_version = modFilesystem.getVtfVersion();
 
 			// Analyze inputs
 			const ext = extname(path_color).toLowerCase();

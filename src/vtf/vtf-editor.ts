@@ -75,7 +75,8 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 			});
 		}
 		catch(e) {
-			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });	
+			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });
+			console.error(e);
 		}
 	}
 }
