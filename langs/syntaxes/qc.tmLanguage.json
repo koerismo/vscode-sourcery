@@ -1,0 +1,54 @@
+{
+	"$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+	"name": "Valve QC",
+	"scopeName": "text.sourcery.qc",
+	"patterns": [
+		{ "include": "#comment" },
+		{ "include": "#string-quoted" },
+		{ "include": "#string-unquoted" },
+		{ "include": "#command" },
+		{ "include": "#number" },
+		{ "include": "#boolean" }
+	],
+	"repository": {
+		"comment": {
+			"name": "comment.line",
+			"match": "//.*"
+		},
+		"string-quoted": {
+			"name": "string.quoted",
+			"begin": "\"",
+			"end": "\"",
+			"patterns": [
+				{ "include": "#vector-square" },
+				{ "include": "#vector-round" }
+			]
+		},
+		"string-unquoted": {
+			"name": "string.unquoted",
+			"match": "[\\x21-\\x7A\\x7C][^\\s{}]*"
+		},
+		"command": {
+			"name": "keyword.control",
+			"match": "\\$[\\x21-\\x7A\\x7C][^\\s{}]*"
+		},
+		"number": {
+			"name": "constant.numeric",
+			"match": "^-?(\\d*\\.)?\\d+(e[-+]\\d+)?$"
+		},
+		"boolean": {
+			"name": "constant.language",
+			"match": "\\b(true|false)\\b"
+		},
+		"vector-square": {
+			"begin": "[",
+			"end": "]",
+			"patterns": [{ "include": "#number" }]
+		},
+		"vector-round": {
+			"begin": "(",
+			"end": ")",
+			"patterns": [{ "include": "#number" }]
+		}
+	}
+}

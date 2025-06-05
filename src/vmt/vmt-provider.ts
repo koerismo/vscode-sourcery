@@ -176,12 +176,12 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 	private registry!: vscode.Disposable;
 
 	constructor() {
-		this.diagnostics = vscode.languages.createDiagnosticCollection('sourcery.vmt');
+		this.diagnostics = vscode.languages.createDiagnosticCollection('vmt-links');
 	}
 
 	static register(): vscode.Disposable {
 		const editor = new this();
-		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'vmt' }, editor);
+		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'sourcery.vmt' }, editor);
 		return editor;
 	}
 
@@ -194,7 +194,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 		const text = document.getText();
 		const lines = text.split('\n');
 		const links: VmtDocumentLink[] = [];
-		const config = vscode.workspace.getConfiguration('sourcery.vmt', document.uri);
+		const config = vscode.workspace.getConfiguration('sourcery.vmt');
 		
 		const diagnostics: vscode.Diagnostic[] = [];
 		this.diagnostics.clear();
@@ -248,7 +248,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 
 export class VmtAutocompleteProvider implements vscode.CompletionItemProvider {
 	static register(context: vscode.ExtensionContext): vscode.Disposable {
-		return vscode.languages.registerCompletionItemProvider({ language: 'vmt' }, new this(), '/', '"');
+		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '/', '"');
 	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[]> {
@@ -281,7 +281,7 @@ export class VmtAutocompleteProvider implements vscode.CompletionItemProvider {
 
 export class VmtCodeActionProvider implements vscode.CodeActionProvider {
 	static register(context: vscode.ExtensionContext) {
-		return vscode.languages.registerCodeActionsProvider({ language: 'vmt' }, new this());
+		return vscode.languages.registerCodeActionsProvider({ language: 'sourcery.vmt' }, new this());
 	}
 	
 	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {

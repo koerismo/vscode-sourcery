@@ -1,5 +1,3 @@
-// import { CancellationToken, TextDocument } from 'vscode';
-
 const C_QUOTE	= 34,	S_QUOTE		= '"',
 	C_STAR		= 42,	S_STAR		= '*',
 	C_SLASH		= 47,	S_SLASH		= '/',
@@ -34,7 +32,7 @@ function is_term(code: number) {
 		code === C_BOPEN || code === C_BCLOSE );
 }
 
-export enum ParseErrors {
+export const enum ParseErrors {
 	InvalidError,
 	MissingValue,
 	MissingKey,
@@ -44,7 +42,7 @@ export enum ParseErrors {
 	UnclosedComment,
 }
 
-const enum KeyState {
+export const enum KeyState {
 	HasNone,
 	HasKey,
 	HasValue,
@@ -63,14 +61,10 @@ export interface ParseOptions {
 	multilines:	boolean;
 	types:      boolean;
 	
+	state_cancel: boolean;
 	// state_pos?:	number;
 	// state_key?:	KeyState;
 }
-
-// export function parseDocument(document: TextDocument, token: CancellationToken) {
-// 	const text = document.getText();
-// 	// return parse(text,);
-// }
 
 /** Parses the given string and calls the provided callbacks as they are processed. */
 export function tokenize(text: string, options: ParseOptions): void {
@@ -87,6 +81,8 @@ export function tokenize(text: string, options: ParseOptions): void {
 	// if (options.state_pos !== undefined) i = options.state_pos;
 
 	m: for ( ; i<length; i++ ) {
+		if (options.state_cancel) return;
+
 		const c = text.charCodeAt(i);
 		const escaped = !no_escapes && text.charCodeAt(i-1) === C_ESCAPE;
 
@@ -153,6 +149,7 @@ export function tokenize(text: string, options: ParseOptions): void {
 			while (true) {
 				const endstar = text.indexOf(S_STAR, i+1);
 				if ( endstar === -1 ) {
+					options.on_comment( word_start, text.length, true );
 					options.on_error( word_start, word_start+2, ParseErrors.UnclosedComment );
 					break m;
 				}
@@ -160,7 +157,7 @@ export function tokenize(text: string, options: ParseOptions): void {
 				if ( text.charCodeAt(i+1) === C_SLASH ) break;
 			}
 
-			i ++;
+			i += 2;
 			word_end = i;
 			options.on_comment( word_start, word_end, true );
 			continue;
@@ -198,42 +195,3 @@ export function tokenize(text: string, options: ParseOptions): void {
 
 	return;
 }
-
-const testText = `abc def
-ghi "jkl"
-"xyz" 123
-/* hello this is a comment */
-abc easy
-as 123
-
-hello { a b c } c d
-`;
-
-const testOpts: ParseOptions = {
-	on_key: function (start: number, end: number): void {
-		console.log('Key:', testText.slice(start, end));
-	},
-	on_value: function (start: number, end: number): void {
-		console.log('Value:', testText.slice(start, end));
-	},
-	on_query: function (start: number, end: number): void {
-		console.log('Query:', testText.slice(start, end));
-	},
-	on_enter: function (start: number): void {
-		console.log('{:', testText.slice(start, start+1));
-	},
-	on_exit: function (start: number): void {
-		console.log('}:', testText.slice(start, start+1));
-	},
-	on_error: function (start: number, end: number, err: ParseErrors): void {
-		console.log('Error:', '"'+testText.slice(start, end)+'"', '(', ParseErrors[err], ')');
-	},
-	on_comment: function (start: number, end: number, ml: boolean): void {
-		console.log('Comment:', testText.slice(start, end), ml);
-	},
-	escapes: false,
-	multilines: true,
-	types: false
-}
-
-tokenize(testText, testOpts);

@@ -41,7 +41,7 @@ export async function updateDetailCache() {
 		}));
 	}
 
-	await Promise.all(promises);
+	await Promise.allSettled(promises);
 	detailCache = entries;
 }
 

@@ -9,7 +9,7 @@ import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
 import { ValveTextureEditorProvider } from './vtf/vtf-editor.js';
 import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
-// import { MaterialBrowserManager } from './vmt-browser';
+// import { MaterialBrowserManager } from './vmt-browser.js';
 
 // Set up node-native compression methods
 import './vtf/vtf-setup.js';
@@ -22,6 +22,8 @@ import retargetVtf from './commands/retarget-vtf.js';
 import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
+import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
+import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler } from './vmt/vmt-document.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
 // import openVmtBrowser from './commands/open-browser';
@@ -55,16 +57,25 @@ export function activate(context: vscode.ExtensionContext) {
 		// Common server for sharing mod:// resources with webviews
 		MountServerManager.register(context),
 
+		KeyValuesHoverProvider.register(),
+		KeyValuesCompletionProvider.register(),
+		KeyValuesTokenProvider.register(),
+
+		VmtSchemaHandler.register(context),
+		VmtSemanticTokensProvider.register(),
+		VmtHoverProvider.register(),
+
 		VpkFileSystemProvider.register(),
 		ModFilesystemProvider.register(),
-		VmtLinkProvider.register(),
 		ValveDetailEditorProvider.register(context),
 		ValveTextureEditorProvider.register(context),
-		ValveMaterialEditorProvider.register(context),
 		ValveModelEditorProvider.register(context),
-		VmtAutocompleteProvider.register(context),
-		VmtCodeActionProvider.register(context),
-		VmtChangeListener.register(context),
+		
+		// VmtLinkProvider.register(),
+		// ValveMaterialEditorProvider.register(context),
+		// VmtAutocompleteProvider.register(context),
+		// VmtCodeActionProvider.register(context),
+		// VmtChangeListener.register(context),
 		// MaterialBrowserManager.register(context),
 	);
 

@@ -3,7 +3,7 @@
 	"publisher": "koerismo",
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"license": "GPL-3.0-only",
 	"icon": "images/icon.png",
 	"engines": {
@@ -24,11 +24,51 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onLanguage:vmt",
+		"onLanguage:sourcery.vmt",
+		"onLanguage:sourcery.qc",
+		"onLanguage:sourcery.keyvalues",
 		"workspaceContains:gameinfo.txt"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"languages": [
+			{
+				"id": "sourcery.keyvalues",
+				"aliases": [ "KeyValues", "kv" ],
+				"extensions": [ ".kv", ".vdf", ".vmf", "vmx" ],
+				"filenames": [ "gameinfo.txt", "config.cfg", "panorama.cfg" ],
+				"configuration": "./langs/kv-language-configuration.json"
+			},
+			{
+				"id": "sourcery.vmt",
+				"aliases": [ "Valve Material", "Source Material", "vmt" ],
+				"extensions": [ ".vmt" ],
+				"configuration": "./langs/kv-language-configuration.json"
+			},
+			{
+				"id": "sourcery.qc",
+				"aliases": [ "Valve QC", "qc" ],
+				"extensions": [ ".qc", ".qci" ],
+				"configuration": "./langs/kv-language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "sourcery.keyvalues",
+				"scopeName": "text.sourcery.keyvalues",
+				"path": "./langs/syntaxes/kv.tmLanguage.json"
+			},
+			{
+				"language": "sourcery.vmt",
+				"scopeName": "text.sourcery.keyvalues.vmt",
+				"path": "./langs/syntaxes/kv.tmLanguage.json"
+			},
+			{
+				"language": "sourcery.qc",
+				"scopeName": "text.sourcery.qc",
+				"path": "./langs/syntaxes/qc.tmLanguage.json"
+			}
+		],
 		"commands": [
 			{
 				"command": "sourcery.game.revealFile",
@@ -37,7 +77,8 @@
 			},
 			{
 				"command": "sourcery.game.revealRoot",
-				"title": "Reveal Game Folder"
+				"title": "Reveal Folder",
+				"category": "Game"
 			},
 			{
 				"command": "sourcery.game.copy",
@@ -50,13 +91,6 @@
 				"title": "Add Vpk to Workspace"
 			},
 			{
-				"command": "sourcery.vmt.preview",
-				"enablement": "false",
-				"icon": "$(symbol-color)",
-				"category": "Material",
-				"title": "Open Material Preview"
-			},
-			{
 				"command": "sourcery.mdl.compile",
 				"title": "Compile",
 				"category": "Model",
@@ -64,12 +98,13 @@
 			},
 			{
 				"command": "sourcery.detail.new",
-				"title": "Create New Detail",
+				"title": "New",
 				"category": "Detail"
 			},
 			{
 				"command": "sourcery.vtf.retarget",
-				"title": "Retarget Vtf"
+				"title": "Change Version",
+				"category": "Texture"
 			}
 		],
 		"menus": {
@@ -107,16 +142,6 @@
 				"selector": [
 					{
 						"filenamePattern": "**/*.vtf"
-					}
-				]
-			},
-			{
-				"viewType": "sourcery.vmt",
-				"displayName": "Valve Material",
-				"priority": "option",
-				"selector": [
-					{
-						"filenamePattern": "**/*.vmt"
 					}
 				]
 			},
@@ -188,26 +213,15 @@
 					"type": "integer",
 					"default": 2048,
 					"enum": [
-						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024,
-						2048,
-						4096
+						0,    32,   64,
+						128,  256,  512,
+						1024, 2048, 4096
 					],
 					"enumItemLabels": [
 						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x",
-						"2048x",
-						"4096x"
+						"32x",   "64x",  "128x",
+						"256x",  "512x", "1024x",
+						"2048x", "4096x"
 					]
 				},
 				"sourcery.vmt.convertOnPasteResizeTooltexture": {
@@ -216,21 +230,13 @@
 					"default": 256,
 					"enum": [
 						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024
+						32,  64,  128,
+						256, 512, 1024
 					],
 					"enumItemLabels": [
 						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x"
+						"32x",  "64x",  "128x",
+						"256x", "512x", "1024x"
 					]
 				},
 				"sourcery.vmt.modelPath": {
@@ -242,11 +248,6 @@
 					"description": "Enable warnings for missing textures?",
 					"type": "boolean",
 					"default": false
-				},
-				"sourcery.model.crowbarPath": {
-					"description": "The path to the Crowbar tool executable.",
-					"type": "string",
-					"default": ""
 				}
 			}
 		}
@@ -268,6 +269,7 @@
 	},
 	"devDependencies": {
 		"@types/glob": "^8.1.0",
+		"@types/json-schema": "^7.0.15",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "~22.15.26",
 		"@types/three": "^0.166.0",
@@ -300,11 +302,12 @@
 		"three": "^0.166.1",
 		"ts-loader": "^9.5.2",
 		"typescript": "^5.7.3",
-		"vtf-js": "link:..\\vtf-js",
+		"vtf-js": "link:/Users/jadon/Documents/GitHub/vtf-js",
 		"webpack": "^5.98.0",
 		"webpack-cli": "^5.1.4"
 	},
 	"dependencies": {
 		"@types/vscode-webview": "^1.57.5"
-	}
+	},
+	"packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
 }
