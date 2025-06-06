@@ -1,12 +1,10 @@
 # Sourcery
 
-This repository, as of February 2025, serves as a public reference for anyone wanting to make their own vscode extension that interacts with the Source Engine's formats. It is not recommended using this for anything other than the detail editor. If you do choose to, please...
-
 ### [READ KNOWN ISSUES BEFORE USING THIS EXTENSION](#known-issues)
 
 ## Features
 
-- Sourcemod mounting
+- Game mounting
 	- If enabled, Sourcery will mount the active game or mod when opened in a new workspace. This enables the `mod://` uri, which reads from the game's filesystem.
 	- VPKs can be added to the workspace by right clicking them in the file explorer.
 	- VTFs will show a basic image preview when opened.
@@ -15,9 +13,11 @@ This repository, as of February 2025, serves as a public reference for anyone wa
 	- Models can be copied from mounted content into the current mod/game with the `Copy To Mod` command.
 	- When a game is mounted, models can be compiled asynchronously when a QC is opened - without configuring studiomdl manually.
 - Material utilities
+	- Shader-aware VMT parameter autocompletion and validation.
 	- When a game is mounted, links will appear on all textures in the currently-open vmt.
 	- When a game is mounted, a basic shaded material preview can be opened through the menu.
 	- Textures will automatically be converted when pasted into a VMT. If multiple are provided, they will be merged depending on the material context. (ex. metallic/roughness/AO textures will be merged when pasting after a `$mraotexture` key.)
+	- Textures can be retargeted (changing their version) with a right-click action in the file tree.
 - Detail utilities
 	- When a game is mounted, detail props can be configured through the visual editor.
 	- Detail files in the current workspace are autocompleted and linked in vmts.
@@ -26,13 +26,12 @@ This repository, as of February 2025, serves as a public reference for anyone wa
 
 - The code quality of this project is abysmal. Fork at your own risk. If you choose to reuse code from this project, please give credit! This project is licensed under GPL-v3.
 - The detail editor occasionally has issues with the mouse "sticking" in the UV editor. Clicking again should resolve it.
-- The detail editor does not load game models.
-- Strata-compressed Vtfs may fail to autogenerate due to a bug in the encoder. This has not been tested in vtf-js 0.9.x.
-- In versions of vtf.js prior to 0.9.x, the dxt encoder used an extremely basic algorithm, resulting in blocky textures when converted. It has since been reverted to depend on dxt-js.
-- The material preview has been completely disabled due to major inaccuracies on most shader setups.
-- Model renaming may not function on windows.
-- No Crowbar actions have been implemented - the setting is currently unused.
+- The detail editor does not load game models. This is not a planned feature.
+- The material preview has been disabled for the time being due to in-game innacuracy.
+- On Windows, the model name updater may use incorrectly-formatted paths. 
+- The model skin editor is nonfunctional at this time.
 - VPKs will occasionally fail operations on first load. If a VPK appears empty or broken or a model fails to copy, try it again!
+- When converting VTFs, the dxt-js library tends to leak memory. This leads to extraneous data being written to converted/retargeted files.
 - `mount.cfg` files will not contribute mounts to the project.
 
 ## Dependencies

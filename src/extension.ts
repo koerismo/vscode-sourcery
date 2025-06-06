@@ -23,7 +23,7 @@ import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
 import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
-import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler } from './vmt/vmt-document.js';
+import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider } from './vmt/vmt-document.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
 // import openVmtBrowser from './commands/open-browser';
@@ -57,20 +57,23 @@ export function activate(context: vscode.ExtensionContext) {
 		// Common server for sharing mod:// resources with webviews
 		MountServerManager.register(context),
 
+		// generic KeyValues data
 		KeyValuesHoverProvider.register(),
 		KeyValuesCompletionProvider.register(),
 		KeyValuesTokenProvider.register(),
 
+		// VMT extensions to KeyValues
 		VmtSchemaHandler.register(context),
 		VmtSemanticTokensProvider.register(),
 		VmtHoverProvider.register(),
+		VmtCompletionProvider.register(),
 
 		VpkFileSystemProvider.register(),
 		ModFilesystemProvider.register(),
 		ValveDetailEditorProvider.register(context),
 		ValveTextureEditorProvider.register(context),
 		ValveModelEditorProvider.register(context),
-		
+
 		// VmtLinkProvider.register(),
 		// ValveMaterialEditorProvider.register(context),
 		// VmtAutocompleteProvider.register(context),

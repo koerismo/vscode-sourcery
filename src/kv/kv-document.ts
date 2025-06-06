@@ -10,7 +10,7 @@ export const enum KVType {
 	Comment
 }
 
-export const enum KVHover {
+export const enum KVPart {
 	Invalid = -1,
 	None,
 	Key,
@@ -93,7 +93,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 			content_end: text.length,
 		};
 
-		let state = KVState.HasNone;
+		let state = <KVState>KVState.HasNone;
 		let key_start   = 0, key_end   = 0;
 		let value_start = 0, value_end = 0;
 		let query_start = 0, query_end = 0;
@@ -103,7 +103,11 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 			key_start, key_end, key: text.slice(key_start, key_end),
 			value_start, value_end, value: text.slice(value_start, value_end),
 			query_start, query_end, query: query_start !== query_end ? text.slice(query_start, query_end) : undefined,
-			parent: node }); };
+			parent: node });
+			key_start = key_end = 0;
+			value_start = value_end = 0;
+			query_start = query_end = 0;
+		};
 
 		const push_err = (start: number, end: number, code: ParseErrors) => {
 			const [severity, message] = ParseErrorsMap[code];
@@ -150,7 +154,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 
 			on_exit(start: number): void {
 				if (state === KVState.HasKey) push_err(key_start, key_end, ParseErrors.MissingValue);
-				else if (state !== KVState.HasNone) push_kv();
+				if (state !== KVState.HasNone) push_kv();
 				state = KVState.HasNone;
 				node.content_end = start + 1;
 				if (node.parent === undefined) push_err(start, start+1, ParseErrors.ExtraBracket);
@@ -176,6 +180,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 
 		tokenize(text, config);
 		if (!config.state_cancel) {
+			if (state === KVState.HasKey) push_err(key_start, key_end, ParseErrors.MissingValue);
 			if (state !== KVState.HasNone) push_kv();
 			if (node !== root) push_err(text.length, text.length+1, ParseErrors.UnclosedBracket);
 			TOKEN_ERRORS.set(doc.uri, errors);
@@ -211,17 +216,22 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		return dir;
 	}
 
-	static nodePartAtOffset(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number) {
-		if (node.type === KVType.Comment) return KVHover.Invalid;
+	static nodePartAtOffset(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number, allowEndChar=false) {
+		const o = +!!allowEndChar;
+		if (node.type === KVType.Comment) return KVPart.Invalid;
 		if (node.type === KVType.Dir) {
-			if (pos <= node.key_end) return KVHover.Key;
-			if (pos >= node.content_start) return KVHover.Value;
-			return KVHover.None;
+			if (pos < node.key_end+o) return KVPart.Key;
+			if (pos >= node.content_start) return KVPart.Value;
+			return KVPart.None;
 		}
-		if (pos < node.key_end) return KVHover.Key;
-		if (pos >= node.value_start && pos < node.value_end) return KVHover.Value;
-		if (node.query_start && node.query_end && pos >= node.query_start && pos < node.query_end) return KVHover.Query;
-		return KVHover.None;
+		if (pos < node.key_end+o) return KVPart.Key;
+		if (pos >= node.value_start && pos < node.value_end+o) return KVPart.Value;
+		if (node.query_start && node.query_end && pos >= node.query_start && pos < node.query_end+o) return KVPart.Query;
+		return KVPart.None;
+	}
+
+	static nodePartAtCursor(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number) {
+		return this.nodePartAtOffset(node, pos, true);
 	}
 }
 
@@ -235,8 +245,8 @@ export class KeyValuesHoverProvider implements vscode.HoverProvider {
 		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
 		const part = KeyValuesCache.nodePartAtOffset(node, offset);
 
-		if (part === KVHover.None) return;
-		if (node.type === KVType.Dir && part !== KVHover.Key) return;
+		if (part === KVPart.None) return;
+		if (node.type === KVType.Dir && part !== KVPart.Key) return;
 
 		let path: string[] = [];
 		let tmp = node;
@@ -272,8 +282,8 @@ export class KeyValuesCompletionProvider implements vscode.CompletionItemProvide
 		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
 		const part = KeyValuesCache.nodePartAtOffset(node, offset);
 
-		if (part === KVHover.None) return;
-		if (node.type === KVType.Dir && part !== KVHover.Key) return;
+		if (part === KVPart.None) return;
+		if (node.type === KVType.Dir && part !== KVPart.Key) return;
 
 		return [];
 	}

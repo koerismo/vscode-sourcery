@@ -60,7 +60,7 @@
 			},
 			{
 				"language": "sourcery.vmt",
-				"scopeName": "text.sourcery.keyvalues.vmt",
+				"scopeName": "text.sourcery.keyvalues",
 				"path": "./langs/syntaxes/kv.tmLanguage.json"
 			},
 			{

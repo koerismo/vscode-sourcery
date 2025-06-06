@@ -5,12 +5,12 @@ import { NodeSystem } from 'sfs-js/dist/fs.node.js';
 
 import { GetStringRegKey } from '@vscode/windows-registry';
 import { platform as getPlatform } from 'os';
-import { join, normalize, resolve } from 'path';
+import { join, posix, resolve } from 'path';
 import { outConsole } from './extension.js';
 
 export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
-	path = normalize(join('/'+prefix, path));
 	if (!modFilesystem.isReady()) return [];
+	path = posix.normalize(join('/'+prefix, path));
 	const dir = await modFilesystem.readDirectory(Uri.file(path));
 	const out = new Array<vscode.CompletionItem>(dir.length);
 	for (let i=0; i<dir.length; i++) {
@@ -32,14 +32,14 @@ function findSteamCache(fs: ReadableFileSystem): SteamCache {
 	let steam_path: string;
 	switch (getPlatform()) {
 		case 'win32':
-			steam_path = normalize(
+			steam_path = posix.normalize((
 				// https://github.com/itselectroz/steam-path/blob/master/src/win32.ts#L6-L11
 				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
 				'C:/Program Files (x86)/Steam'
-			).replaceAll('\\', '/') + '/';
+			).replaceAll('\\', '/')) + '/';
 			break;
 
 		case 'darwin':

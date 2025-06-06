@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import { KeyValuesCache, KVHover, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
+import { KeyValuesCache, KVPart, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
 import { outConsole } from '../extension.js';
+import { getPathAutocomplete } from '../mod-mount.js';
 
 interface VmtSchemaCase {
 	if?: string;
@@ -16,7 +17,7 @@ interface VmtSchemaCase {
 
 type VmtParamType = 'int' | 'float' | 'color' | 'bool' | 'texture' | 'string' | 'vec2' | 'vec3' | 'vec4' | 'matrix' | 'fourcc' | 'material';
 
-interface VmtSchemaProperty {
+interface VmtSchemaParam {
 	type: VmtParamType;
 	help?: string;
 	default?: string;
@@ -25,39 +26,85 @@ interface VmtSchemaProperty {
 }
 
 interface VmtSchema {
-	[param: string]: VmtSchemaProperty;
+	[param: string]: VmtSchemaParam;
 }
-
-// function schema_initial_value(prop: VmtSchemaProperty, value: string): string[] | undefined {
-// 	switch (prop.type) {
-// 		case 'int': return ['1'];
-// 		case 'float': return ['1.0'];
-// 		case 'bool': return ['true', 'false'];
-// 		case 'material':
-// 		case 'texture': return ['"/"'];
-// 		case 'string':	return ['""'];
-// 		case 'vec2':
-// 		case 'vec3':
-// 		case 'vec4': return ['"[]"'];
-// 		case 'color': return ['"[1.0 1.0 1.0]"'];
-// 		case 'matrix': return ['"center .5 .5 scale 1 1 rotate 0 translate 0 0"'];
-// 		default: return;
-// 	}
-// 	throw Error(`VmtSchema: Unexpected prop type "${prop.type}"!`);
-// }
 
 function is_truthy(v: string): boolean {
 	return !(!v.length || v === 'false' || v === '0');
 }
 
-const testSchema: VmtSchema = {
-	"$basetexture":				{ "type": "texture", "help": "This is the basetexture.", "default": "amogus/sus" },
-	"$bumpmap":					{ "type": "texture", "help": "The bumpmap!", "cases": [{ "if": "$treesway", "warn": "$treesway will not work with bumpmaps!" }] },
-	"$color":					{ "type": "color" },
-	"$phong":					{ "type": "int", "cases": [{ "xif": "$bumpmap", "warn": "$phong will not work without a bumpmap!" }] },
-	"$phongexponent":			{ "type": "int" },
-	"$phongexponenttexture":	{ "type": "texture", "cases": [{ "if": "$phongexponent", "warn": "$phongexponent overrides this parameter!" }] },
-	"$treesway":				{ "type": "bool" }
+const ShaderNames: Record<string, string> = {
+	aftershock: 'Aftershock',
+	black: 'Black',
+	bloom: 'Bloom',
+	core: 'Core',
+	decalmodulate: 'DecalModulate',
+	depthoffield: 'DepthOfField',
+	depthwrite: 'DepthWrite',
+	eyeglint: 'EyeGlint',
+	eyerefract: 'EyeRefract',
+	eyes: 'Eyes',
+	introscreenspaceeffect: 'IntroScreenSpaceEffect',
+	lightmapped_4wayblend: 'Lightmapped_4WayBlend',
+	lightmappedgeneric: 'LightmappedGeneric',
+	lightmappedreflective: 'LightmappedReflective',
+	modulate: 'Modulate',
+	monitorscreen: 'MonitorScreen',
+	morphaccumulate: 'MorphAccumulate',
+	morphweight: 'MorphWeight',
+	motionblur: 'MotionBlur',
+	paintblob: 'PaintBlob',
+	pbr: 'PBR',
+	portal: 'Portal',
+	portalrefract: 'PortalRefract',
+	portalstaticoverlay: 'PortalStaticOverlay',
+	refract: 'Refract',
+	screenspace_general: 'Screenspace_General',
+	shadow: 'Shadow',
+	shadowbuild: 'ShadowBuild',
+	shadowmodel: 'ShadowModel',
+	shatteredglass: 'ShatteredGlass',
+	showz: 'ShowZ',
+	sky_hdr: 'Sky_HDR',
+	sky_sdr: 'Sky_SDR',
+	solidenergy: 'SolidEnergy',
+	splinerope: 'SplineRope',
+	sprite: 'Sprite',
+	spritecard: 'Spritecard',
+	teeth: 'Teeth',
+	unlitgeneric: 'UnlitGeneric',
+	unlittwotexture: 'UnlitTwoTexture',
+	vertexlitgeneric: 'VertexLitGeneric',
+	videosurface: 'VideoSurface',
+	volumeclouds: 'VolumeClouds',
+	water: 'Water',
+	windowimposter: 'WindowImposter',
+	wireframe: 'Wireframe',
+	worldimposter: 'WorldImposter',
+	worldtwotextureblend: 'WorldTwoTextureBlend',
+	worldvertextransition: 'WorldVertexTransition',
+	writestencil: 'WriteStencil',
+	writez: 'WriteZ',
+};
+
+const CompilerParamSchema: VmtSchema = {
+	'%tooltexture': { type: 'texture' },
+	'%keywords': { type: 'string' },
+	'%CompileBlockLOS': { type: 'bool' },
+	'%CompileClip': { type: 'bool' },
+	'%CompileDetail': { type: 'bool' },
+	'%CompileLadder': { type: 'bool' },
+	'%CompileNoDraw': { type: 'bool' },
+	'%CompileNoLight': { type: 'bool' },
+	'%CompileNonSolid': { type: 'bool' },
+	'%CompileNPCClip': { type: 'bool' },
+	'%CompilePassBullets': { type: 'bool' },
+	'%CompileSkip': { type: 'bool' },
+	'%CompileSlime': { type: 'bool' },
+	'%CompileTeam': { type: 'bool' },
+	'%CompileTrigger': { type: 'bool' },
+	'%CompileWater': { type: 'bool' },
+	'%PlayerClip': { type: 'bool' },
 };
 
 export class VmtSchemaHandler {
@@ -65,31 +112,50 @@ export class VmtSchemaHandler {
 	static _record?: Record<string, VmtSchema>;
 
 	static register(ctx: vscode.ExtensionContext) {
-		this._recordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/public/assets/data/materials.dump.min.json' });
-		outConsole.log('Using schema path ', this._recordUri.fsPath);
+		this._recordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/public/assets/data/materials-strata.min.json' });
 		return new vscode.Disposable(() => {
 			if (this._record) delete this._record;
 		});
 	}
 
-	static async _loadSchemaMap() {
+	static async _loadSchemaMap(): Promise<Record<string, VmtSchema>> {
 		if (!this._record) {
 			const startTime = performance.now();
 			if (!this._recordUri) throw Error('VmtSchemaHandler not initialized!');
-			const data = await vscode.workspace.fs.readFile(this._recordUri);
-			const text = new TextDecoder('utf-8').decode(data);
-			this._record = JSON.parse(text);
-			const endTime = performance.now();
-			outConsole.log(`Finished loading shader schemas in ${Math.round(endTime - startTime)}ms!`);
+			try {
+				const data = await vscode.workspace.fs.readFile(this._recordUri);
+				const text = new TextDecoder('utf-8').decode(data);
+				this._record = JSON.parse(text);
+				const endTime = performance.now();
+				outConsole.log(`Finished loading shader schemas in ${Math.round(endTime - startTime)}ms!`);
+			}
+			catch (e) {
+				outConsole.error(`Failed to load Vmt schemas!`, e);
+			}
 		}
 		return this._record!;
 	}
+	
+	static _loadPromise: Promise<Record<string, VmtSchema>>;
+	static async _tryLoadSchemaMap(): Promise<Record<string, VmtSchema>> {
+		this._loadPromise ??= this._loadSchemaMap();
+		return this._loadPromise;
+	}
+
+	static getCompilerSchema(): VmtSchema {
+		return CompilerParamSchema;
+	}
 
 	static async getSchema(shader: string): Promise<VmtSchema | undefined> {
-		const record = await this._loadSchemaMap();
+		const record = await this._tryLoadSchemaMap();
 		shader = shader.toLowerCase();
-		if (shader in record) return record[shader];
+		if (shader in record) return Object.assign({}, record[shader], CompilerParamSchema);
 		return;
+	}
+
+	static async getShaderList(): Promise<string[]> {
+		const record = await this._tryLoadSchemaMap();
+		return Object.keys(record).map(x => ShaderNames[x]);
 	}
 }
 
@@ -101,19 +167,24 @@ export class VmtSemanticTokensProvider implements vscode.DocumentSemanticTokensP
 	}
 	
 	async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
-		const data = await KeyValuesCache.parse(document, token);
+		const parsed = await KeyValuesCache.parse(document, token);
 
-		const shader_kvs = data.tree.children[0];
-		const shader_name = shader_kvs.key;
-
-		// TODO: Schema validation should be done async!
-		const schema = await VmtSchemaHandler.getSchema(shader_name);
-
-		if (schema && shader_kvs.type === KVType.Dir) {
-			this.validate_schema(document, shader_kvs, schema);
+		if (parsed.tree.children.length) {
+			const shader_kvs = parsed.tree.children[0];
+			const shader_name = shader_kvs.key;
+	
+			// TODO: Schema validation should be done async!
+			const schema = await VmtSchemaHandler.getSchema(shader_name);
+	
+			if (schema && shader_kvs.type === KVType.Dir) {
+				this.validate_schema(document, shader_kvs, schema);
+			}
+		}
+		else {
+			SCHEMA_ERRORS.delete(document.uri);
 		}
 		
-		return data.tokens;
+		return parsed.tokens;
 	}
 
 	validate_schema_case(prop: VmtSchemaCase, key_map: Record<string, KVSetRanged | KVPairRanged>): boolean {
@@ -134,7 +205,7 @@ export class VmtSemanticTokensProvider implements vscode.DocumentSemanticTokensP
 		return truthy;
 	}
 
-	validate_schema_type(prop: VmtSchemaProperty, value: string): boolean {
+	validate_schema_type(prop: VmtSchemaParam, value: string): boolean {
 		switch (prop.type) {
 			case 'int':
 			case 'float':
@@ -232,26 +303,114 @@ export class VmtHoverProvider implements vscode.HoverProvider {
 
 	async provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.Hover | undefined> {
 		const offset = document.offsetAt(position);
-		let node = await KeyValuesCache.nodeAtOffset(document, token, offset);
+		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
 		const part = KeyValuesCache.nodePartAtOffset(node, offset);
-		
-		const node_root = await KeyValuesCache.parse(document, token);
-		const node_shader = node_root.tree.children[0];
 
-		if (!node_shader) return;
-		if (part !== KVHover.Key)
+		const parsed = await KeyValuesCache.parse(document, token);
+		const shader_node = parsed.tree.children[0];
+
+		if (!shader_node) return;
+		if (part !== KVPart.Key)
 			return;
 
-		const schema = await VmtSchemaHandler.getSchema(node_shader.key);
+		const schema = await VmtSchemaHandler.getSchema(shader_node.key);
 		if (!schema) return;
 
 		const key = node.key.toLowerCase();
 		if (key in schema) {
 			const prop = schema[key];
-			const contents = [];
-			if (prop.help) contents.push('**'+key+'** - ' + prop.help);
-			if (prop.default) contents.push('**Default** - '+prop.default);
+			const defaultText = prop.default ? (' = "' + prop.default + '"') : '';
+			const contents = ['```plaintext\n' + key + ': ' + prop.type + defaultText + '\n```'];
+			if (prop.help) contents.push(prop.help);
 			return { contents };
 		}
+	}
+}
+
+export class VmtCompletionProvider implements vscode.CompletionItemProvider {
+	static register() {
+		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '$', '%', '"', '/', '[');
+	}
+
+	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[] | undefined> {
+		const offset = document.offsetAt(position);
+		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
+		const part = KeyValuesCache.nodePartAtCursor(node, offset);
+		
+		const node_root = await KeyValuesCache.parse(document, token);
+		const node_shader = node_root.tree.children[0];
+
+		if (node === node_shader && part === KVPart.Key) {
+			const shaderList = await VmtSchemaHandler.getShaderList();
+			const completions: vscode.CompletionItem[] = shaderList.map(x => ({ label: x }));
+			return completions;
+		}
+
+		if (node_shader.type !== KVType.Dir) return;
+		if (node.type !== KVType.Pair) return;
+
+		const schema = await VmtSchemaHandler.getSchema(node_shader.key);
+		if (!schema) return;
+
+		if (part === KVPart.Key) {
+			const completions: vscode.CompletionItem[] = [];
+			for (const key in schema) {
+				if (!key.startsWith(node.key)) continue;
+				const slice1 = !!context.triggerCharacter && node.key.startsWith(context.triggerCharacter);
+				completions.push({ label: key, insertText: (slice1 ? key.slice(1) : key), detail: schema[key].help });
+			}
+			return completions;
+		}
+		
+		if (part === KVPart.Value) {
+			const param = schema[node.key];
+			if (!param) return;
+			if (param.type === 'texture' || param.type === 'material') {
+				return this.getPathCompletions(node.value);
+			}
+			return [{ label: param.default! }];
+		}
+		
+		if (part === KVPart.Query) {
+			const completions: vscode.CompletionItem[] = [
+				'$WIN32',
+				'$X360',
+				'$DECK'
+			].map(x => ({ label: x }));
+			return completions;
+		}
+	}
+
+	async getPathCompletions(prefix: string, root: string='materials/', extension: string='.vtf'): Promise<vscode.CompletionItem[]> {
+		const items = await getPathAutocomplete(prefix, root);
+		const filtered = items.filter(x => {
+			const is_file = x.kind === vscode.CompletionItemKind.File;
+			const is_vtf = (<string>x.label).endsWith(extension);
+			if (is_file) x.insertText = (<string>x.label).slice(0, -4);
+			return !is_file || is_vtf;
+		});
+		return filtered;
+	}
+}
+
+export class VmtLinkProvider implements vscode.DocumentLinkProvider {
+	async provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.DocumentLink[] | undefined> {
+		const links: vscode.DocumentLink[] = [];
+		
+		const parsed = await KeyValuesCache.parse(document, token);
+		
+		const shader_node = parsed.tree.children[0];
+		if (!shader_node || shader_node.type !== KVType.Dir) return;
+		const schema = await VmtSchemaHandler.getSchema(shader_node.key);
+		if (!schema) return;
+
+		for (const child of shader_node.children) {
+			if (child.type !== KVType.Pair) continue;
+			if (child.key in schema) {
+
+			}
+		}
+
+		return links;
 	}
 }
