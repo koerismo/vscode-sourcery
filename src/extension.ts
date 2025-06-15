@@ -4,8 +4,8 @@ import { MountServerManager } from './mod-server.js';
 
 import { VpkFileSystemProvider } from './vpk-provider.js';
 import { ModFilesystemProvider } from './mod-mount.js';
-import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
-import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
+// import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
+// import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
 import { ValveTextureEditorProvider } from './vtf/vtf-editor.js';
 import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
@@ -23,7 +23,7 @@ import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
 import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
-import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider } from './vmt/vmt-document.js';
+import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider, VmtLinkProvider, VmtCodeActionProvider } from './vmt/vmt-document.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
 // import openVmtBrowser from './commands/open-browser';
@@ -65,8 +65,10 @@ export function activate(context: vscode.ExtensionContext) {
 		// VMT extensions to KeyValues
 		VmtSchemaHandler.register(context),
 		VmtSemanticTokensProvider.register(),
-		VmtHoverProvider.register(),
+		VmtCodeActionProvider.register(),
 		VmtCompletionProvider.register(),
+		VmtHoverProvider.register(),
+		VmtLinkProvider.register(),
 
 		VpkFileSystemProvider.register(),
 		ModFilesystemProvider.register(),

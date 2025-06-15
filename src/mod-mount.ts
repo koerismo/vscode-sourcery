@@ -8,16 +8,18 @@ import { platform as getPlatform } from 'os';
 import { join, posix, resolve } from 'path';
 import { outConsole } from './extension.js';
 
-export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
+export async function getPathAutocomplete(path: string, prefix: string, qualifier?: string): Promise<vscode.CompletionItem[]> {
 	if (!modFilesystem.isReady()) return [];
 	path = posix.normalize(join('/'+prefix, path));
-	const dir = await modFilesystem.readDirectory(Uri.file(path));
+	const dir = await modFilesystem.gfs.readDirectory(path, qualifier);
+	if (!dir) return [];
+
 	const out = new Array<vscode.CompletionItem>(dir.length);
 	for (let i=0; i<dir.length; i++) {
-		const d = dir[i];
+		const [fileName, fileType] = dir[i];
 		out[i] = {
-			label: d[0],
-			kind: d[1] === FileType.Directory ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.File
+			label: fileName,
+			kind: fileType === FileType.Directory ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.File
 		};
 	}
 	return out;

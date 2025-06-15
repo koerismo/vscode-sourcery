@@ -1,9 +1,13 @@
 import * as vscode from 'vscode';
-import { KeyValuesCache, KVPart, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
 import { outConsole } from '../extension.js';
-import { getPathAutocomplete } from '../mod-mount.js';
 
-interface VmtSchemaCase {
+import { KeyValuesCache, KVPart, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
+import { getPathAutocomplete, modFilesystem } from '../mod-mount.js';
+import { BuiltinTextures, CompilerParamSchema, ShaderNames } from './vmt-enums.js';
+
+// #region Types
+
+export interface VmtSchemaCase {
 	if?: string;
 	xif?: string;
 	has?: string;
@@ -15,9 +19,9 @@ interface VmtSchemaCase {
 	disable?: string;
 }
 
-type VmtParamType = 'int' | 'float' | 'color' | 'bool' | 'texture' | 'string' | 'vec2' | 'vec3' | 'vec4' | 'matrix' | 'fourcc' | 'material';
+export type VmtParamType = 'int' | 'float' | 'color' | 'bool' | 'texture' | 'string' | 'vec2' | 'vec3' | 'vec4' | 'matrix' | 'fourcc' | 'material';
 
-interface VmtSchemaParam {
+export interface VmtSchemaParam {
 	type: VmtParamType;
 	help?: string;
 	default?: string;
@@ -25,94 +29,56 @@ interface VmtSchemaParam {
 	required?: boolean;
 }
 
-interface VmtSchema {
+export interface VmtSchema {
 	[param: string]: VmtSchemaParam;
 }
 
-function is_truthy(v: string): boolean {
+interface TypeLinkInfo {
+	root: string;
+	ext: string;
+	qualifier?: string;
+}
+
+// #region Shared
+
+const RE_MODEL_PATH = /^(?:\/|\\)?props?(_\w+)?(?:\/|\\)/;
+const RE_SLASH = /[\\\/]+/g;
+
+const SCHEMA_ERRORS = vscode.languages.createDiagnosticCollection('vmt-schema');
+const LINK_ERRORS = vscode.languages.createDiagnosticCollection('vmt-links');
+
+export const enum VmtActionCodes {
+	Invalid = -1,
+	None,
+	FixModelPath,
+}
+
+function isTruthy(v: string): boolean {
 	return !(!v.length || v === 'false' || v === '0');
 }
 
-const ShaderNames: Record<string, string> = {
-	aftershock: 'Aftershock',
-	black: 'Black',
-	bloom: 'Bloom',
-	core: 'Core',
-	decalmodulate: 'DecalModulate',
-	depthoffield: 'DepthOfField',
-	depthwrite: 'DepthWrite',
-	eyeglint: 'EyeGlint',
-	eyerefract: 'EyeRefract',
-	eyes: 'Eyes',
-	introscreenspaceeffect: 'IntroScreenSpaceEffect',
-	lightmapped_4wayblend: 'Lightmapped_4WayBlend',
-	lightmappedgeneric: 'LightmappedGeneric',
-	lightmappedreflective: 'LightmappedReflective',
-	modulate: 'Modulate',
-	monitorscreen: 'MonitorScreen',
-	morphaccumulate: 'MorphAccumulate',
-	morphweight: 'MorphWeight',
-	motionblur: 'MotionBlur',
-	paintblob: 'PaintBlob',
-	pbr: 'PBR',
-	portal: 'Portal',
-	portalrefract: 'PortalRefract',
-	portalstaticoverlay: 'PortalStaticOverlay',
-	refract: 'Refract',
-	screenspace_general: 'Screenspace_General',
-	shadow: 'Shadow',
-	shadowbuild: 'ShadowBuild',
-	shadowmodel: 'ShadowModel',
-	shatteredglass: 'ShatteredGlass',
-	showz: 'ShowZ',
-	sky_hdr: 'Sky_HDR',
-	sky_sdr: 'Sky_SDR',
-	solidenergy: 'SolidEnergy',
-	splinerope: 'SplineRope',
-	sprite: 'Sprite',
-	spritecard: 'Spritecard',
-	teeth: 'Teeth',
-	unlitgeneric: 'UnlitGeneric',
-	unlittwotexture: 'UnlitTwoTexture',
-	vertexlitgeneric: 'VertexLitGeneric',
-	videosurface: 'VideoSurface',
-	volumeclouds: 'VolumeClouds',
-	water: 'Water',
-	windowimposter: 'WindowImposter',
-	wireframe: 'Wireframe',
-	worldimposter: 'WorldImposter',
-	worldtwotextureblend: 'WorldTwoTextureBlend',
-	worldvertextransition: 'WorldVertexTransition',
-	writestencil: 'WriteStencil',
-	writez: 'WriteZ',
-};
+/** For the given type, figure out how to search for relevant files. */
+function getTypeLinkInfo(type: VmtParamType): TypeLinkInfo | undefined {
+	switch (type) {
+		case 'material': return { root: 'materials/', ext: '.vmt' };
+		case 'texture': return { root: 'materials/', ext: '.vtf' };
+		default: return;
+	}
+}
 
-const CompilerParamSchema: VmtSchema = {
-	'%tooltexture': { type: 'texture' },
-	'%keywords': { type: 'string' },
-	'%CompileBlockLOS': { type: 'bool' },
-	'%CompileClip': { type: 'bool' },
-	'%CompileDetail': { type: 'bool' },
-	'%CompileLadder': { type: 'bool' },
-	'%CompileNoDraw': { type: 'bool' },
-	'%CompileNoLight': { type: 'bool' },
-	'%CompileNonSolid': { type: 'bool' },
-	'%CompileNPCClip': { type: 'bool' },
-	'%CompilePassBullets': { type: 'bool' },
-	'%CompileSkip': { type: 'bool' },
-	'%CompileSlime': { type: 'bool' },
-	'%CompileTeam': { type: 'bool' },
-	'%CompileTrigger': { type: 'bool' },
-	'%CompileWater': { type: 'bool' },
-	'%PlayerClip': { type: 'bool' },
-};
+const RE_NEEDS_QUOTES = /[\s\n]/;
+function needsQuotes(x: string) {
+	return RE_NEEDS_QUOTES.test(x);
+}
+
+// #region Providers
 
 export class VmtSchemaHandler {
 	static _recordUri?: vscode.Uri;
 	static _record?: Record<string, VmtSchema>;
 
 	static register(ctx: vscode.ExtensionContext) {
-		this._recordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/public/assets/data/materials-strata.min.json' });
+		this._recordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/schemas/vmt/materials-strata.min.json' });
 		return new vscode.Disposable(() => {
 			if (this._record) delete this._record;
 		});
@@ -159,8 +125,6 @@ export class VmtSchemaHandler {
 	}
 }
 
-const SCHEMA_ERRORS = vscode.languages.createDiagnosticCollection('vmt-schema');
-
 export class VmtSemanticTokensProvider implements vscode.DocumentSemanticTokensProvider {
 	static register() {
 		return vscode.languages.registerDocumentSemanticTokensProvider({ language: 'sourcery.vmt' }, new this(), kvTokenLegend);
@@ -197,7 +161,7 @@ export class VmtSemanticTokensProvider implements vscode.DocumentSemanticTokensP
 		
 		let truthy = false;
 		if (target) {
-			if (prop_if) truthy = target.type === KVType.Pair ? is_truthy(target.value) : true;
+			if (prop_if) truthy = target.type === KVType.Pair ? isTruthy(target.value) : true;
 			else if (prop_has) truthy = target !== undefined;
 		}
 
@@ -327,20 +291,21 @@ export class VmtHoverProvider implements vscode.HoverProvider {
 	}
 }
 
+
 export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 	static register() {
-		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '$', '%', '"', '/', '[');
+		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '$', '%', '"', '/', '[', '/');
 	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[] | undefined> {
 		const offset = document.offsetAt(position);
-		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
+		const node = await KeyValuesCache.nodeAtCursor(document, token, offset);
 		const part = KeyValuesCache.nodePartAtCursor(node, offset);
 		
 		const node_root = await KeyValuesCache.parse(document, token);
 		const node_shader = node_root.tree.children[0];
 
-		if (node === node_shader && part === KVPart.Key) {
+		if (node === node_shader && part === KVPart.Key && context.triggerCharacter === '"') {
 			const shaderList = await VmtSchemaHandler.getShaderList();
 			const completions: vscode.CompletionItem[] = shaderList.map(x => ({ label: x }));
 			return completions;
@@ -353,11 +318,24 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 		if (!schema) return;
 
 		if (part === KVPart.Key) {
+			if (context.triggerCharacter === '/') return [];
 			const completions: vscode.CompletionItem[] = [];
 			for (const key in schema) {
 				if (!key.startsWith(node.key)) continue;
-				const slice1 = !!context.triggerCharacter && node.key.startsWith(context.triggerCharacter);
-				completions.push({ label: key, insertText: (slice1 ? key.slice(1) : key), detail: schema[key].help });
+
+				// Create initial text replacement.
+				const param = schema[key];
+				const shouldSlice = !!context.triggerCharacter && node.key.startsWith(context.triggerCharacter);
+				const snippet = new vscode.SnippetString();
+				snippet.appendText(shouldSlice ? key.slice(1) : key);
+				
+				// Add default as placeholder
+				if (param.default) {
+					const quoted = needsQuotes(param.default);
+					snippet.appendText(' ');
+					snippet.appendPlaceholder(quoted ? '"'+param.default+'"' : param.default);
+				}
+				completions.push({ label: key, insertText: snippet, detail: schema[key].help });
 			}
 			return completions;
 		}
@@ -365,8 +343,11 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 		if (part === KVPart.Value) {
 			const param = schema[node.key];
 			if (!param) return;
-			if (param.type === 'texture' || param.type === 'material') {
-				return this.getPathCompletions(node.value);
+			const linkInfo = getTypeLinkInfo(param.type);
+			if (linkInfo) {
+				const completions = await this.getPathCompletions(node.value, linkInfo.root, linkInfo.ext, linkInfo.qualifier);
+				if (param.type === 'texture') Array.prototype.push.apply(completions, BuiltinTextures);
+				return completions;
 			}
 			return [{ label: param.default! }];
 		}
@@ -381,36 +362,107 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 		}
 	}
 
-	async getPathCompletions(prefix: string, root: string='materials/', extension: string='.vtf'): Promise<vscode.CompletionItem[]> {
-		const items = await getPathAutocomplete(prefix, root);
+	async getPathCompletions(prefix: string, root: string, extension: string, qualifier?: string): Promise<vscode.CompletionItem[]> {
+		const items = await getPathAutocomplete(prefix, root, qualifier);
 		const filtered = items.filter(x => {
 			const is_file = x.kind === vscode.CompletionItemKind.File;
-			const is_vtf = (<string>x.label).endsWith(extension);
-			if (is_file) x.insertText = (<string>x.label).slice(0, -4);
-			return !is_file || is_vtf;
+			const is_type = (<string>x.label).endsWith(extension);
+			if (is_file) x.insertText = (<string>x.label).slice(0, -extension.length);
+			return !is_file || is_type;
 		});
 		return filtered;
 	}
 }
 
 export class VmtLinkProvider implements vscode.DocumentLinkProvider {
+	static register() {
+		return vscode.languages.registerDocumentLinkProvider({ language: 'sourcery.vmt' }, new this());
+	}
+	
 	async provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.DocumentLink[] | undefined> {
-		const links: vscode.DocumentLink[] = [];
-		
 		const parsed = await KeyValuesCache.parse(document, token);
-		
+		const config = vscode.workspace.getConfiguration('sourcery.vmt');
+
 		const shader_node = parsed.tree.children[0];
 		if (!shader_node || shader_node.type !== KVType.Dir) return;
+
 		const schema = await VmtSchemaHandler.getSchema(shader_node.key);
 		if (!schema) return;
 
-		for (const child of shader_node.children) {
-			if (child.type !== KVType.Pair) continue;
-			if (child.key in schema) {
+		const errors: vscode.Diagnostic[] = [];
+		const links: vscode.DocumentLink[] = [];
 
+		for (const node of shader_node.children) {
+			if (node.type !== KVType.Pair) continue;
+			const param = schema[node.key];
+			if (!param) continue;
+
+			if (node.value === 'env_cubemap') continue;
+			if (node.value.startsWith('_rt_')) continue;
+
+			const linkInfo = getTypeLinkInfo(param.type);
+			if (!linkInfo) continue;
+			const range = new vscode.Range(document.positionAt(node.value_start), document.positionAt(node.value_end));
+			const uri = this.uriFromValuePath(linkInfo, node.value);
+
+			// Failed to find file?
+			if (!await modFilesystem.gfs.stat(uri.path)) {
+				if (config.get('warnModelPath')) {
+					let link_match: RegExpMatchArray|null;
+					if (link_match = node.value.match(RE_MODEL_PATH)) errors.push({
+						severity: vscode.DiagnosticSeverity.Warning,
+						message: `Did you mean "models/props${link_match[1]}/"?`,
+						range, code: VmtActionCodes.FixModelPath
+					});
+				}
+
+				if (config.get('notFound')) errors.push({
+					severity: vscode.DiagnosticSeverity.Warning,
+					message: `Texture could not be found within game!`,
+					range
+				});
+				continue;
 			}
+
+			links.push({ range, target: uri });
 		}
 
+		LINK_ERRORS.set(document.uri, errors);
 		return links;
+	}
+
+	uriFromValuePath(linkInfo: TypeLinkInfo, value: string) {
+		if (!value.endsWith(linkInfo.ext)) value += linkInfo.ext;
+		value = linkInfo.root + value;
+		value = value.replaceAll(/[\\\/]+/g, '/');
+		return vscode.Uri.from({ scheme: 'mod', path: value });
+	}
+}
+
+export class VmtCodeActionProvider implements vscode.CodeActionProvider {
+	static register() {
+		return vscode.languages.registerCodeActionsProvider({ language: 'sourcery.vmt' }, new this());
+	}
+	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): (vscode.CodeAction | vscode.Command)[] {
+		const actions = new Array<vscode.CodeAction>();
+		for (const d of context.diagnostics) {
+			if (d.code === VmtActionCodes.FixModelPath) {
+				const edit = new vscode.WorkspaceEdit();
+				const initial = new vscode.Range(d.range.start, d.range.start);
+				edit.replace(document.uri, initial, 'models/');
+				actions.push({
+					title: "Prepend 'models/' to path",
+					kind: vscode.CodeActionKind.QuickFix,
+					edit: edit
+				});
+			}
+		}
+		return actions;
+	}
+}
+
+export class VmtFormattingProvider implements vscode.DocumentFormattingEditProvider {
+	async provideDocumentFormattingEdits(document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): Promise<vscode.TextEdit[]> {
+		throw new Error('Method not implemented.');
 	}
 }

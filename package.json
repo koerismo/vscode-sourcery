@@ -34,21 +34,45 @@
 		"languages": [
 			{
 				"id": "sourcery.keyvalues",
-				"aliases": [ "KeyValues", "kv" ],
-				"extensions": [ ".kv", ".vdf", ".vmf", "vmx" ],
-				"filenames": [ "gameinfo.txt", "config.cfg", "panorama.cfg" ],
+				"aliases": [
+					"KeyValues",
+					"kv"
+				],
+				"extensions": [
+					".kv",
+					".vdf",
+					".vmf",
+					"vmx"
+				],
+				"filenames": [
+					"gameinfo.txt",
+					"config.cfg",
+					"panorama.cfg"
+				],
 				"configuration": "./langs/kv-language-configuration.json"
 			},
 			{
 				"id": "sourcery.vmt",
-				"aliases": [ "Valve Material", "Source Material", "vmt" ],
-				"extensions": [ ".vmt" ],
+				"aliases": [
+					"Valve Material",
+					"Source Material",
+					"vmt"
+				],
+				"extensions": [
+					".vmt"
+				],
 				"configuration": "./langs/kv-language-configuration.json"
 			},
 			{
 				"id": "sourcery.qc",
-				"aliases": [ "Valve QC", "qc" ],
-				"extensions": [ ".qc", ".qci" ],
+				"aliases": [
+					"Valve QC",
+					"qc"
+				],
+				"extensions": [
+					".qc",
+					".qci"
+				],
 				"configuration": "./langs/kv-language-configuration.json"
 			}
 		],
@@ -213,15 +237,26 @@
 					"type": "integer",
 					"default": 2048,
 					"enum": [
-						0,    32,   64,
-						128,  256,  512,
-						1024, 2048, 4096
+						0,
+						32,
+						64,
+						128,
+						256,
+						512,
+						1024,
+						2048,
+						4096
 					],
 					"enumItemLabels": [
 						"None",
-						"32x",   "64x",  "128x",
-						"256x",  "512x", "1024x",
-						"2048x", "4096x"
+						"32x",
+						"64x",
+						"128x",
+						"256x",
+						"512x",
+						"1024x",
+						"2048x",
+						"4096x"
 					]
 				},
 				"sourcery.vmt.convertOnPasteResizeTooltexture": {
@@ -230,16 +265,24 @@
 					"default": 256,
 					"enum": [
 						0,
-						32,  64,  128,
-						256, 512, 1024
+						32,
+						64,
+						128,
+						256,
+						512,
+						1024
 					],
 					"enumItemLabels": [
 						"None",
-						"32x",  "64x",  "128x",
-						"256x", "512x", "1024x"
+						"32x",
+						"64x",
+						"128x",
+						"256x",
+						"512x",
+						"1024x"
 					]
 				},
-				"sourcery.vmt.modelPath": {
+				"sourcery.vmt.warnModelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
 					"default": true
@@ -268,20 +311,21 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
+		"@rollup/plugin-typescript": "^12.1.2",
 		"@types/glob": "^8.1.0",
 		"@types/json-schema": "^7.0.15",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "~22.15.26",
+		"@types/node": "~22.15.30",
 		"@types/three": "^0.166.0",
-		"@types/vscode": "^1.97.0",
+		"@types/vscode": "^1.100.0",
 		"@typescript-eslint/eslint-plugin": "^5.62.0",
 		"@typescript-eslint/parser": "^5.62.0",
 		"@vscode/codicons": "^0.0.36",
 		"@vscode/test-electron": "^2.5.2",
-		"@vscode/vsce": "^3.4.2",
+		"@vscode/vsce": "^3.5.0",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
 		"@vscode/windows-registry": "^1.1.0",
-		"@webgpu/types": "^0.1.54",
+		"@webgpu/types": "^0.1.61",
 		"crc-32": "^1.2.2",
 		"css-loader": "^7.1.2",
 		"eslint": "^8.57.1",
@@ -295,15 +339,17 @@
 		"node-gyp": "^11.2.0",
 		"node-loader": "^2.1.0",
 		"raw-loader": "^4.0.2",
-		"sfs-js": "link:..\\sfs-js",
+		"rollup": "^4.42.0",
+		"sfs-js": "link:../sfs-js",
 		"source-engine-model-loader": "github:gkjohnson/source-engine-model-loader",
 		"stupid-buffer": "^1.0.3",
 		"style-loader": "^4.0.0",
 		"three": "^0.166.1",
 		"ts-loader": "^9.5.2",
-		"typescript": "^5.7.3",
-		"vtf-js": "link:/Users/jadon/Documents/GitHub/vtf-js",
-		"webpack": "^5.98.0",
+		"tslib": "^2.8.1",
+		"typescript": "^5.8.3",
+		"vtf-js": "link:../vtf-js",
+		"webpack": "^5.99.9",
 		"webpack-cli": "^5.1.4"
 	},
 	"dependencies": {

@@ -189,8 +189,9 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		return { tree: root, tokens: tokens.build() };
 	}
 
-	static async nodeAtOffset(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number) {
+	static async nodeAtOffset(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number, allowEndChar=false) {
 		const root = await this.parse(doc, cancelToken);
+		const o = +!!allowEndChar;
 		
 		// Locate position in node tree.
 		let dir: KVSetRanged = root.tree;
@@ -199,13 +200,15 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 			// Search through children to find a child whose bounds cover the position
 			for (const child of dir.children) {
 				if (child.type === KVType.Dir) {
-					if (child.key_start > offset || child.content_end < offset) continue;
+					if (offset < child.key_start || offset >= child.content_end+o) continue;
 					dir = child;
 					continue main; // Found the container, keep searching within
 				}
 				else {
-					const has_query = child.query_end && child.query_start;
-					if (child.key_start > offset || (has_query ? child.query_end : child.value_end) < offset) continue;
+					const has_query = child.query_start && child.query_end;
+					const has_value = child.value_start && child.value_end;
+					const kv_end = has_value ? (has_query ? child.query_end : child.value_end) : child.key_end;
+					if (offset < child.key_start || offset >= kv_end+o) continue;
 					return child; // Found the active KV, drop everything
 				}
 			}
@@ -228,6 +231,10 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		if (pos >= node.value_start && pos < node.value_end+o) return KVPart.Value;
 		if (node.query_start && node.query_end && pos >= node.query_start && pos < node.query_end+o) return KVPart.Query;
 		return KVPart.None;
+	}
+
+	static async nodeAtCursor(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number) {
+		return this.nodeAtOffset(doc, cancelToken, offset, true);
 	}
 
 	static nodePartAtCursor(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number) {
