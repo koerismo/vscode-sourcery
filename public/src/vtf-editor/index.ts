@@ -1,3 +1,5 @@
+import type { VImageData, VPixelArray } from 'vtf-js';
+
 console.log('Starting up Vtf preview webview...');
 
 let image: ImageData|null = null;
@@ -8,7 +10,8 @@ type ViewerUpdate = {
 	type: 'update';
 	width: number;
 	height: number;
-	data: Uint8Array;
+	data: ArrayBufferLike;
+	dataType: 'Uint8Array' | 'Uint16Array' | 'Float32Array';
 
 	format: string;
 	version: number;
@@ -20,6 +23,17 @@ type ViewerUpdate = {
 	type: 'error';
 	message: string;
 };
+
+// function makeImageData(image: VImageData, rgb: boolean, alpha: boolean, hdr: boolean, exposure: number) {
+// 	const out = new Uint8ClampedArray(image.data.length);
+// 	for (let i=0; i<out.length; i+=4) {
+// 		out[i]   = image.data[i],
+// 		out[i+1] = image.data[i+1],
+// 		out[i+2] = image.data[i+2],
+// 		out[i+3] = image.data[i+2];
+// 	}
+// 	return new ImageData(out, image.width, image.height);
+// }
 
 function removeAlpha(image: ImageData): ImageData {
 	const out = new Uint8ClampedArray(image.data.length);
@@ -104,6 +118,11 @@ class ViewManager {
 	}
 }
 
+function multiplyData(x: VPixelArray, amount: number) {
+	for (let i=0; i<x.length; i++)
+		x[i] *= amount;
+}
+
 window.onmessage = (message: MessageEvent<ViewerUpdate>) => {
 	const update = message.data;
 
@@ -113,7 +132,14 @@ window.onmessage = (message: MessageEvent<ViewerUpdate>) => {
 	}
 
 	if (update.type === 'update') {
-		image = new ImageData(new Uint8ClampedArray(update.data), update.width, update.height);
+		let dataSource: ArrayBufferLike | Uint16Array | Float32Array = update.data;
+		switch (update.dataType) {
+			case 'Uint8Array': break;
+			case 'Uint16Array': { dataSource = new Uint16Array(update.data); break; }
+			case 'Float32Array': { dataSource = new Float32Array(update.data); multiplyData(dataSource, 255); break; }
+		}
+
+		image = new ImageData(new Uint8ClampedArray(<ArrayBuffer>dataSource), update.width, update.height);
 		ViewManager.setImage(image);
 		document.querySelector<HTMLElement>('#info-version')!.innerText = '7.' + update.version;
 		document.querySelector<HTMLElement>('#info-size')!.innerText = update.width + 'x' + update.height;

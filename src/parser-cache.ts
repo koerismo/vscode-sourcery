@@ -10,9 +10,10 @@ export function ParserCache<T>() {
 		}
 
 		static onDocumentClosed(document: TextDocument) {
-			outConsole.log('Freeing document...');
 			const key = document.uri.toString(true);
-			if (key in this.cache) delete this.cache[key];
+			if (!(key in this.cache)) return;
+			delete this.cache[key];
+			// outConsole.log('Freeing document...');
 		}
 
 		static async parse(document: TextDocument, token: CancellationToken) {
@@ -20,14 +21,13 @@ export function ParserCache<T>() {
 			const entry = this.cache[key] ?? (this.cache[key] = { version: -1, value: null! });
 
 			if (!entry.value || entry.version < document.version) {
-				const startTime = performance.now();
-				const startMem = process.memoryUsage();
+				// const startTime = performance.now();
+				// const startMem = process.memoryUsage();
 				entry.value = await this._parse(document, token);
 				entry.version = document.version;
-				const endTime = performance.now();
-				const endMem = process.memoryUsage();
-				outConsole.log(`Parsed document (${document.lineCount} lines) in ${Math.round(endTime - startTime)}ms! Used ${(endMem.heapUsed - startMem.heapUsed) / 1_000_000} mb`);
-				
+				// const endTime = performance.now();
+				// const endMem = process.memoryUsage();
+				// outConsole.log(`Parsed document (${document.lineCount} lines) in ${Math.round(endTime - startTime)}ms! Used ${(endMem.heapUsed - startMem.heapUsed) / 1_000_000} mb`);
 			}
 
 			return entry.value;

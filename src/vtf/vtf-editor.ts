@@ -58,14 +58,14 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
-		try {
-			const vtf = await document.getVtf();
+		document.getVtf().then(vtf => {
 			const image = vtf.data.getImage(0, 0, 0, 0);
 			webviewPanel.webview.postMessage({
 				type: 'update',
 				width: image.width,
 				height: image.height,
-				data: image.data,
+				data: image.data.buffer,
+				dataType: image.data.constructor.name,
 				version: vtf.version,
 				format: VFormats[vtf.format],
 				mipmaps: vtf.data.mipmapCount(),
@@ -73,10 +73,9 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 				faces: vtf.data.faceCount(),
 				slices: vtf.data.sliceCount(),
 			});
-		}
-		catch(e) {
+		}).catch(e => {
 			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });
 			console.error(e);
-		}
+		});
 	}
 }

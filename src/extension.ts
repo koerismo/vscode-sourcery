@@ -22,7 +22,7 @@ import retargetVtf from './commands/retarget-vtf.js';
 import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
-import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
+import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesSymbolProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
 import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider, VmtLinkProvider, VmtCodeActionProvider } from './vmt/vmt-document.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
@@ -61,6 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
 		KeyValuesHoverProvider.register(),
 		KeyValuesCompletionProvider.register(),
 		KeyValuesTokenProvider.register(),
+		KeyValuesSymbolProvider.register(),
 
 		// VMT extensions to KeyValues
 		VmtSchemaHandler.register(context),

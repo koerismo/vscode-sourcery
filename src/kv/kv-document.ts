@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
 import { tokenize, ParseErrors, ParseErrorsMap } from './kv-tokenizer.js';
-import { outConsole } from '../extension.js';
 import { ParserCache } from '../parser-cache.js';
 
 export const enum KVType {
@@ -279,7 +278,6 @@ export class KeyValuesTokenProvider implements vscode.DocumentSemanticTokensProv
 }
 
 export class KeyValuesCompletionProvider implements vscode.CompletionItemProvider {
-	
 	static register() {
 		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.keyvalues' }, new this());
 	}
@@ -297,5 +295,30 @@ export class KeyValuesCompletionProvider implements vscode.CompletionItemProvide
 
 	resolveCompletionItem?(item: vscode.CompletionItem, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem> {
 		throw new Error('Method not implemented.');
+	}
+}
+
+export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
+	static register() {
+		return vscode.languages.registerDocumentSymbolProvider({ language: 'sourcery.keyvalues' }, new this());
+	}
+	
+	async provideDocumentSymbols(doc: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
+		const resolveNode = (node: KVSetRanged) => {
+			const key_range = new vscode.Range(doc.positionAt(node.key_start), doc.positionAt(node.key_end));
+			const full_range = new vscode.Range(doc.positionAt(node.key_start), doc.positionAt(node.content_end));
+			const symbol = new vscode.DocumentSymbol(node.key || ' ', '', vscode.SymbolKind.Namespace, full_range, key_range);
+
+			for (let i=0; i<node.children.length; i++) {
+				const child = node.children[i];
+				if (child.type === KVType.Dir) symbol.children.push(resolveNode(child));
+			}
+
+			return symbol;
+		};
+
+		const parsed = await KeyValuesCache.parse(doc, token);
+		const symbols = resolveNode(parsed.tree).children;
+		return symbols;
 	}
 }
