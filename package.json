@@ -276,7 +276,7 @@
 		"fast-png": "^6.2.0",
 		"fast-vdf": "^2.0.5",
 		"gl-matrix": "^3.4.3",
-		"glob": "^10.4.5",
+		"glob": "^10.5.0",
 		"image-decode": "^1.2.2",
 		"mocha": "^10.8.2",
 		"node-loader": "^2.1.0",
