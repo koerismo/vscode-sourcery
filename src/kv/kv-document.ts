@@ -92,7 +92,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 			content_end: text.length,
 		};
 
-		let state = <KVState>KVState.HasNone;
+		let state: KVState = KVState.HasNone;
 		let key_start   = 0, key_end   = 0;
 		let value_start = 0, value_end = 0;
 		let query_start = 0, query_end = 0;
@@ -139,7 +139,8 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 					token_type = KVTokenType.Key;
 				}
 
-				const token_pos = doc.positionAt(start), q = +quoted;
+				const token_pos = doc.positionAt(start);
+				const q = +quoted;
 				tokens.push(token_pos.line, token_pos.character - q, end - start + q+q, token_type);
 			},
 			on_enter(start: number): void {
@@ -302,7 +303,7 @@ export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
 	static register() {
 		return vscode.languages.registerDocumentSymbolProvider({ language: 'sourcery.keyvalues' }, new this());
 	}
-	
+
 	async provideDocumentSymbols(doc: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
 		const resolveNode = (node: KVSetRanged) => {
 			const key_range = new vscode.Range(doc.positionAt(node.key_start), doc.positionAt(node.key_end));

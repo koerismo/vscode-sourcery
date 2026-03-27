@@ -1,4 +1,4 @@
-import { DiagnosticSeverity } from "vscode";
+import { DiagnosticSeverity } from 'vscode';
 
 const C_QUOTE	= 34,	S_QUOTE		= '"',
 	C_STAR		= 42,	S_STAR		= '*',
@@ -26,10 +26,13 @@ function parse_value(value: string): ValueType {
 	return num;
 }
 
-function is_term(code: number) {
+function is_space(code: number) {
 	return (
-		code === 32 || code === 9 || code === 13 || code === C_LN ||
-		code === C_BOPEN || code === C_BCLOSE );
+		code === 32 ||
+		code === 9 ||
+		code === 13 ||
+		code === C_LN
+	);
 }
 
 export const ParseErrorsMap: Record<ParseErrors, [DiagnosticSeverity, string]> = {
@@ -83,7 +86,7 @@ export function tokenize(text: string, options: ParseOptions): void {
 		const escaped = !no_escapes && text.charCodeAt(i-1) === C_ESCAPE;
 
 		// Spacing ( tab, space, \r, \n )
-		if ( c === 32 || c === 9 || c === 13 || c === C_LN ) continue;
+		if ( is_space(c) ) continue;
 
 		// Start bracket
 		if ( c === C_BOPEN && !escaped ) {
@@ -119,7 +122,7 @@ export function tokenize(text: string, options: ParseOptions): void {
 		// Single-line comment ( // )
 		if ( c  === C_SLASH && text.charCodeAt(i+1) === C_SLASH ) {
 			const start = i;
-			
+
 			i = text.indexOf(S_LN, i+1);
 			const end = i === -1 ? text.length : i;
 			options.on_comment( start, end, false );
@@ -154,7 +157,7 @@ export function tokenize(text: string, options: ParseOptions): void {
 
 			while (i < length) {
 				i++;
-				if ( is_term(text.charCodeAt(i)) && (no_escapes || text.charCodeAt(i-1) !== C_ESCAPE) ) break;
+				if ( is_space(text.charCodeAt(i)) && (no_escapes || text.charCodeAt(i-1) !== C_ESCAPE) ) break;
 			}
 
 			word_end = i;
