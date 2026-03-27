@@ -68,7 +68,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	isReady() {
-		return !!(this.gfs?.initialized);
+		return !!(this.gfs?.state);
 	}
 	
 	constructor() {
@@ -84,7 +84,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 				// Check if gameinfo exists. vscode's api throws if it doesn't find it, so we skip the whole init.
 				await vscode.workspace.fs.stat(vscode.Uri.joinPath(root, 'gameinfo.txt'));
 				outConsole.log(`Using gameinfo at '${root.fsPath}'`);
-	
+
 				this.vfs = new NodeSystem();
 				const steam_cache = findSteamCache(this.vfs);
 				this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
@@ -119,14 +119,14 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 		return (await this.gfs.readDirectory(uri.path.toLowerCase()))!;
 	}
 
-	async findFile(uri: Uri|string, qualifier?: string): Promise<string|undefined> {
+	async findFile(uri: Uri|string, qualifier?: string): Promise<string | undefined> {
 		if (typeof uri !== 'string') uri = uri.path; 
-		return this.gfs.getPath(uri.toLowerCase(), qualifier);
+		return this.gfs.getRealPath(uri.toLowerCase(), qualifier);
 	}
 
 	async findFileUri(uri: Uri|string, qualifier?: string): Promise<Uri|undefined> {
 		if (typeof uri !== 'string') uri = uri.path; 
-		const path = await this.gfs.getPath(uri.toLowerCase(), qualifier);
+		const path = await this.gfs.getRealPath(uri.toLowerCase(), qualifier);
 		if (path === undefined) return undefined;
 		return Uri.from({ path, scheme: path.includes('.vpk') ? 'vpk' : 'file' });
 	}

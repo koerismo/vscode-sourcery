@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind, DetailSpriteSize, DetailSpriteBound } from './detail-file.js';
-import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
+import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet, DumpQuotationType } from 'fast-vdf';
 import { outConsole } from '../extension.js';
 import { HOST_PORT, MountServerManager } from '../mod-server.js';
 import EditorHTML from './editor.html';
@@ -152,7 +152,7 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 		}
 		KV.back();
 		KV.exit();
-		const text = root.dump({ quote: 'auto' });
+		const text = root.dump({ quote: DumpQuotationType.Auto });
 		const buf = new TextEncoder().encode(text);
 		vscode.workspace.fs.writeFile(this.uri, buf);
 	}

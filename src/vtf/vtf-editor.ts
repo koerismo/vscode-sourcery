@@ -17,7 +17,7 @@ export class ValveTextureDocument implements vscode.CustomDocument {
 	async getVtf(allow_cache=true) {
 		if (allow_cache && this.cache !== null) return this.cache;
 		const data = await vscode.workspace.fs.readFile(this.uri);
-		return (this.cache = await Vtf.decode(data));
+		return (this.cache = await Vtf.decode(data.buffer as ArrayBuffer));
 	}
 }
 
@@ -68,10 +68,10 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 				dataType: image.data.constructor.name,
 				version: vtf.version,
 				format: VFormats[vtf.format],
-				mipmaps: vtf.data.mipmapCount(),
-				frames: vtf.data.frameCount(),
-				faces: vtf.data.faceCount(),
-				slices: vtf.data.sliceCount(),
+				mipmaps: vtf.data.getMipmapCount(),
+				frames: vtf.data.getFrameCount(),
+				faces: vtf.data.getFaceCount(),
+				slices: vtf.data.getSliceCount(),
 			});
 		}).catch(e => {
 			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });

@@ -9,7 +9,7 @@ import { ModFilesystemProvider } from './mod-mount.js';
 import { ValveTextureEditorProvider } from './vtf/vtf-editor.js';
 import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
-// import { MaterialBrowserManager } from './vmt-browser.js';
+import { MaterialBrowserManager } from './vmt/vmt-browser.js';
 
 // Set up node-native compression methods
 import './vtf/vtf-setup.js';
@@ -26,7 +26,7 @@ import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesSymbolPro
 import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider, VmtLinkProvider, VmtCodeActionProvider } from './vmt/vmt-document.js';
 // import { setupWatchConfig, startWatch } from './commands/watch.js';
 // import openVmtPreview from './commands/open-vmt-preview.js';
-// import openVmtBrowser from './commands/open-browser';
+import openVmtBrowser from './commands/open-browser.js';
 
 function formatDT() {
 	const d = new Date();
@@ -82,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// VmtAutocompleteProvider.register(context),
 		// VmtCodeActionProvider.register(context),
 		// VmtChangeListener.register(context),
-		// MaterialBrowserManager.register(context),
+		MaterialBrowserManager.register(context),
 	);
 
 	// Register auto-disposal subscriptions.
@@ -98,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
 		// vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		// vscode.commands.registerCommand('sourcery.vtf.configWatch', setupWatchConfig),
 		// vscode.commands.registerCommand('sourcery.vtf.watch', startWatch),
-		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
+		vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);
 
 	// Init message

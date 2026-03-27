@@ -5,9 +5,10 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { extname, dirname, basename, join, relative, sep } from 'path';
 import * as decodeImage from 'image-decode';
-import { Vtf, VFilters, VFlags, VFormats, VImageData, VMipmapProvider, VDataCollection } from 'vtf-js';
+import { Vtf, VFilters, VFlags, VFormats, VImageData, VDataCollection, VFrameCollection } from 'vtf-js';
 import { platform } from 'os';
 import { findDetailSource, getDetailTypes } from '../mod-details.js';
+import { VDataCollectionOptions } from 'vtf-js/dist/core/providers.js';
 
 const IS_WIN32 = platform() === 'win32';
 
@@ -57,11 +58,12 @@ const RE_TEX_METAL = /(metal|metallic)\..+$/i;
 const RE_TEX_ROUGH = /(rough|roughness)\..+$/i;
 const RE_TEX_AO = /(ao|occlusion|occ)\..+$/i;
 
-const VTF_CONVERT_OPTIONS = {
-	filter: VFilters.Triangle,
+const VTF_CONVERT_OPTIONS: Partial<VDataCollectionOptions> = {
+	resizeFilter: VFilters.Lanczos3,
 };
+
 const VTF_RESIZE_OPTIONS = {
-	filter: VFilters.Triangle
+	filter: VFilters.Lanczos3,
 };
 
 const IMAGE_EXTS = new Set([
@@ -369,8 +371,8 @@ async function convertToVtf(path: string, idealVersion: number, idealFormat: VFo
 	let vtfout: ArrayBuffer|null = null;
 	
 	if (ext === '.vtf') {
-		vtf = await Vtf.decode(buffer, false, true);
-		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer;
+		vtf = await Vtf.decode(buffer as ArrayBuffer);
+		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer as ArrayBuffer;
 		else {
 			vtf.version = idealVersion;
 			if (requireEncode) vtfout = await vtf.encode();
@@ -386,7 +388,7 @@ async function convertToVtf(path: string, idealVersion: number, idealFormat: VFo
 			has_alpha = true;
 			break;
 		}
-		const vcollection = new VMipmapProvider([[[new VImageData(image.data, image.width, image.height)]]], VTF_CONVERT_OPTIONS);
+		const vcollection = new VFrameCollection([new VImageData(image.data, image.width, image.height)], VTF_CONVERT_OPTIONS);
 		vtf = new Vtf(vcollection, {
 			version: idealVersion,
 			compression_level: idealVersion === 6 ? 5 : 0,
@@ -537,7 +539,7 @@ export class VmtChangeListener {
 					vimage = resizeIfNeeded(vimage, max_size_tt);
 				}
 				
-				const vcollection = new VDataCollection([[[[vimage]]]]);
+				const vcollection = new VFrameCollection([vimage]);
 				vtf = new Vtf(vcollection, {
 					format: ideal_format,
 					version: ideal_version,
@@ -567,7 +569,7 @@ export class VmtChangeListener {
 					im_color = resizeIfNeeded(im_color, max_size);
 				}
 				
-				const vcollection = new VMipmapProvider([[[im_color]]], VTF_CONVERT_OPTIONS);
+				const vcollection = new VFrameCollection([im_color], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted_color.vtf);
 				vtf.format = ideal_format_alpha;
 				vtf_out = await vtf.encode();
@@ -600,7 +602,7 @@ export class VmtChangeListener {
 				}
 
 				// Encode
-				const vcollection = new VMipmapProvider([[[target]]], VTF_CONVERT_OPTIONS);
+				const vcollection = new VFrameCollection([target], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted[0].vtf);
 				vtf.format = ideal_format;
 				vtf_out = await vtf.encode();
