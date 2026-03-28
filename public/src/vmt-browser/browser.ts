@@ -15,6 +15,7 @@ function vec3ToInt(r: ArrayLike<number>): number {
 export class MatBrowserClientPage {
 	public tints?: Uint32Array;
 	public thumbs?: (ImageData | undefined)[];
+	protected loaded = false;
 
 	constructor(
 		public idx: number,
@@ -22,6 +23,7 @@ export class MatBrowserClientPage {
 	) {}
 
 	setData(thumbs: (ImageDataLike | undefined)[], tints: Uint32Array) {
+		this.loaded = true;
 		this.tints = tints;
 		this.thumbs = thumbs.map(t => {
 			if (!t) return;
@@ -29,8 +31,13 @@ export class MatBrowserClientPage {
 		});
 	}
 
-	getThumb(n: number) {
-		return this.thumbs?.[n];
+	unsetData() {
+		delete this.thumbs;
+		this.loaded = false;
+	}
+
+	isLoaded() {
+		return this.loaded;
 	}
 
 	getSize() {
@@ -39,10 +46,6 @@ export class MatBrowserClientPage {
 
 	setFilter(filter: string) {
 		throw 'not implemented';
-	}
-
-	setVisible(visible: boolean) {
-
 	}
 }
 
@@ -62,7 +65,8 @@ export class MatBrowserClient {
 	ctx: CanvasRenderingContext2D;
 
 	scrollBias: number = 0.0;
-	pageImportance: number[] = [];
+	pageColumns: number[] = [];
+	pageLoadStates: Record<number, boolean> = {};
 
 	constructor(container: HTMLElement) {
 		this.container = container;
@@ -82,7 +86,7 @@ export class MatBrowserClient {
 	onResize() {
 		this.canvas.width = this.container.clientWidth;
 		this.canvas.height = this.container.clientHeight;
-		this.calcViewBounds();
+		this.calcCanvasBounds();
 		this.onScroll(false);
 		this.render();
 	}
@@ -124,17 +128,7 @@ export class MatBrowserClient {
 			}
 
 			console.timeEnd('client-page-creation');
-			this.calcViewBounds();
-			
-			setTimeout(() => {
-				console.log('Requesting pages...');
-				for (let i=0; i<this.pageList.length; i++) {
-					this.sendMessage({
-						type: 'load',
-						page: i,
-					});
-				}
-			}, 100);
+			this.calcCanvasBounds();
 
 			return;
 		}
@@ -142,24 +136,107 @@ export class MatBrowserClient {
 		if (msg.type === 'loaded') {
 			const page = this.pageList[msg.page];
 			page.setData(msg.thumbs, msg.tints);
+			this.onPageSetState(msg.page, true);
 			return;
+		}
+
+		if (msg.type === 'unloaded') {
+			this.onPageSetState(msg.page, false);
 		}
 	}
 
-	calcViewBounds() {
+	calcCanvasBounds() {
 		// TODO: Account for filtering by accumulating page sizes!
 		if (this.itemSize < 1) return;
 		this.columnCount = Math.floor(this.canvas.width / this.itemSize);
 		this.maxScrollPosition = Math.ceil(this.items.length / this.columnCount) * this.itemSize;
 		this.scrollPosition = Math.min(this.scrollPosition, this.maxScrollPosition);
 		this.innerScroll.style.height = (this.maxScrollPosition + this.canvas.height * 0.5) + 'px';
+		this.calcPageColumns();
 	}
+
+	lastDataHandled = 0;
 
 	animate() {
 		this.render();
 		this.scrollBias *= 0.98;
+
+		const curTime = Date.now();
+		if (curTime > this.lastDataHandled + 50) {
+			this.lastDataHandled = curTime;
+			this.handleDataLoading();
+		}
+
 		// console.log((this.scrollBias).toFixed(3));
 		requestAnimationFrame(this.animate.bind(this));
+	}
+
+	calcPageColumns() {
+		let rowIdx = 0;
+		let itemIdx = 0;
+
+		this.pageColumns.length = this.pageList.length;
+		const boundsList = this.pageColumns;
+
+		// Figure out starting page/idx
+		for (let i=0; i<this.pageList.length; i++) {
+			itemIdx += this.pageList[i].getSize();
+			rowIdx = Math.floor(itemIdx / this.columnCount);
+			boundsList[i] = rowIdx;
+		}
+	}
+
+	handleDataLoading() {
+		const viewMin = this.scrollPosition;
+		const viewMax = this.canvas.height + viewMin;
+
+		let viewOffsetTop = 0; //-this.itemSize;
+		let viewOffsetBottom = 0; //+this.itemSize;
+
+		const maxScrollBias = this.itemSize * 8;
+		const scrollBiasOffset = Math.min(maxScrollBias, this.scrollBias * -8);
+		// viewOffsetTop += scrollBiasOffset;
+		// viewOffsetBottom += scrollBiasOffset;
+		// console.log(scrollBiasOffset.toFixed(3));
+		if (this.scrollBias < 0) {
+			viewOffsetBottom += scrollBiasOffset;	
+		} else {
+			viewOffsetTop += scrollBiasOffset;	
+		}
+
+		let pageMin: number = 0, pageMax: number;
+
+		for (let i=0; i<this.pageList.length; i++) {
+			const page = this.pageList[i];
+			pageMax = this.pageColumns[i] * this.itemSize;
+
+			const pageVisible = (pageMax > viewMin + viewOffsetTop) && (pageMin < viewMax + viewOffsetBottom);
+			if (pageVisible !== page.isLoaded()) {
+				this.requestPageSetState(i, pageVisible);
+			}
+
+			pageMin = pageMax;
+		}
+	}
+
+	requestPageSetState(idx: number, loaded: boolean) {
+		const page = this.pageList[idx];
+		if (this.pageLoadStates[idx] === loaded) return;
+		this.pageLoadStates[idx] = loaded;
+		// if (page.isLoaded() === loaded) return;
+		console.log('Setting page', idx, 'to', loaded);
+		if (loaded) {
+			this.sendMessage({
+				type: 'load',
+				page: idx,
+			});
+		} else {
+			page.unsetData();
+		}
+	}
+
+	onPageSetState(idx: number, loaded: boolean) {
+		this.pageLoadStates[idx] = loaded;
 	}
 
 	render() {
@@ -189,8 +266,6 @@ export class MatBrowserClient {
 		for (let y=0; y<viewRowCount; y++) {
 			const yPos = y * this.itemSize - viewOffset;
 			for (let x=0; x<this.columnCount; x++) {
-				// this.ctx.fillStyle = stringifyColor(vec3ToInt([(itemIdx * 0.25) % 1, (pageIdx * 0.25) % 1, 0]));
-				// this.ctx.fillRect(x * this.itemSize, yPos, this.itemSize - 2, this.itemSize - 2);
 
 				const page = this.pageList[pageIdx];
 				if (page.thumbs && page.thumbs[itemIdx]) {
@@ -199,17 +274,16 @@ export class MatBrowserClient {
 						thumb,
 						x * this.itemSize,
 						yPos,
+						// 0,
+						// 0,
 						// this.itemSize - 2,
 						// this.itemSize - 2,
-						// 0, 0,
-						// thumb.width,
-						// thumb.height,
 					);
 				} else {
 					if (page.tints) {
 						this.ctx.fillStyle = stringifyColor(page.tints[itemIdx]);
 					} else {
-						this.ctx.fillStyle = '#f0f';
+						this.ctx.fillStyle = '#222';
 					}
 					this.ctx.fillRect(x * this.itemSize, yPos, this.itemSize - 2, this.itemSize - 2);
 				}

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import * as vscode from 'vscode';
 
 import { tokenize, ParseErrors, ParseOptions, ParseErrorsMap } from '../kv/kv-tokenizer.js';

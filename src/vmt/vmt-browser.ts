@@ -1,13 +1,15 @@
 import * as vscode from 'vscode';
-import { Vtf, VImageData } from 'vtf-js';
-import { getThumbMip } from 'vtf-js/dist/core/utils.js';
 
-import { outConsole } from '../extension.js';
+import { Vtf, VImageData } from 'vtf-js';
+import { KeyV } from 'fast-vdf';
+import { join } from 'path/posix';
+
+import { getThumbMip } from 'vtf-js/dist/core/utils.js';
 import { modFilesystem } from '../mod-mount.js';
-import { KeyV, parse as parseVdf } from 'fast-vdf';
-import { join } from 'path';
-import EditorHTML from './browser.html';
 import { HOST_PORT } from '../mod-server.js';
+import parseVdf from './lenient-parse.js';
+
+import EditorHTML from './browser.html';
 
 function vec3ToInt(r: Float32Array): number {
 	const px = (n: number) => Math.round(Math.max(0, Math.min(1, n)) * 255);
@@ -36,19 +38,19 @@ export type ServerMessage = {
 	page: number;
 	tints: Uint32Array;
 	thumbs: (ImageDataLike | undefined)[];
+} | {
+	type: 'unloaded';
+	page: number;
 };
 
 export type ClientMessage = {
+	type: 'index';
+} | {
 	type: 'load';
 	page: number;
 } | {
 	type: 'unload';
 	page: number;
-} | {
-	type: 'set-range';
-	page: number;
-	lookAhead: number;
-	lookBehind: number;
 };
 
 const enum PageState {
@@ -85,30 +87,37 @@ class MaterialBrowserPage {
 
 		const decoder = new TextDecoder();
 		this.thumbs = new Array(this.vmtPaths.length);
+		if (!this.vtfPaths) this.vtfPaths = new Array(this.vmtPaths.length);
 
-		await Promise.all(this.vmtPaths.map(async (vmtPath, vmtIdx) => {
-			if (this.stopLoading) return;
+		for (let vmtIdx=0; vmtIdx<this.vmtPaths.length; vmtIdx++) {
+			if (this.stopLoading) break;
+			this.tints[vmtIdx] = 0x000000;
 
-			const kvBuffer = await modFilesystem.gfs.readFile(vmtPath, undefined, true);
-			const kvStr = decoder.decode(kvBuffer);
-			if (this.stopLoading) return;
+			let vtfPath: string | null = this.vtfPaths[vmtIdx];
+			if (!vtfPath) {
+				const vmtPath = this.vmtPaths[vmtIdx];
+				const kvBuffer = await modFilesystem.gfs.readFile(vmtPath);
+				const kvStr = decoder.decode(kvBuffer);
 
-			try {
 				const out = parseVdf(kvStr);
 				const rootKv = out.all()[0];
+				if (!rootKv) continue;
+				if (rootKv instanceof KeyV) continue;
 
-				if (rootKv instanceof KeyV) return;
-				let vtfPath = rootKv.value('$basetexture', null);
+				vtfPath = rootKv.value('%tooltexture', null);
+				vtfPath ||= rootKv.value('$basetexture', null);
+				vtfPath ||= rootKv.value('$bumpmap', null);
+				if (!vtfPath) continue;
 
-				if (!vtfPath) return;
-				if (this.stopLoading) return;
-
-				vtfPath = join('materials', vtfPath);
+				vtfPath = join('materials', vtfPath.toLowerCase().replaceAll('\\', '/'));
 				if (!vtfPath.endsWith('.vtf')) vtfPath += '.vtf';
+				this.vtfPaths[vmtIdx] = vtfPath;
+			}
 
-				const vtfBuffer = await modFilesystem.gfs.readFile(vtfPath, undefined, true);
-				if (!vtfBuffer) return;
-
+			const vtfBuffer = await modFilesystem.gfs.readFile(vtfPath);
+			if (!vtfBuffer) continue;
+			
+			try {
 				const vtf = await Vtf.decode(vtfBuffer.buffer as ArrayBuffer);
 				this.tints[vmtIdx] = vec3ToInt(vtf.reflectivity);
 
@@ -116,16 +125,16 @@ class MaterialBrowserPage {
 				const [width, height] = vtf.data.getSize();
 
 				const desiredMip = getThumbMip(width, height, this.thumbSize);
-				if (desiredMip >= mipCount) return;
+				if (desiredMip >= mipCount) continue;
+				if (this.stopLoading) break;
 
-				const mipData = vtf.data.getImage(desiredMip, 0, 0, 0, false);
+				const mipData = vtf.data.getImage(Math.max(0, desiredMip), 0, 0, 0, false);
 				this.thumbs![vmtIdx] = mipData.decode().coerce(Uint8Array);
 			}
 			catch (e) {
 				this.tints[vmtIdx] = 0xff00ff;
 			}
-
-		}));
+		}
 
 		this.loadState = PageState.Loaded;
 
@@ -143,6 +152,10 @@ class MaterialBrowserPage {
 			this.stopLoading = true;
 			this.loadState = PageState.Unloading;
 		}
+	}
+
+	isLoaded() {
+		return this.loadState === PageState.Loaded;
 	}
 
 	getThumbs() {
@@ -216,6 +229,7 @@ export class MaterialBrowserManager {
 		let searchedCount = 1;
 
 		const walk = async (path: string) => {
+			if (path === '/materials/models') return;
 			const dir = await modFilesystem.gfs.readDirectory(path);
 			if (!dir) {
 				console.log('Attempted to traverse to bad dir:', dir);
@@ -237,7 +251,7 @@ export class MaterialBrowserManager {
 			}
 		};
 
-		await walk('materials');
+		await walk('/materials');
 		console.log('Found', out.length, 'materials with', searchedCount, 'directories searched!');
 		console.timeEnd('fetch-material-list');
 		this.pathArray = out;
@@ -277,17 +291,61 @@ export class MaterialBrowserManager {
 		return this.panel.webview.postMessage(ev);
 	}
 
+	rollingUnloadPos = 0;
+	rollingUnload = new Array<number>(16);
+
+	getUnloadRequired(newId: number): number | undefined {
+		this.rollingUnload[this.rollingUnloadPos] = newId;
+		this.rollingUnloadPos = (this.rollingUnloadPos + 1) % this.rollingUnload.length;
+		return this.rollingUnload[this.rollingUnloadPos];
+	}
+
+	getLoadedPageCount() {
+		let accum = 0;
+		for (const page of this.pageList)
+			accum += +page.isLoaded();
+		return accum;
+	}
+
 	async onMessage(ev: ClientMessage) {
 		if (ev.type === 'load') {
+			const toUnload = this.getUnloadRequired(ev.page);
+			if (toUnload !== undefined) {
+				const page = this.pageList[toUnload];
+				page.unloadFiles();
+				console.log('Unloading', toUnload);
+			}
+
+			console.log('Loading', ev.page, '...');
 			const page = this.pageList[ev.page];
+
 			await page.loadFiles();
-			this.sendMessage({
-				type: 'loaded',
-				page: ev.page,
-				thumbs: page.thumbs!,
-				tints: page.tints!,
-			});
+			if (page.isLoaded()) {
+				this.sendMessage({
+					type: 'loaded',
+					page: ev.page,
+					thumbs: page.thumbs!,
+					tints: page.tints!,
+				});
+			} else {
+				console.log('Cancelled', ev.page);
+				this.sendMessage({
+					type: 'unloaded',
+					page: ev.page,
+				});
+			}
+
+			console.log('Count:', this.getLoadedPageCount());
+			return;
 		}
+
+		// if (ev.type === 'unload') {
+		// 	console.log('Unloading', ev.page);
+		// 	const page = this.pageList[ev.page];
+		// 	page.unloadFiles();
+		// 	console.log('Count:', this.getLoadedPageCount());
+		// 	return;
+		// }
 	}
 
 	getHtml(view: vscode.Webview) {

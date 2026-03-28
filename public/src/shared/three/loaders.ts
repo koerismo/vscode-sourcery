@@ -8,8 +8,8 @@ import { assert } from './utils.js';
 import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
 declare const SourceModelLoader: typeof Three.Loader;
 
-export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
-export const SERVER_PORT = document.querySelector('head meta[name=port]')!.getAttribute('content')!;
+export const URL_ROOT = document.querySelector<HTMLMetaElement>('head meta[name=root]')!.content;
+export const SERVER_PORT = document.querySelector<HTMLMetaElement>('head meta[name=port]')!.content;
 
 export function localFetch(path: string) {
 	return fetch(`http://localhost:${SERVER_PORT}` + normalizePath(path, '', null));
@@ -72,12 +72,9 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 				pixelFormat = Three.RedFormat;
 				texType = Three.FloatType;
 				break;
-			case VFormats.I8:
-				pixelFormat = Three.LuminanceFormat;
-				break;
-			case VFormats.RGB888:
-				pixelFormat = Three.RGBFormat;
-				break;
+			// case VFormats.RGB888:
+			// 	pixelFormat = Three.RGBFormat;
+			// 	break;
 			case VFormats.RGBA8888:
 				pixelFormat = Three.RGBAFormat;
 				break;
@@ -117,7 +114,7 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 	const tex = (isCompressed ? 
 		new Three.CompressedTexture([slice as VEncodedImageData], slice.width, slice.height, <Three.CompressedPixelFormat>pixelFormat)
 		:
-		new Three.DataTexture(slice.data, slice.width, slice.height, <Three.PixelFormat>pixelFormat, texType)
+		new Three.DataTexture(slice.data as Three.TypedArray, slice.width, slice.height, <Three.PixelFormat>pixelFormat, texType)
 	);
 
 	// TODO: Use actual mipmaps!

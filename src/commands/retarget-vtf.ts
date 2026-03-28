@@ -29,7 +29,7 @@ async function retargetVtf(uri?: vscode.Uri) {
 	const file = await vscode.workspace.fs.readFile(uri);
 
 	try {
-		const vtf = await Vtf.decode(file.buffer, false, true);
+		const vtf = await Vtf.decode(file.buffer as ArrayBuffer, false);
 
 		// Version already matches? No changes necessary!
 		if (vtf.version === new_version)

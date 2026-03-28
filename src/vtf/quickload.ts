@@ -22,7 +22,7 @@ class QuickVtf {
 		const flags = view.getUint32(16, true);				// 16
 		const frameCount = view.getUint16(20, true);		// 20
 		const firstFrame = view.getInt16(22, true);			// 22
-		const reflectR = view.getFloat32()
+		// const reflectR = view.getFloat32()
 	}
 	
 	decompressMip() {

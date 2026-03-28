@@ -323,13 +323,12 @@
 		"test": "node ./out/test/runTest.js"
 	},
 	"devDependencies": {
-		"@types/glob": "^9.0.0",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "~25.5.0",
 		"@types/three": "^0.183.1",
 		"@types/vscode": "^1.110.0",
-		"@typescript-eslint/eslint-plugin": "^8.57.1",
-		"@typescript-eslint/parser": "^8.57.1",
+		"@typescript-eslint/eslint-plugin": "^8.57.2",
+		"@typescript-eslint/parser": "^8.57.2",
 		"@vscode/codicons": "^0.0.45",
 		"@vscode/test-electron": "^2.5.2",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
@@ -341,7 +340,6 @@
 		"fast-png": "^8.0.0",
 		"fast-vdf": "^3.0.0",
 		"gl-matrix": "^3.4.4",
-		"glob": "^13.0.6",
 		"image-decode": "^1.2.2",
 		"mocha": "^11.7.5",
 		"node-loader": "^2.1.0",

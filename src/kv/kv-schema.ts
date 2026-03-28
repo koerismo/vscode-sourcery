@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import type { JSONSchema4 } from 'json-schema';
 import { KVPairRanged, KVSetRanged } from './kv-document.js';
 

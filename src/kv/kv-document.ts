@@ -92,7 +92,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 			content_end: text.length,
 		};
 
-		let state: KVState = KVState.HasNone;
+		let state = KVState.HasNone as KVState;
 		let key_start   = 0, key_end   = 0;
 		let value_start = 0, value_end = 0;
 		let query_start = 0, query_end = 0;

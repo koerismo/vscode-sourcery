@@ -27,11 +27,16 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 
 	async initVpk(vpk_path: string) {
 		if (modFilesystem.isReady()) {
-			for (const provider of modFilesystem.gfs.providers) {
-				if (!(provider instanceof VpkSystem) || provider.getPath('') !== vpk_path) continue;
-				outConsole.log('Vpk already loaded by active mod. Reusing!');
-				this.cache[vpk_path] = provider;
-				return vpk_path;
+			for (const [quals, provider] of modFilesystem.gfs.providers) {
+				if (provider.kind !== 'vpk' || provider.path !== vpk_path) continue;
+				if (await provider.validate()) {
+					outConsole.log('Vpk already loaded by active mod. Reusing!');
+					this.cache[vpk_path] = provider;
+					return vpk_path;
+				} else {
+					outConsole.log('Could not validate vpk currently in-use! Creating fresh...');
+					break;
+				}
 			}
 		}
 
@@ -50,8 +55,8 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 	}
 
 	splitPath(uri: vscode.Uri) {
-		let [vpk_path, subpath] = uri.path.split('.vpk', 2);
-		return [vpk_path+'.vpk', subpath];
+		const [vpk_path, subpath] = uri.path.split('.vpk', 2);
+		return [vpk_path + '.vpk', subpath];
 	}
 
 	async getVpk(vpk_path:string) {
@@ -67,7 +72,7 @@ export class VpkFileSystemProvider implements vscode.FileSystemProvider {
 		const [vpk_path, path] = this.splitPath(uri);
 		const vpk = await this.getVpk(vpk_path);
 		const file = await vpk.stat(path);
-		if (file === undefined) throw new vscode.FileSystemError(`Failed to stat Vpk file ${path}!`);
+		if (file === undefined) throw new vscode.FileSystemError(`Failed to stat Vpk file '${path}'!`);
 		return file;
 	}
 
