@@ -1,21 +1,30 @@
 import * as vscode from 'vscode';
 
 import { Vtf, VImageData } from 'vtf-js';
+import { linearToSrgb } from 'vtf-js/dist/core/utils.js';
 import { KeyV } from 'fast-vdf';
 import { join } from 'path/posix';
 
 import { getThumbMip } from 'vtf-js/dist/core/utils.js';
 import { modFilesystem } from '../mod-mount.js';
 import { HOST_PORT } from '../mod-server.js';
-import parseVdf from './lenient-parse.js';
+import { ParsedVmt } from './vmt-parser.js';
 
 import EditorHTML from './browser.html';
 
-function vec3ToInt(r: Float32Array): number {
+function vec3ToInt(r: ArrayLike<number>): number {
 	const px = (n: number) => Math.round(Math.max(0, Math.min(1, n)) * 255);
 	return (px(r[0]) << 16)
 		| (px(r[1]) << 8)
 		| (px(r[2]));
+}
+
+function makeHexColor(r: ArrayLike<number>): number {
+	return vec3ToInt([
+		linearToSrgb(r[0]),
+		linearToSrgb(r[1]),
+		linearToSrgb(r[2]),
+	]);
 }
 
 export type ImageDataLike = {
@@ -93,20 +102,18 @@ class MaterialBrowserPage {
 			if (this.stopLoading) break;
 			this.tints[vmtIdx] = 0x000000;
 
-			let vtfPath: string | null = this.vtfPaths[vmtIdx];
+			let vtfPath: string | undefined = this.vtfPaths[vmtIdx];
 			if (!vtfPath) {
 				const vmtPath = this.vmtPaths[vmtIdx];
 				const kvBuffer = await modFilesystem.gfs.readFile(vmtPath);
 				const kvStr = decoder.decode(kvBuffer);
 
-				const out = parseVdf(kvStr);
-				const rootKv = out.all()[0];
-				if (!rootKv) continue;
-				if (rootKv instanceof KeyV) continue;
-
-				vtfPath = rootKv.value('%tooltexture', null);
-				vtfPath ||= rootKv.value('$basetexture', null);
-				vtfPath ||= rootKv.value('$bumpmap', null);
+				const rootKv = ParsedVmt.parse(kvStr);
+				vtfPath =
+					rootKv.value('%tooltexture') ||
+					rootKv.value('$basetexture') ||
+					rootKv.value('$flowmap') ||
+					rootKv.value('$bumpmap');
 				if (!vtfPath) continue;
 
 				vtfPath = join('materials', vtfPath.toLowerCase().replaceAll('\\', '/'));
@@ -116,10 +123,10 @@ class MaterialBrowserPage {
 
 			const vtfBuffer = await modFilesystem.gfs.readFile(vtfPath);
 			if (!vtfBuffer) continue;
-			
+
 			try {
 				const vtf = await Vtf.decode(vtfBuffer.buffer as ArrayBuffer);
-				this.tints[vmtIdx] = vec3ToInt(vtf.reflectivity);
+				this.tints[vmtIdx] = makeHexColor(vtf.reflectivity);
 
 				const mipCount = vtf.data.getMipmapCount();
 				const [width, height] = vtf.data.getSize();

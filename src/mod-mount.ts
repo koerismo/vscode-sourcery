@@ -4,8 +4,8 @@ import { GameSystem, ReadableFileSystem, SteamCache } from 'sfs-js';
 import { NodeSystem } from 'sfs-js/dist/fs.node.js';
 
 import { GetStringRegKey } from '@vscode/windows-registry';
-import { platform as getPlatform } from 'os';
-import { join, posix, resolve } from 'path';
+import { platform as getPlatform } from 'node:os';
+import { join, posix, resolve } from 'node:path';
 import { outConsole } from './extension.js';
 
 export async function getPathAutocomplete(path: string, prefix: string, qualifier?: string): Promise<vscode.CompletionItem[]> {

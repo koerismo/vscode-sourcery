@@ -5,5 +5,5 @@ import { VCompressionMethods, registerCodec, VFormats, VEncodedImageData, VImage
 // import * as dxt from 'dxt';
 // const DXT_COMMON = dxt.kColourIterativeClusterFit | dxt.kColourMetricUniform;
 
-import 'vtf-js/dist/addons/compress/node.js';
-import 'vtf-js/dist/addons/squish.js';
+// import 'vtf-js/dist/addons/compress/node.js';
+// import 'vtf-js/dist/addons/squish.js';

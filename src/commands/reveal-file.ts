@@ -1,5 +1,5 @@
-import { platform } from 'os';
-import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import { platform } from 'node:os';
+import { ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { modFilesystem } from '../mod-mount.js';
 
 export function revealFile(path: string) {

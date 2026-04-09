@@ -30,9 +30,9 @@
 - The material preview has been disabled for the time being due to in-game innacuracy.
 - On Windows, the model name updater may use incorrectly-formatted paths. 
 - The model skin editor is nonfunctional at this time.
-- VPKs will occasionally fail operations on first load. If a VPK appears empty or broken or a model fails to copy, try it again!
-- When converting VTFs, the dxt-js library tends to leak memory. This leads to extraneous data being written to converted/retargeted files.
-- `mount.cfg` files will not contribute mounts to the project.
+- ~~VPKs will occasionally fail operations on first load. If a VPK appears empty or broken or a model fails to copy, try it again!~~
+- ~~When converting VTFs, the dxt-js library tends to leak memory. This leads to extraneous data being written to converted/retargeted files.~~
+- ~~`mount.cfg` files will not contribute mounts to the project.~~
 
 ## Dependencies
 

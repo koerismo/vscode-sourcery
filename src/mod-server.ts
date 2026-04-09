@@ -1,4 +1,4 @@
-import { Server, createServer } from 'http';
+import { Server, createServer } from 'node:http';
 import { modFilesystem } from './mod-mount.js';
 import { ExtensionContext, Uri } from 'vscode';
 import { outConsole } from './extension.js';

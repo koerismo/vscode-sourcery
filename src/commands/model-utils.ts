@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { join, normalize, relative, parse, resolve } from 'path';
-import { platform } from 'os';
+import { join, normalize, relative, parse, resolve } from 'node:path';
+import { platform } from 'node:os';
 
 import { modFilesystem } from '../mod-mount.js';
 import { outConsole } from '../extension.js';
