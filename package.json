@@ -255,6 +255,22 @@
 					"description": "Enables multi-line /* comments */ in KeyValues files.",
 					"type": "boolean",
 					"default": false
+				},
+				"sourcery.keyvalues.formatter.opinionatedQuotes": {
+					"description": "If enabled, prefers unquoted keys and quoted values where applicable.",
+					"type": "boolean",
+					"default": true
+				},
+				"sourcery.keyvalues.formatter.braceStyle": {
+					"description": "The brace style for formatting.",
+					"type": "string",
+					"enum": ["Allman", "Whitesmiths", "K&R"],
+					"markdownEnumDescriptions": [
+						"```\nkey\n{\n\tabc 123\n}\n```",
+						"```\nkey\n\t{\n\tabc 123\n\t}\n```",
+						"```\nkey {\n\tabc 123\n}\n```"
+					],
+					"default": "K&R"
 				}
 			}
 		}

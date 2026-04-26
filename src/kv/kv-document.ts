@@ -437,16 +437,18 @@ export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEdi
 		const textEdits: vscode.TextEdit[] = [];
 		const indentChar = (options.insertSpaces ? ' '.repeat(options.tabSize) : '\t');
 
-		const enableQuoteFormatting = true;
+		const vscConfig = vscode.workspace.getConfiguration('sourcery.keyvalues.formatter', document.uri);
+		const enableQuoteFormatting = vscConfig.get<boolean>('opinionatedQuotes', true);
+		const braceStyle = vscConfig.get<'K&R'|'Whitesmiths'|'Allman'>('braceStyle', 'K&R');
 
 		// Cache current indent str for perf
 		let _prevIndentLevel = 0;
 		let _prevIndentStr = '';
 
-		const getIndentStr = () => {
-			if (indentLevel === _prevIndentLevel) return _prevIndentStr;
-			_prevIndentLevel = indentLevel;
-			return (_prevIndentStr = indentChar.repeat(indentLevel));
+		const getIndentStr = (ind: number=indentLevel) => {
+			if (ind === _prevIndentLevel) return _prevIndentStr;
+			_prevIndentLevel = ind;
+			return (_prevIndentStr = indentChar.repeat(ind));
 		}
 
 		let tokenLine = 0;
@@ -526,9 +528,17 @@ export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEdi
 
 				case KVTokenType.BracketOpen: {
 					if (prevTokenType !== KVTokenType.CommentLine) {
+						const newText =
+							braceStyle === 'K&R'
+								? ' '
+								: '\n' + getIndentStr(
+										indentLevel +
+											+(braceStyle === 'Whitesmiths')
+									);
+
 						textEdits.push({
 							range: spaceBetweenPrevToken,
-							newText: ' ',
+							newText,
 						});
 					}
 					indentLevel ++;
@@ -539,7 +549,14 @@ export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEdi
 					if (indentLevel > 0) indentLevel --;
 					let spacingText = document.getText(spaceBetweenPrevToken);
 					spacingText = trimLastNewLine(spacingText);
-					if (tokenLine) spacingText += '\n' + getIndentStr();
+
+					if (tokenLine) {
+						spacingText +=
+							'\n' +
+							getIndentStr(
+								indentLevel + +(braceStyle === 'Whitesmiths'),
+							);
+					}
 
 					textEdits.push({
 						range: spaceBetweenPrevToken,

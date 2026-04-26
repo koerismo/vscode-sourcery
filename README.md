@@ -40,6 +40,6 @@
 
 ## Dependencies
 
-- This project relies on StefanH's Source Engine vscode extension to register the formats that sourcery supplies with autocompletion and syntax highlighting.
-- This project use's gkjohnson's `source-engine-model-loader` plugin for three.js. This is intended for the detail editor and model preview, neither of which are considered ready for integration as of v0.0.6.
+- ~~This project relies on StefanH's Source Engine vscode extension to register the formats that sourcery supplies with autocompletion and syntax highlighting.~~
+- ~~This project use's gkjohnson's `source-engine-model-loader` plugin for three.js. This is intended for the detail editor and model preview, neither of which are considered ready for integration as of v0.0.6.~~
 - Some parsing code has been adapted from other projects. Wherever this is the case, a comment linking back to the original code will be present.
