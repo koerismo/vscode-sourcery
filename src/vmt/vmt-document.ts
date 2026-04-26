@@ -470,7 +470,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 					});
 				}
 
-				if (config.get('notFound')) errors.push({
+				if (config.get('warnNotFound')) errors.push({
 					severity: vscode.DiagnosticSeverity.Warning,
 					message: `Texture could not be found within game!`,
 					range
@@ -512,11 +512,5 @@ export class VmtCodeActionProvider implements vscode.CodeActionProvider {
 			}
 		}
 		return actions;
-	}
-}
-
-export class VmtFormattingProvider implements vscode.DocumentFormattingEditProvider {
-	async provideDocumentFormattingEdits(document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): Promise<vscode.TextEdit[]> {
-		throw new Error('Method not implemented.');
 	}
 }

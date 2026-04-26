@@ -24,12 +24,17 @@ export abstract class ParserCache<T> implements Disposable {
 		const key = document.uri.toString(true);
 		const entry = this.cache[key] ?? (this.cache[key] = { version: -1, value: null! });
 
-		if (!entry.value || entry.version < document.version) {
+		if (!entry.value || entry.version < document.version || this._isDocumentStale(document, entry.value)) {
 			entry.value = await this._parse(document, token);
 			entry.version = document.version;
 		}
 
 		return entry.value;
+	}
+
+	/** Return true if the document needs to be updated by means other than the user's edits. */
+	_isDocumentStale(document: TextDocument, current: T): boolean {
+		return false;
 	}
 
 	_parse(document: TextDocument, token: CancellationToken): T | Promise<T> {

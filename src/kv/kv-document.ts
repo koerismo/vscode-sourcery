@@ -54,6 +54,10 @@ export interface KVSetRanged extends KVRootRanged {
 
 export type KVAnyRanged = KVRootRanged | KVSetRanged | KVPairRanged;
 
+function hashConfig(config: { escapes: boolean, multilines: boolean }) {
+	return +config.escapes << 1 | +config.multilines;
+}
+
 const C_SQOPEN = 91, C_SQCLOSE = 93;
 
 export const enum KVState {
@@ -70,16 +74,32 @@ export const enum KVTokenType {
 	Query,
 	Command,
 	CommentLine,
-	CommentBlock
+	CommentBlock,
+	BracketOpen,
+	BracketClose,
 }
 
 export const kvTokenLegend = new vscode.SemanticTokensLegend(
-	['variable', 'string', 'keyword.control', 'meta.preprocessor', 'constant.numeric', 'comment.line', 'comment.block'],
+	['variable', 'string', 'keyword.control', 'meta.preprocessor', 'constant.numeric', 'comment.line', 'comment.block', 'variable', 'variable'],
 );
 
 const TOKEN_ERRORS = vscode.languages.createDiagnosticCollection('kv-tokenizer');
 
-class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.SemanticTokens }> {
+interface KeyValuesCacheEntry {
+	tree: KVSetRanged;
+	tokens: vscode.SemanticTokens;
+	configHash: number
+};
+
+class KeyValuesCache extends ParserCache<KeyValuesCacheEntry> {
+	getDocumentConfig(uri: vscode.Uri): { escapes: boolean, multilines: boolean } {
+		const vscConfig = vscode.workspace.getConfiguration('sourcery.keyvalues', uri);
+		return {
+			escapes: vscConfig.get<boolean>('escapes') ?? false,
+			multilines: vscConfig.get<boolean>('multilines') ?? false,
+		}
+	}
+
 	async _parse(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken) {
 		const text = doc.getText();
 		const errors: vscode.Diagnostic[] = [];
@@ -100,6 +120,8 @@ class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.Sem
 		let key_start   = 0, key_end   = 0;
 		let value_start = 0, value_end = 0;
 		let query_start = 0, query_end = 0;
+
+		const vscConfig = this.getDocumentConfig(doc.uri);
 
 		const push_kv = () => { node.children.push({
 			type: KVType.Pair,
@@ -154,6 +176,9 @@ class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.Sem
 				const child: KVSetRanged = { type: KVType.Dir, key_start, key_end, key: text.slice(key_start, key_end), content_start: start, content_end: 0, children: [], parent: node };
 				node.children.push(child);
 				node = child;
+
+				const token_pos = doc.positionAt(start);
+				tokens.push(token_pos.line, token_pos.character, 1, KVTokenType.BracketOpen);
 			},
 
 			on_exit(start: number): void {
@@ -163,6 +188,9 @@ class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.Sem
 				node.content_end = start + 1;
 				if (node.parent === undefined) push_err(start, start+1, ParseErrors.ExtraBracket);
 				else node = node.parent;
+
+				const token_pos = doc.positionAt(start);
+				tokens.push(token_pos.line, token_pos.character, 1, KVTokenType.BracketClose);
 			},
 
 			on_error(start: number, end: number, err: ParseErrors): void {
@@ -177,8 +205,8 @@ class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.Sem
 				tokens.push(token_pos.line, token_pos.character, end - start, token_type);
 			},
 
-			escapes: false,
-			multilines: true,
+			escapes: vscConfig.escapes,
+			multilines: vscConfig.multilines,
 			state_cancel: false
 		};
 
@@ -190,7 +218,12 @@ class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.Sem
 			TOKEN_ERRORS.set(doc.uri, errors);
 		}
 
-		return { tree: root, tokens: tokens.build() };
+		return { tree: root, tokens: tokens.build(), configHash: hashConfig(config) };
+	}
+
+	_isDocumentStale(document: vscode.TextDocument, entry: KeyValuesCacheEntry) {
+		const configHash = hashConfig(this.getDocumentConfig(document.uri));
+		return (configHash !== entry.configHash);
 	}
 
 	async nodeAtOffset(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number, allowEndChar=false) {
@@ -367,5 +400,164 @@ export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
 		const parsed = await keyValuesCache.parse(doc, token);
 		const symbols = resolveNode(parsed.tree).children;
 		return symbols;
+	}
+}
+
+// Just because it CAN be unquoted doesn't mean it should be...
+// Only unquote things that look like words.
+const RE_WORDLIKE = /^[$%!]*[\w\-]+$/;
+
+function trimLastNewLine(str: string): string {
+	const idx = str.lastIndexOf('\n');
+	if (idx === -1) return str;
+	return str.slice(0, idx);
+}
+
+function isQuoteableValue(v: string) {
+	if (v[0] === '"') return false;
+	if (v === 'true' || v === 'false') return false;
+	if (!isNaN(+v)) return false;
+	return true;
+}
+
+function isDequotableKey(word: string): boolean {
+	const hasQuotes = word[0] === '"';
+	if (!hasQuotes) return false;
+	return RE_WORDLIKE.test(word.slice(1, -1));
+}
+
+export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEditProvider {
+	static register() {
+		return vscode.languages.registerDocumentFormattingEditProvider(keyValuesLanguages, new this());
+	}
+
+	async provideDocumentFormattingEdits(document: vscode.TextDocument, options: vscode.FormattingOptions, token: vscode.CancellationToken): Promise<vscode.TextEdit[]> {
+		const parsed = await keyValuesCache.parse(document, token);
+		const tokenData = parsed.tokens.data;
+		const textEdits: vscode.TextEdit[] = [];
+		const indentChar = (options.insertSpaces ? ' '.repeat(options.tabSize) : '\t');
+
+		const enableQuoteFormatting = true;
+
+		// Cache current indent str for perf
+		let _prevIndentLevel = 0;
+		let _prevIndentStr = '';
+
+		const getIndentStr = () => {
+			if (indentLevel === _prevIndentLevel) return _prevIndentStr;
+			_prevIndentLevel = indentLevel;
+			return (_prevIndentStr = indentChar.repeat(indentLevel));
+		}
+
+		let tokenLine = 0;
+		let tokenStartChar = 0;
+		
+		let indentLevel = 0;
+		let prevTokenLine = 0;
+		let prevTokenEndChar = 0;
+		let prevTokenType = -1;
+
+		for (let t=0, idx=0; idx<tokenData.length; t++, idx+=5) {
+			const deltaLine      = tokenData[idx];
+			const deltaChar      = tokenData[idx + 1];
+			const tokenLength    = tokenData[idx + 2];
+			const tokenType      = tokenData[idx + 3];
+
+			if (deltaLine) {
+				tokenLine += deltaLine;
+				tokenStartChar = deltaChar;
+			} else {
+				tokenStartChar += deltaChar;
+			}
+
+			const spaceBetweenPrevToken = new vscode.Range(
+				prevTokenLine, prevTokenEndChar,
+				tokenLine, tokenStartChar,
+			);
+			
+			const spaceOfToken = new vscode.Range(
+				tokenLine, tokenStartChar,
+				tokenLine, tokenStartChar + tokenLength,
+			);
+
+			switch (tokenType) {
+				case KVTokenType.Key: {
+					let spacingText = document.getText(spaceBetweenPrevToken);
+					spacingText = trimLastNewLine(spacingText);
+					if (tokenLine) spacingText += '\n' + getIndentStr();
+
+					textEdits.push({
+						range: spaceBetweenPrevToken,
+						newText: spacingText,
+					});
+					
+					if (enableQuoteFormatting) {
+						const tokenText = document.getText(spaceOfToken);
+						const canRemoveQuotes = isDequotableKey(tokenText);
+						if (canRemoveQuotes) {
+							textEdits.push({
+								range: spaceOfToken,
+								newText: tokenText.slice(1, -1),
+							});
+						}
+					}
+					
+					break;
+				}
+
+				case KVTokenType.Value: {
+					if (prevTokenType !== KVTokenType.CommentLine) {
+						textEdits.push({
+							range: spaceBetweenPrevToken,
+							newText: ' ',
+						});
+					}
+					if (enableQuoteFormatting) {
+						const tokenText = document.getText(spaceOfToken);
+						const canAddQuotes = isQuoteableValue(tokenText);
+						if (canAddQuotes) {
+							textEdits.push({
+								range: spaceOfToken,
+								newText: '"' + tokenText + '"',
+							});
+						}
+					}
+					break;
+				}
+
+				case KVTokenType.BracketOpen: {
+					if (prevTokenType !== KVTokenType.CommentLine) {
+						textEdits.push({
+							range: spaceBetweenPrevToken,
+							newText: ' ',
+						});
+					}
+					indentLevel ++;
+					break;
+				}
+
+				case KVTokenType.BracketClose: {
+					if (indentLevel > 0) indentLevel --;
+					let spacingText = document.getText(spaceBetweenPrevToken);
+					spacingText = trimLastNewLine(spacingText);
+					if (tokenLine) spacingText += '\n' + getIndentStr();
+
+					textEdits.push({
+						range: spaceBetweenPrevToken,
+						newText: spacingText,
+					});
+					break;
+				}
+
+				default:
+					break;
+			}
+
+			prevTokenLine = tokenLine;
+			prevTokenEndChar = tokenStartChar + tokenLength;
+			prevTokenType = tokenType;
+		}
+
+		return textEdits;
 	}
 }

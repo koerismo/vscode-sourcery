@@ -10,13 +10,17 @@
 	- VTFs will show a basic image preview when opened.
 - Model utilities
 	- When a game is mounted, models will automatically update themselves when renamed or moved.
-	- Models can be copied from mounted content into the current mod/game with the `Copy To Mod` command.
+	- Assets can be copied from any mounted game into the current mod/game with the `Copy To Mod` command.
 	- When a game is mounted, models can be compiled asynchronously when a QC is opened - without configuring studiomdl manually.
 - Material utilities
-	- Shader-aware VMT parameter autocompletion and validation.
-	- When a game is mounted, links will appear on all textures in the currently-open vmt.
-	- When a game is mounted, a basic shaded material preview can be opened through the menu.
-	- Textures will automatically be converted when pasted into a VMT. If multiple are provided, they will be merged depending on the material context. (ex. metallic/roughness/AO textures will be merged when pasting after a `$mraotexture` key.)
+	- VMT editing:
+		- Autocompletes shader types
+		- Autocompletes and validates properties, accounting for shader types.
+		- Autocompletes material proxy properties
+		- When a game is mounted, links will appear on all textures in the currently-open vmt.
+	- Game materials can be quickly browsed with the multithreaded material/texture browser.
+	- ~~Textures will automatically be converted when pasted into a VMT. If multiple are provided, they will be merged depending on the material context. (ex. metallic/roughness/AO textures will be merged when pasting after a `$mraotexture` key.)~~
+		- Removed for now. Stay tuned!
 	- Textures can be retargeted (changing their version) with a right-click action in the file tree.
 - Detail utilities
 	- When a game is mounted, detail props can be configured through the visual editor.

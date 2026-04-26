@@ -236,75 +236,25 @@
 						"~/.steam/steamapps/common/Portal 2/bin/"
 					]
 				},
-				"sourcery.vmt.convertOnPaste": {
-					"description": "Automatically convert textures when pasted into Vmts? If multiple textures are pasted at the same time, they are contextually merged.",
-					"type": "boolean",
-					"default": true
-				},
-				"sourcery.vmt.convertOnPasteOverwrite": {
-					"description": "Allow Convert-On-Paste to overwrite existing textures?",
-					"type": "boolean",
-					"default": true
-				},
-				"sourcery.vmt.convertOnPasteResize": {
-					"description": "Resize generated textures if they exceed this size.",
-					"type": "integer",
-					"default": 2048,
-					"enum": [
-						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024,
-						2048,
-						4096
-					],
-					"enumItemLabels": [
-						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x",
-						"2048x",
-						"4096x"
-					]
-				},
-				"sourcery.vmt.convertOnPasteResizeTooltexture": {
-					"description": "Resize textures generated for %tooltexture if they exceed this size.",
-					"type": "integer",
-					"default": 256,
-					"enum": [
-						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024
-					],
-					"enumItemLabels": [
-						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x"
-					]
-				},
 				"sourcery.vmt.warnModelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
 					"default": true
 				},
-				"sourcery.vmt.notFound": {
+				"sourcery.vmt.warnNotFound": {
 					"description": "Enable warnings for missing textures?",
 					"type": "boolean",
 					"default": true
+				},
+				"sourcery.keyvalues.escapes": {
+					"description": "Enables backslash escapes in KeyValues files.",
+					"type": "boolean",
+					"default": false
+				},
+				"sourcery.keyvalues.multilines": {
+					"description": "Enables multi-line /* comments */ in KeyValues files.",
+					"type": "boolean",
+					"default": false
 				}
 			}
 		}

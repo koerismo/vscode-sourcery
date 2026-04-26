@@ -15,7 +15,7 @@ import { MaterialBrowserManager } from './vmt/vmt-browser.js';
 import './vtf/vtf-setup.js';
 
 // Language defs
-import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesSymbolProvider, KeyValuesTokenProvider } from './kv/kv-document.js';
+import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesSymbolProvider, KeyValuesTokenProvider, KeyValuesFormattingProvider } from './kv/kv-document.js';
 import { KeyValuesSchemaHandler } from './kv/kv-schema.js';
 import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider, VmtLinkProvider, VmtCodeActionProvider } from './vmt/vmt-document.js';
 
@@ -63,6 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
 		KeyValuesTokenProvider.register(),
 		KeyValuesCompletionProvider.register(),
 		KeyValuesSymbolProvider.register(),
+		KeyValuesFormattingProvider.register(),
 		KeyValuesSchemaHandler.register(context),
 
 		// VMT extensions to KeyValues
