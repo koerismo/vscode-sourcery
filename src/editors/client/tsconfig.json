@@ -10,12 +10,8 @@
 		],
 		"target": "ESNext",
 		"allowJs": true,
-		"rootDir": "./src/",
-		// HACK: if webpack complains about symlinked node_modules not being in the root dir, just remove it
-		"outDir": "./dist/",
-		"strict": true
+		"strict": true,
+		"noEmit": true,
 	},
-	"include": [
-		"./src/*/index.ts"
-	],
+	"include": ["./"]
 }

@@ -1,6 +1,19 @@
 import { CompletionItem, CompletionItemKind } from 'vscode';
 import { VmtSchema } from './vmt-document.js';
 
+export const ShaderPriority: Record<string, number> = {
+	vertexlitgeneric: 0,
+	lightmappedgeneric: 0,
+	unlitgeneric: 0,
+	pbr: 0,
+	sprite: 0,
+	refract: 0,
+	worldvertextransition: 0,
+	water: 0,
+	screenspace_general: 1,
+	modulate: 1,
+}
+
 export const ShaderNames: Record<string, string> = {
 	aftershock: 'Aftershock',
 	black: 'Black',
@@ -90,4 +103,4 @@ export const BuiltinTextures: CompletionItem[] = [
 	'_rt_SmallFB1',
 	'_rt_TeenyFB%d',
 	'env_cubemap'
-].map(x => (<CompletionItem>{ label: x, kind: CompletionItemKind.Variable, sortText: '\xff'+x }));
+].map<CompletionItem>(label => ({ label, kind: CompletionItemKind.Variable, sortText: '\xff' + label }));

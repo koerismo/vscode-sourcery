@@ -24,9 +24,6 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onLanguage:sourcery.vmt",
-		"onLanguage:sourcery.qc",
-		"onLanguage:sourcery.keyvalues",
 		"workspaceContains:gameinfo.txt"
 	],
 	"main": "./dist/extension.js",
@@ -217,6 +214,11 @@
 					"type": "boolean",
 					"default": true
 				},
+				"sourcery.game.autoMountOnFile": {
+					"description": "(TODO) Automatically mount gameinfo.txt when a file is opened which exists in a game structure?",
+					"type": "boolean",
+					"default": true
+				},
 				"sourcery.game.modPath": {
 					"description": "If specified, Sourcery will mount this path as the mod root instead of the workspace root.",
 					"type": "string",
@@ -302,7 +304,7 @@
 				"sourcery.vmt.notFound": {
 					"description": "Enable warnings for missing textures?",
 					"type": "boolean",
-					"default": false
+					"default": true
 				}
 			}
 		}
@@ -310,25 +312,18 @@
 	"scripts": {
 		"vscode:prepublish": "pnpm run package",
 		"make-addon": "pnpm vsce package --no-dependencies",
-		"build": "webpack && webpack -c ./public/webpack.config.js",
-		"package": "pnpm run package-webviews && pnpm run package-addon",
-		"package-addon": "webpack --mode production --devtool hidden-source-map",
-		"package-webviews": "webpack -c ./public/webpack.config.js --mode production --devtool hidden-source-map",
-		"watch-webviews": "webpack -c ./public/webpack.config.js --watch",
-		"watch": "webpack --watch",
-		"compile-tests": "tsc -p . --outDir out",
-		"watch-tests": "tsc -p . -w --outDir out",
-		"pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
+		"build": "node build.mts",
+		"watch": "node build.mts --watch",
+		"lint": "eslint src --ext ts"
 	},
 	"devDependencies": {
+		"@types/json-schema": "^7.0.15",
 		"@types/mocha": "^10.0.10",
 		"@types/node": "~25.5.0",
 		"@types/three": "^0.183.1",
 		"@types/vscode": "^1.110.0",
-		"@typescript-eslint/eslint-plugin": "^8.57.2",
-		"@typescript-eslint/parser": "^8.57.2",
+		"@typescript-eslint/eslint-plugin": "^8.58.0",
+		"@typescript-eslint/parser": "^8.58.0",
 		"@vscode/codicons": "^0.0.45",
 		"@vscode/test-electron": "^2.5.2",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
@@ -336,6 +331,7 @@
 		"@webgpu/types": "^0.1.69",
 		"crc-32": "^1.2.2",
 		"css-loader": "^7.1.4",
+		"esbuild": "^0.28.0",
 		"eslint": "^10.1.0",
 		"fast-png": "^8.0.0",
 		"fast-vdf": "^3.0.0",
@@ -344,7 +340,7 @@
 		"mocha": "^11.7.5",
 		"node-loader": "^2.1.0",
 		"raw-loader": "^4.0.2",
-		"sfs-js": "link:..\\sfs-js",
+		"sfs-js": "link:../sfs-js",
 		"source-engine-model-loader": "github:gkjohnson/source-engine-model-loader",
 		"struxt": "^3.6.1",
 		"stupid-buffer": "^1.0.3",
@@ -352,7 +348,7 @@
 		"three": "^0.183.2",
 		"ts-loader": "^9.5.4",
 		"typescript": "^5.9.3",
-		"vtf-js": "link:..\\vtf-js",
+		"vtf-js": "link:../vtf-js",
 		"webpack": "^5.105.4",
 		"webpack-cli": "^7.0.2"
 	},

@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { outConsole } from '../extension.js';
 
-import { KeyValuesCache, KVPart, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
+import { keyValuesCache, KVPart, KVPairRanged, KVSetRanged, kvTokenLegend, KVType } from '../kv/kv-document.js';
 import { getPathAutocomplete, modFilesystem } from '../mod-mount.js';
-import { BuiltinTextures, CompilerParamSchema, ShaderNames } from './vmt-enums.js';
+import { BuiltinTextures, CompilerParamSchema, ShaderNames, ShaderPriority } from './vmt-enums.js';
 
 // #region Types
 
@@ -74,24 +74,24 @@ function needsQuotes(x: string) {
 // #region Providers
 
 export class VmtSchemaHandler {
-	static _recordUri?: vscode.Uri;
-	static _record?: Record<string, VmtSchema>;
+	static _shaderRecordUri?: vscode.Uri;
+	static _shaderRecord?: Record<string, VmtSchema>;
 
 	static register(ctx: vscode.ExtensionContext) {
-		this._recordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/schemas/vmt/materials-strata.min.json' });
+		this._shaderRecordUri = ctx.extensionUri.with({ path: ctx.extensionUri.path+'/schemas/vmt/materials-strata.min.json' });
 		return new vscode.Disposable(() => {
-			if (this._record) delete this._record;
+			if (this._shaderRecord) delete this._shaderRecord;
 		});
 	}
 
 	static async _loadSchemaMap(): Promise<Record<string, VmtSchema>> {
-		if (!this._record) {
+		if (!this._shaderRecord) {
 			const startTime = performance.now();
-			if (!this._recordUri) throw Error('VmtSchemaHandler not initialized!');
+			if (!this._shaderRecordUri) throw Error('VmtSchemaHandler not initialized!');
 			try {
-				const data = await vscode.workspace.fs.readFile(this._recordUri);
+				const data = await vscode.workspace.fs.readFile(this._shaderRecordUri);
 				const text = new TextDecoder('utf-8').decode(data);
-				this._record = JSON.parse(text);
+				this._shaderRecord = JSON.parse(text);
 				const endTime = performance.now();
 				outConsole.log(`Finished loading shader schemas in ${Math.round(endTime - startTime)}ms!`);
 			}
@@ -99,7 +99,7 @@ export class VmtSchemaHandler {
 				outConsole.error(`Failed to load Vmt schemas!`, e);
 			}
 		}
-		return this._record!;
+		return this._shaderRecord!;
 	}
 	
 	static _loadPromise: Promise<Record<string, VmtSchema>>;
@@ -119,9 +119,14 @@ export class VmtSchemaHandler {
 		return;
 	}
 
-	static async getShaderList(): Promise<string[]> {
-		const record = await this._tryLoadSchemaMap();
-		return Object.keys(record).map(x => ShaderNames[x]);
+	static getShaderList(): string[] {
+		return Object.values(ShaderNames);
+		// const record = await this._tryLoadSchemaMap();
+		// return Object.keys(record).map(x => ShaderNames[x]);
+	}
+
+	static getQuickShaderList(): string[] {
+		return Object.keys(ShaderPriority).map(key => ShaderNames[key]);
 	}
 }
 
@@ -129,9 +134,9 @@ export class VmtSemanticTokensProvider implements vscode.DocumentSemanticTokensP
 	static register() {
 		return vscode.languages.registerDocumentSemanticTokensProvider({ language: 'sourcery.vmt' }, new this(), kvTokenLegend);
 	}
-	
+
 	async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
-		const parsed = await KeyValuesCache.parse(document, token);
+		const parsed = await keyValuesCache.parse(document, token);
 
 		if (parsed.tree.children.length) {
 			const shader_kvs = parsed.tree.children[0];
@@ -267,10 +272,10 @@ export class VmtHoverProvider implements vscode.HoverProvider {
 
 	async provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.Hover | undefined> {
 		const offset = document.offsetAt(position);
-		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
-		const part = KeyValuesCache.nodePartAtOffset(node, offset);
+		const node = await keyValuesCache.nodeAtOffset(document, token, offset);
+		const part = keyValuesCache.nodePartAtOffset(node, offset);
 
-		const parsed = await KeyValuesCache.parse(document, token);
+		const parsed = await keyValuesCache.parse(document, token);
 		const shader_node = parsed.tree.children[0];
 
 		if (!shader_node) return;
@@ -292,27 +297,65 @@ export class VmtHoverProvider implements vscode.HoverProvider {
 }
 
 
-export class VmtCompletionProvider implements vscode.CompletionItemProvider {
+export class VmtCompletionProvider implements vscode.CompletionItemProvider, vscode.InlineCompletionItemProvider {
 	static register() {
-		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '$', '%', '"', '/', '[', '/');
+		const self = new this();
+		const ext = vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, self, '$', '%', '"', '/', '[');
+		const inl = vscode.languages.registerInlineCompletionItemProvider({ language: 'sourcery.vmt' }, self);
+		return new vscode.Disposable(() => {
+			ext.dispose();
+			inl.dispose();
+		});
+	}
+
+	async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionItem[] | undefined> {
+		const word = document.getWordRangeAtPosition(position);
+		if (!word) return;
+
+		const node_root = await keyValuesCache.parse(document, token);
+		const node_shader = node_root.tree.children[0];
+
+		if (document.offsetAt(word.start) == 0) {
+			const shaderList = VmtSchemaHandler.getQuickShaderList();
+			return shaderList.map<vscode.InlineCompletionItem>(x => {
+				return ({
+					label: x,
+					insertText: x,
+					range: new vscode.Range(document.positionAt(node_shader.key_start), document.positionAt(node_shader.key_end)),
+				});
+			});
+		}
+
+		return [];
 	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[] | undefined> {
 		const offset = document.offsetAt(position);
-		const node = await KeyValuesCache.nodeAtCursor(document, token, offset);
-		const part = KeyValuesCache.nodePartAtCursor(node, offset);
+		const node = await keyValuesCache.nodeAtCursor(document, token, offset);
+		const part = keyValuesCache.nodePartAtCursor(node, offset);
 		
-		const node_root = await KeyValuesCache.parse(document, token);
+		const node_root = await keyValuesCache.parse(document, token);
 		const node_shader = node_root.tree.children[0];
 
 		if (node === node_shader && part === KVPart.Key && context.triggerCharacter === '"') {
-			const shaderList = await VmtSchemaHandler.getShaderList();
+			const shaderList = VmtSchemaHandler.getShaderList();
 			const completions: vscode.CompletionItem[] = shaderList.map(x => ({ label: x }));
 			return completions;
 		}
 
+		const isPatchShader = node_shader.key.toLowerCase() === 'patch';
+
 		if (node_shader.type !== KVType.Dir) return;
 		if (node.type !== KVType.Pair) return;
+	
+		if (isPatchShader) {
+			if (node.parent === node_shader && part === KVPart.Key) {
+				return [{ label: 'include' }, { label: 'insert' }, { label: 'append' }];
+			}
+			if (node.parent.parent !== node_shader) return;
+		} else {
+			if (node.parent !== node_shader || (isPatchShader && node.key)) return;
+		}
 
 		const schema = await VmtSchemaHandler.getSchema(node_shader.key);
 		if (!schema) return;
@@ -346,7 +389,7 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 			const linkInfo = getTypeLinkInfo(param.type);
 			if (linkInfo) {
 				const completions = await this.getPathCompletions(node.value, linkInfo.root, linkInfo.ext, linkInfo.qualifier);
-				if (param.type === 'texture') Array.prototype.push.apply(completions, BuiltinTextures);
+				if (param.type === 'texture' && !node.value) Array.prototype.push.apply(completions, BuiltinTextures);
 				return completions;
 			}
 			return [{ label: param.default! }];
@@ -357,7 +400,7 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 				'$WIN32',
 				'$X360',
 				'$DECK'
-			].map(x => ({ label: x }));
+			].map(label => ({ label }));
 			return completions;
 		}
 	}
@@ -376,11 +419,22 @@ export class VmtCompletionProvider implements vscode.CompletionItemProvider {
 
 export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 	static register() {
-		return vscode.languages.registerDocumentLinkProvider({ language: 'sourcery.vmt' }, new this());
+		const inst = new this();
+		const linkProvider = vscode.languages.registerDocumentLinkProvider({ language: 'sourcery.vmt' }, inst);
+		const onDocClose = vscode.workspace.onDidCloseTextDocument(inst.onDidCloseTextDocument);
+
+		return new vscode.Disposable(() => {
+			linkProvider.dispose();
+			onDocClose.dispose();
+		});
+	}
+
+	onDidCloseTextDocument(document: vscode.TextDocument) {
+		LINK_ERRORS.set(document.uri, undefined);
 	}
 	
 	async provideDocumentLinks(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.DocumentLink[] | undefined> {
-		const parsed = await KeyValuesCache.parse(document, token);
+		const parsed = await keyValuesCache.parse(document, token);
 		const config = vscode.workspace.getConfiguration('sourcery.vmt');
 
 		const shader_node = parsed.tree.children[0];
@@ -394,7 +448,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider {
 
 		for (const node of shader_node.children) {
 			if (node.type !== KVType.Pair) continue;
-			const param = schema[node.key];
+			const param = schema[node.key.toLowerCase()];
 			if (!param) continue;
 
 			if (node.value === 'env_cubemap') continue;

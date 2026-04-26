@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 
 import { Vtf, VImageData } from 'vtf-js';
 import { linearToSrgb } from 'vtf-js/dist/core/utils.js';
-import { KeyV } from 'fast-vdf';
 import { join } from 'path/posix';
 
 import { getThumbMip } from 'vtf-js/dist/core/utils.js';
@@ -125,7 +124,7 @@ class MaterialBrowserPage {
 			if (!vtfBuffer) continue;
 
 			try {
-				const vtf = await Vtf.decode(vtfBuffer.buffer as ArrayBuffer);
+				const vtf = await Vtf.decode(vtfBuffer.buffer as ArrayBuffer, { noClone: true });
 				this.tints[vmtIdx] = makeHexColor(vtf.reflectivity);
 
 				const mipCount = vtf.data.getMipmapCount();
@@ -137,6 +136,7 @@ class MaterialBrowserPage {
 
 				const mipData = vtf.data.getImage(Math.max(0, desiredMip), 0, 0, 0, false);
 				this.thumbs![vmtIdx] = mipData.decode().coerce(Uint8Array);
+				if (this.thumbs![vmtIdx]?.data.buffer === vtfBuffer.buffer) throw 'whoops!';
 			}
 			catch (e) {
 				this.tints[vmtIdx] = 0xff00ff;
@@ -201,7 +201,14 @@ export class MaterialBrowserManager {
 		this.panel = panel;
 		this.context = context;
 
-		this.panel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
+		this.panel.webview.options = {
+			enableScripts: true,
+			localResourceRoots: [
+				vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'public'),
+				vscode.Uri.joinPath(this.context.extensionUri, 'public'),
+			]
+		};
+
 		this.panel.webview.html = this.getHtml(panel.webview);
 		this.panel.webview.onDidReceiveMessage(this.onMessage.bind(this));
 		this.panel.onDidDispose(() => this.dispose());
@@ -213,7 +220,9 @@ export class MaterialBrowserManager {
 	}
 
 	dispose() {
-		MaterialBrowserManager.current = undefined;
+		for (const page of this.pageList) {
+			page.unloadFiles();
+		}
 	}
 	
 	private pageList: MaterialBrowserPage[] = [];

@@ -138,13 +138,15 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async readFile(uri: Uri): Promise<Uint8Array> {
+		if (!uri.path.startsWith('/'))
+			uri = uri.with({ path: '/' + uri.path });
 		console.log('readfile', uri.path.toLowerCase());
 		const out = await this.gfs.readFile(uri.path.toLowerCase());
 		if (out === undefined) throw new vscode.FileSystemError(`Failed to read Mod file ${uri.path}!`);
 		return out;
 	}
 
-	getVtfVersion(): number {
+	getVtfVersion(): 3 | 5 | 6 {
 		switch (modFilesystem.gfs?.appid) {
 			case '440000':	// P2:CE
 			case '669270':	// Momentum
@@ -153,8 +155,9 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 			case '620':		// Portal 2
 			case '730':		// CS:GO
 				return 5;
+			default:
+				return 3;
 		}
-		return 3;
 	}
 
 	writeFile(uri: Uri, content: Uint8Array, options: { readonly create: boolean; readonly overwrite: boolean; }): void | Thenable<void> {

@@ -3,16 +3,22 @@ import { json as parseToJson } from 'fast-vdf';
 import { ImageDataLike } from './imagelike.js';
 import { VEncodedImageData, VFormats, Vtf } from 'vtf-js';
 import { assert } from './utils.js';
+import '../../shared/index.js';
 
-// @ts-expect-error No types
-import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
-declare const SourceModelLoader: typeof Three.Loader;
+// import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
+// declare const SourceModelLoader: typeof Three.Loader;
 
-export const URL_ROOT = document.querySelector<HTMLMetaElement>('head meta[name=root]')!.content;
-export const SERVER_PORT = document.querySelector<HTMLMetaElement>('head meta[name=port]')!.content;
+export const URL_ROOT = window.editorMeta.root; // document.querySelector<HTMLMetaElement>('head meta[name=root]')!.content;
+export const SERVER_PORT = window.editorMeta.port; //document.querySelector<HTMLMetaElement>('head meta[name=port]')!.content;
 
-export function localFetch(path: string) {
-	return fetch(`http://localhost:${SERVER_PORT}` + normalizePath(path, '', null));
+export function localFetch(path: string): Promise<Response> {
+	console.log('fetching...', path, window.editorMeta);
+	return fetch(`http://localhost:${window.editorMeta.port}` + normalizePath(path, '', null), {
+		method: 'get',
+		headers: {
+			'Authorization': window.editorMeta.authorization
+		}
+	});
 }
 
 const RE_SLASH = /(\/|\\)+/g;
@@ -23,14 +29,14 @@ export function normalizePath(path: string, root: string='materials/', ext: stri
 }
 
 /** Load with GPU acceleration via three. */
-export function loadSourceModel(path: string): Promise<Three.Group> {
-	return new Promise(resolve => {
-		new SourceModelLoader().load(path, (out) => {
-			const { group, vvd, mdl, vtx, materials } = <any>out;
-			resolve(group);
-		});
-	});
-}
+// export function loadSourceModel(path: string): Promise<Three.Group> {
+// 	return new Promise(resolve => {
+// 		new SourceModelLoader().load(path, (out) => {
+// 			const { group, vvd, mdl, vtx, materials } = <any>out;
+// 			resolve(group);
+// 		});
+// 	});
+// }
 
 export async function loadVMT(path: string): Promise<{ shader: string, data: Record<string, string> }|null> {
 	const resp = await localFetch(path);

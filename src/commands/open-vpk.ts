@@ -1,20 +1,23 @@
 import * as vscode from 'vscode';
 
-export default async (uri?: vscode.Uri) => {
-	let file: vscode.Uri;
+const RE_3DIGITS = /\d{3}\.vpk$/;
 
-	if (uri) {
-		if (!uri.path.endsWith('_dir.vpk')) return vscode.window.showErrorMessage('File must be *_dir.vpk!');
-		file = uri;
+export default async (uri?: vscode.Uri) => {
+	if (!uri) {
+		const files = await vscode.window.showOpenDialog({ title: 'Open Vpk', canSelectMany: false, filters: {'Valve Pack': ['vpk']} });
+		if (!files || !files.length) return;
+		uri = files[0];
 	}
-	else {
-		const files = await vscode.window.showOpenDialog({ title: 'Open Vpk', canSelectMany: false, filters: {'Vpk (Dir)': ['.+_dir\.vpk']} });
-		if (!(files !== undefined && files.length > 0)) return;
-		file = files[0];
+
+	// Use XYZ_dir.vpk instead of XYZ_123.vpk
+	if (RE_3DIGITS.test(uri.path)) {
+		uri = uri.with({
+			path: uri.path.slice(0, -7) + 'dir.vpk'
+		});
 	}
 
 	// Figure out the new root.
-	const vpk_root = vscode.Uri.from({ scheme: 'vpk', path: file.path+'/' });
+	const vpk_root = vscode.Uri.from({ scheme: 'vpk', path: uri.path+'/' });
 
 	// Open the new workspace.
 	vscode.workspace.updateWorkspaceFolders(vscode.workspace.workspaceFolders?.length ?? 0, null, { uri: vpk_root });

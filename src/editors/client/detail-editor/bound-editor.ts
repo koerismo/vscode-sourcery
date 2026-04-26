@@ -156,8 +156,10 @@ export class BoundEditorElement extends HTMLElement {
 	private _onDrag(event: MouseEvent) {
 		if (!this.bTarget || !this.image) return;
 
-		let xDiff = event.movementX / 1.5;
-		let yDiff = event.movementY / 1.5;
+		const pixelsPerUnit = this.image.width / this.els.image.clientWidth;
+
+		let xDiff = event.movementX * pixelsPerUnit; // / 1.5;
+		let yDiff = event.movementY * pixelsPerUnit; // / 1.5;
 		if (event.shiftKey) {
 			xDiff /= 4;
 			yDiff /= 4;
@@ -181,8 +183,8 @@ export class BoundEditorElement extends HTMLElement {
 				break;
 			case BoundDragType.TopLeft:
 				const oldX = this.bTarget.x, oldY = this.bTarget.y;
-				this.bTarget.x = clamp(this.bTarget.x + xDiff, 0, this.image.width - this.bTarget.w);
-				this.bTarget.y = clamp(this.bTarget.y + yDiff, 0, this.image.height - this.bTarget.h);
+				this.bTarget.x = clamp(this.bTarget.x + xDiff, 0, this.image.width);
+				this.bTarget.y = clamp(this.bTarget.y + yDiff, 0, this.image.height);
 				this.bTarget.w -= this.bTarget.x - oldX;
 				this.bTarget.h -= this.bTarget.y - oldY;
 				break;
@@ -256,7 +258,7 @@ export class BoundEditorElement extends HTMLElement {
 		this.bGhosts = ghosts;
 		this.updateGhosts();
 	}
-	
+
 	public updateGhosts() {
 		if (!this.image) return;
 		this.els.ghostContainer.replaceChildren();

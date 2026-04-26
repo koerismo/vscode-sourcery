@@ -1,4 +1,7 @@
 import type { ImageDataLike, ClientMessage, ServerMessage } from './types.js';
+import { HoverManager } from './hover.js';
+import '../shared/index.js';
+
 const vscode = acquireVsCodeApi();
 
 function stringifyColor(c: number): string {

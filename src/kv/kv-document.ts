@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { tokenize, ParseErrors, ParseErrorsMap } from './kv-tokenizer.js';
 import { ParserCache } from '../parser-cache.js';
+import { KeyValuesSchemaHandler } from './kv-schema.js';
 
 export const enum KVType {
 	Invalid = -1,
@@ -37,11 +38,8 @@ export interface KVCommentRanged {
 	content_end: number;
 }
 
-export type KVRootRanged = Omit<KVSetRanged, 'parent'>;
-
-export interface KVSetRanged {
+export interface KVRootRanged {
 	type: KVType.Dir;
-	parent?: KVSetRanged;
 	children: (KVPairRanged | KVSetRanged)[];
 	key_start: number;
 	key_end: number;
@@ -49,6 +47,12 @@ export interface KVSetRanged {
 	content_end: number;
 	key: string;
 }
+
+export interface KVSetRanged extends KVRootRanged {
+	parent?: KVSetRanged;
+}
+
+export type KVAnyRanged = KVRootRanged | KVSetRanged | KVPairRanged;
 
 const C_SQOPEN = 91, C_SQCLOSE = 93;
 
@@ -75,8 +79,8 @@ export const kvTokenLegend = new vscode.SemanticTokensLegend(
 
 const TOKEN_ERRORS = vscode.languages.createDiagnosticCollection('kv-tokenizer');
 
-export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.SemanticTokens }>() {
-	static async _parse(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken) {
+class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vscode.SemanticTokens }> {
+	async _parse(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken) {
 		const text = doc.getText();
 		const errors: vscode.Diagnostic[] = [];
 		const tokens = new vscode.SemanticTokensBuilder(kvTokenLegend);
@@ -189,7 +193,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		return { tree: root, tokens: tokens.build() };
 	}
 
-	static async nodeAtOffset(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number, allowEndChar=false) {
+	async nodeAtOffset(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number, allowEndChar=false) {
 		const root = await this.parse(doc, cancelToken);
 		const o = +!!allowEndChar;
 		
@@ -219,7 +223,7 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		return dir;
 	}
 
-	static nodePartAtOffset(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number, allowEndChar=false) {
+	nodePartAtOffset(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number, allowEndChar=false) {
 		const o = +!!allowEndChar;
 		if (node.type === KVType.Comment) return KVPart.Invalid;
 		if (node.type === KVType.Dir) {
@@ -233,24 +237,43 @@ export class KeyValuesCache extends ParserCache<{ tree: KVSetRanged, tokens: vsc
 		return KVPart.None;
 	}
 
-	static async nodeAtCursor(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number) {
+	async nodeAtCursor(doc: vscode.TextDocument, cancelToken: vscode.CancellationToken, offset: number) {
 		return this.nodeAtOffset(doc, cancelToken, offset, true);
 	}
 
-	static nodePartAtCursor(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number) {
+	nodePartAtCursor(node: KVPairRanged | KVSetRanged | KVCommentRanged, pos: number) {
 		return this.nodePartAtOffset(node, pos, true);
+	}
+
+	nodeKeyPath(node: KVPairRanged | KVSetRanged): string[] {
+		const path: string[] = [];
+		let tmp = node;
+		let count = 0;
+
+		while (tmp.parent) {
+			path.push(tmp.key);
+			tmp = tmp.parent;
+
+			count++;
+			if (count > 512) throw Error(`Recursive node parents! Aborted.`);
+		}
+
+		return path.reverse();
 	}
 }
 
+export const keyValuesCache = new KeyValuesCache();
+const keyValuesLanguages = [{ language: 'sourcery.keyvalues' }, { language: 'sourcery.vmt' }];
+
 export class KeyValuesHoverProvider implements vscode.HoverProvider {
 	static register() {
-		return vscode.languages.registerHoverProvider({ language: 'sourcery.keyvalues' }, new this());
+		return vscode.languages.registerHoverProvider(keyValuesLanguages, new this());
 	}
 
 	async provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.Hover | undefined> {
 		const offset = document.offsetAt(position);
-		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
-		const part = KeyValuesCache.nodePartAtOffset(node, offset);
+		const node = await keyValuesCache.nodeAtOffset(document, token, offset);
+		const part = keyValuesCache.nodePartAtOffset(node, offset);
 
 		if (part === KVPart.None) return;
 		if (node.type === KVType.Dir && part !== KVPart.Key) return;
@@ -270,38 +293,61 @@ export class KeyValuesHoverProvider implements vscode.HoverProvider {
 
 export class KeyValuesTokenProvider implements vscode.DocumentSemanticTokensProvider {
 	static register() {
-		return vscode.languages.registerDocumentSemanticTokensProvider({ language: 'sourcery.keyvalues' }, new this(), kvTokenLegend);
+		return vscode.languages.registerDocumentSemanticTokensProvider(keyValuesLanguages, new this(), kvTokenLegend);
 	}
+
 	async provideDocumentSemanticTokens(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SemanticTokens> {
-		const out = await KeyValuesCache.parse(document, token);
+		const out = await keyValuesCache.parse(document, token);
+		await KeyValuesSchemaHandler.checkSchema(document, token);
 		return out.tokens;
 	}
 }
 
-export class KeyValuesCompletionProvider implements vscode.CompletionItemProvider {
+export class KeyValuesCompletionProvider implements vscode.CompletionItemProvider, vscode.InlineCompletionItemProvider {
 	static register() {
-		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.keyvalues' }, new this());
+		const self = new this();
+		const ext = vscode.languages.registerCompletionItemProvider(keyValuesLanguages, self, '"', '$', '%', '[');
+		const inl = vscode.languages.registerInlineCompletionItemProvider(keyValuesLanguages, self);
+
+		return new vscode.Disposable(() => {
+			ext.dispose();
+			inl.dispose();
+		});
 	}
 	
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[] | undefined> {
 		const offset = document.offsetAt(position);
-		const node = await KeyValuesCache.nodeAtOffset(document, token, offset);
-		const part = KeyValuesCache.nodePartAtOffset(node, offset);
+		const node = await keyValuesCache.nodeAtCursor(document, token, offset);
+		let part = keyValuesCache.nodePartAtCursor(node, offset);
+
+		const completions = await KeyValuesSchemaHandler.getSchemaCompletions(document, node, part !== KVPart.Value);
+		return completions;
+	}
+
+	async provideInlineCompletionItems(document: vscode.TextDocument, position: vscode.Position, context: vscode.InlineCompletionContext, token: vscode.CancellationToken): Promise<vscode.InlineCompletionItem[] | undefined> {
+		const word = document.getWordRangeAtPosition(position);
+		if (!word) return;
+
+		const offset = document.offsetAt(position);
+		const node = await keyValuesCache.nodeAtCursor(document, token, offset);
+		const part = keyValuesCache.nodePartAtCursor(node, offset);
 
 		if (part === KVPart.None) return;
-		if (node.type === KVType.Dir && part !== KVPart.Key) return;
 
-		return [];
+		const completions = await KeyValuesSchemaHandler.getSchemaCompletions(document, node, part !== KVPart.Value);
+		return completions.map<vscode.InlineCompletionItem>(x => ({
+			insertText: x.insertText ?? x.label as string
+		}));
 	}
 
-	resolveCompletionItem?(item: vscode.CompletionItem, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem> {
-		throw new Error('Method not implemented.');
-	}
+	// resolveCompletionItem?(item: vscode.CompletionItem, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CompletionItem> {
+	// 	throw new Error('Method not implemented.');
+	// }
 }
 
 export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
 	static register() {
-		return vscode.languages.registerDocumentSymbolProvider({ language: 'sourcery.keyvalues' }, new this());
+		return vscode.languages.registerDocumentSymbolProvider(keyValuesLanguages, new this());
 	}
 
 	async provideDocumentSymbols(doc: vscode.TextDocument, token: vscode.CancellationToken): Promise<vscode.SymbolInformation[] | vscode.DocumentSymbol[]> {
@@ -318,7 +364,7 @@ export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
 			return symbol;
 		};
 
-		const parsed = await KeyValuesCache.parse(doc, token);
+		const parsed = await keyValuesCache.parse(doc, token);
 		const symbols = resolveNode(parsed.tree).children;
 		return symbols;
 	}

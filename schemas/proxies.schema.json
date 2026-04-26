@@ -1,0 +1,164 @@
+{
+	"additionalProperties": {
+		"properties": {
+			"Proxies": {
+				"properties": {
+					"Add": {
+						"description": "Returns srcVar1 + srcVar2",
+						"required": ["srcVar1", "srcVar2", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"srcVar2": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Multiply": {
+						"description": "Returns srcVar1 * srcVar2",
+						"required": ["srcVar1", "srcVar2", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"srcVar2": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Subtract": {
+						"description": "Returns srcVar1 - srcVar2",
+						"required": ["srcVar1", "srcVar2", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"srcVar2": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Divide": {
+						"description": "Returns srcVar1 / srcVar2",
+						"required": ["srcVar1", "srcVar2", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"srcVar2": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Equals": {
+						"description": "Copies the value of a variable to another.",
+						"required": ["srcVar1", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Abs": {
+						"description": "Returns the absolute value of srcVar1",
+						"required": ["srcVar1", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Frac": {
+						"description": "Returns the fractional component of a variable.",
+						"required": ["srcVar1", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Int": {
+						"description": "Returns the integer component of a variable.",
+						"required": ["srcVar1", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Clamp": {
+						"description": "Keeps a variable within the specified range.",
+						"required": ["min", "max", "srcVar1", "resultVar"],
+						"properties": {
+							"min": { "type": "string" },
+							"max": { "type": "string" },
+							"srcVar1": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"WrapMinMax": {
+						"description": "Constrains a value into a range, wrapping around if it exceeds it.",
+						"required": ["minVal", "maxVal", "srcVar1", "resultVar"],
+						"properties": {
+							"srcVar1": { "type": "string" },
+							"minVal": { "type": "string" },
+							"maxVal": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Sine": {
+						"required": ["sineperiod", "sinemin", "sinemax", "timeoffset", "resultVar"],
+						"properties": {
+							"sineperiod": { "type": "number" },
+							"sinemin": { "type": "number" },
+							"sinemax": { "type": "number" },
+							"timeooffset": { "type": "number" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"LinearRamp": {
+						"required": ["rate", "initialValue", "resultVar"],
+						"properties": {
+							"rate": { "type": "number" },
+							"initialValue": { "type": "number" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"CurrentTime": {
+						"required": ["resultVar"],
+						"properties": {
+							"resultVar": { "type": "string" }
+						}
+					},
+					"Health": {
+						"required": ["scale", "resultVar"],
+						"properties": {
+							"scale": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					},
+					"AnimatedTexture": {
+						"required": ["animatedTextureVar", "animatedTextureFrameNumVar", "animatedTextureanimatedTextureFrameRateVar"],
+						"properties": {
+							"animatedTextureVar": { "type": "string" },
+							"animatedTextureFrameNumVar": { "type": "string" },
+							"animatedTextureFrameRateVar": { "type": "number" },
+							"animationNoWrap": { "type": "boolean" }
+						}
+					},
+					"TextureScroll": {
+						"required": ["textureScrollVar", "textureScrollRate", "textureScrollAngle"],
+						"properties": {
+							"textureScrollVar": { "type": "string" },
+							"textureScrollRate": { "type": "string" },
+							"textureScrollAngle": { "type": "string" },
+							"textureScale": { "type": "string" }
+						}
+					},
+					"MaterialModify": {
+					},
+					"ToggleTexture": {
+						"required": ["toggleTextureVar", "toggleTextureFrameNumVar"],
+						"properties": {
+							"toggleTextureVar": { "type": "string" },
+							"toggleTextureFrameNumVar": { "type": "string" },
+							"toggleShouldWrap": { "type": "boolean", "default": true }
+						}
+					},
+					"ConVar": {
+						"required": ["convar", "resultVar"],
+						"properties": {
+							"convar": { "type": "string" },
+							"resultVar": { "type": "string" }
+						}
+					}
+				}
+			}
+		}
+	}
+}

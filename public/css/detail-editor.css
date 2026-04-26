@@ -356,6 +356,7 @@ bound-editor #bound-image {
 
 bound-editor #bound-image img {
 	background: #0002; 
+	pointer-events: none;
 	position: absolute;
 	left: 0;
 	top: 0;

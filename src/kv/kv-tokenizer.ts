@@ -18,14 +18,6 @@ function is_plain( code: number ) {
 
 export type ValueType = string | number | boolean;
 
-function parse_value(value: string): ValueType {
-	if (value === 'true') return true;
-	if (value === 'false') return false;
-	const num = +value;
-	if (isNaN(num)) return value;
-	return num;
-}
-
 function is_space(code: number) {
 	return (
 		code === 32 ||

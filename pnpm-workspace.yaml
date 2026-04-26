@@ -1,2 +1,3 @@
 allowBuilds:
   '@vscode/windows-registry': true
+  esbuild: true

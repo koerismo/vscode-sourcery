@@ -5,7 +5,7 @@ import EditorHTML from './editor.html';
 
 export class ValveTextureDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
-	cache: Vtf|null = null;
+	cache: Vtf | null = null;
 
 	constructor(uri: vscode.Uri) {
 		this.uri = uri;
@@ -17,7 +17,7 @@ export class ValveTextureDocument implements vscode.CustomDocument {
 	async getVtf(allow_cache=true) {
 		if (allow_cache && this.cache !== null) return this.cache;
 		const data = await vscode.workspace.fs.readFile(this.uri);
-		return (this.cache = await Vtf.decode(data.buffer as ArrayBuffer));
+		return (this.cache = await Vtf.decode(data.buffer as ArrayBuffer, { noClone: true }));
 	}
 }
 
@@ -55,7 +55,14 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 	
 	async resolveCustomEditor(document: ValveTextureDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
 
-		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
+		webviewPanel.webview.options = {
+			enableScripts: true,
+			localResourceRoots: [
+				vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'public'),
+				vscode.Uri.joinPath(this.context.extensionUri, 'public'),
+			]
+		};
+
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
 		document.getVtf().then(vtf => {
