@@ -405,7 +405,7 @@ export class KeyValuesSymbolProvider implements vscode.DocumentSymbolProvider {
 
 // Just because it CAN be unquoted doesn't mean it should be...
 // Only unquote things that look like words.
-const RE_WORDLIKE = /^[$%!]*[\w\-]+$/;
+const RE_WORDLIKE = /^[$%!@a-z0-9][$%!@\w\-+]*$/i;
 
 function trimLastNewLine(str: string): string {
 	const idx = str.lastIndexOf('\n');
@@ -490,7 +490,7 @@ export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEdi
 						range: spaceBetweenPrevToken,
 						newText: spacingText,
 					});
-					
+
 					if (enableQuoteFormatting) {
 						const tokenText = document.getText(spaceOfToken);
 						const canRemoveQuotes = isDequotableKey(tokenText);
@@ -501,7 +501,6 @@ export class KeyValuesFormattingProvider implements vscode.DocumentFormattingEdi
 							});
 						}
 					}
-					
 					break;
 				}
 
