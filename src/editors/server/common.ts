@@ -80,7 +80,7 @@ export class CommonEditorProvider<
 	clearSession(uri: vscode.Uri) {
 		const sid = uri.toString(true);
 		if (!(sid in this.sessions)) throw `Attempted to clear nonexistent session ${uri.toString(true)}`;
-			delete this.sessions[sid];
+		delete this.sessions[sid];
 	}
 
 	sendMessage(uri: vscode.Uri, msg: ServerMsg) {

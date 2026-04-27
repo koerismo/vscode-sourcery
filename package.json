@@ -264,7 +264,11 @@
 				"sourcery.keyvalues.formatter.braceStyle": {
 					"description": "The brace style for formatting.",
 					"type": "string",
-					"enum": ["Allman", "Whitesmiths", "K&R"],
+					"enum": [
+						"Allman",
+						"Whitesmiths",
+						"K&R"
+					],
 					"markdownEnumDescriptions": [
 						"```\nkey\n{\n\tabc 123\n}\n```",
 						"```\nkey\n\t{\n\tabc 123\n\t}\n```",
@@ -306,6 +310,7 @@
 		"mocha": "^11.7.5",
 		"node-loader": "^2.1.0",
 		"raw-loader": "^4.0.2",
+		"rollup": "^4.60.2",
 		"sfs-js": "link:../sfs-js",
 		"source-engine-model-loader": "github:gkjohnson/source-engine-model-loader",
 		"struxt": "^3.6.1",
