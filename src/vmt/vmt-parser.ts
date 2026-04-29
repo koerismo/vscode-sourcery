@@ -11,7 +11,7 @@ export class ParsedVmt<V = string | JsonSet<string>> {
 		const p = lenientJson(text);
 		const shaderKey = Object.keys(p)[0];
 		const obj = p[shaderKey];
-		if (typeof obj === 'string') return new ParsedVmt(shaderKey, {});
+		if (typeof obj !== 'object') return new ParsedVmt(shaderKey, {});
 		return new ParsedVmt(shaderKey, obj);
 	}
 

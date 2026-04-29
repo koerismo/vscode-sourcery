@@ -113,9 +113,9 @@ class MaterialBrowserPage {
 					rootKv.value('$basetexture') ||
 					rootKv.value('$flowmap') ||
 					rootKv.value('$bumpmap');
-				if (!vtfPath) continue;
 
-				vtfPath = join('materials', vtfPath.toLowerCase().replaceAll('\\', '/'));
+				if (!vtfPath) continue;
+				vtfPath = join('materials', vtfPath.toLowerCase().replaceAll('\\', '/')) as string;
 				if (!vtfPath.endsWith('.vtf')) vtfPath += '.vtf';
 				this.vtfPaths[vmtIdx] = vtfPath;
 			}

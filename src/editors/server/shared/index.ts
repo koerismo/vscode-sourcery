@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { outConsole } from '../../extension.js';
-import { HOST_PORT, HOST_AUTH } from '../../mod-server.js';
-import { EditorMeta } from '../shared/meta.js';
+import { outConsole } from '../../../extension.js';
+import { HOST_PORT, HOST_AUTH } from '../../../mod-server.js';
+import { EditorMeta } from '../../shared/meta.js';
+import HtmlShell from './shell.html';
 
 export function hashUri(uri: vscode.Uri): string {
 	return uri.scheme + '\x01' + uri.authority + '\x01' + uri.path;
@@ -102,11 +103,12 @@ export class CommonEditorProvider<
 			root: view.asWebviewUri(this.context.extensionUri).toString(),
 		};
 
-		return html
+		return HtmlShell
 			.replaceAll('$META$', JSON.stringify(editorMeta))
 			.replaceAll('$ROOT$', editorMeta.root)
 			.replaceAll('$CSP$', view.cspSource)
-			.replaceAll('$HOST_PORT$', HOST_PORT.toString());
+			.replaceAll('$HOST_PORT$', HOST_PORT.toString())
+			.replace('$BODY$', html);
 	}
 
 	async resolveCustomEditor(
