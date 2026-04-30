@@ -1,17 +1,14 @@
 {
 	"compilerOptions": {
-		"allowSyntheticDefaultImports": true,
-		"noImplicitAny": true,
-		"moduleResolution": "Bundler",
-		"module": "ESNext",
-		"lib": [
-			"DOM",
-			"ESNext"
-		],
 		"target": "ESNext",
+		"lib": ["ESNext", "DOM"],
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"noImplicitAny": true,
 		"allowJs": true,
-		"strict": true,
 		"noEmit": true,
+		"strict": true,
 	},
-	"include": ["./"]
+	"include": ["./**/*"]
 }
+

@@ -1,4 +1,6 @@
 import * as esbuild from 'esbuild';
+import esbuildSvelte from 'esbuild-svelte';
+import { sveltePreprocess } from 'svelte-preprocess';
 import { argv } from 'node:process';
 
 const isProd = argv.includes('--prod');
@@ -50,6 +52,11 @@ await esbuild.build({
 		'.html': 'text',
 		'.ttf': 'file',
 	},
+	plugins: [
+		esbuildSvelte({
+			preprocess: sveltePreprocess(),
+		}),
+	]
 });
 
 console.log('Done! :3');

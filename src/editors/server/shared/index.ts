@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+
 import { outConsole } from '../../../extension.js';
 import { HOST_PORT, HOST_AUTH } from '../../../mod-server.js';
+
 import { EditorMeta } from '../../shared/meta.js';
 import HtmlShell from './shell.html';
 
@@ -13,9 +15,18 @@ export interface BaseSessionContext {
 }
 
 export interface BaseCustomDocument extends vscode.CustomDocument {
-	decode(data: Uint8Array): Thenable<void>;
-	encode(cancelToken: vscode.CancellationToken): Thenable<Uint8Array>;
+	decode?(data: Uint8Array): Thenable<void>;
+	encode?(cancelToken: vscode.CancellationToken): Thenable<Uint8Array>;
 }
+
+type CommonNotImplemented = 
+	'onMessage' |
+	'openCustomDocument' |
+	'saveCustomDocument' |
+	'saveCustomDocumentAs' |
+	'backupCustomDocument' |
+	'revertCustomDocument';
+
 
 export class CommonEditorProvider<
 	EditorDocument extends BaseCustomDocument = BaseCustomDocument,
@@ -23,7 +34,7 @@ export class CommonEditorProvider<
 	ServerMsg = {},
 	ClientMsg = {},
 >
-	implements vscode.CustomEditorProvider<EditorDocument>
+	implements Omit<vscode.CustomEditorProvider<EditorDocument>, CommonNotImplemented>
 {
 	public static currentProvider: CommonEditorProvider;
 
@@ -41,7 +52,7 @@ export class CommonEditorProvider<
 
 		const commandDisposable = vscode.window.registerCustomEditorProvider(
 			viewTypeId,
-			this.currentProvider,
+			this.currentProvider as unknown as vscode.CustomEditorProvider,
 			{
 				supportsMultipleEditorsPerDocument: false,
 				webviewOptions: options,
@@ -135,25 +146,5 @@ export class CommonEditorProvider<
 		});
 
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
-	}
-
-	openCustomDocument(uri: vscode.Uri, openContext: vscode.CustomDocumentOpenContext, token: vscode.CancellationToken): Thenable<EditorDocument> {
-		throw 'openCustomDocument not implemented!';
-	}
-
-	saveCustomDocument(document: EditorDocument, cancelToken: vscode.CancellationToken): Thenable<void> {
-		throw 'saveCustomDocument not implemented!';
-	}
-
-	saveCustomDocumentAs(document: EditorDocument, destination: vscode.Uri, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw 'saveCustomDocumentAs not implemented!';
-	}
-
-	backupCustomDocument(document: EditorDocument, context: vscode.CustomDocumentBackupContext, cancellation: vscode.CancellationToken): Thenable<vscode.CustomDocumentBackup> {
-		throw 'backupCustomDocument not implemented!';
-	}
-
-	revertCustomDocument(document: EditorDocument, cancellation: vscode.CancellationToken): Thenable<void> {
-		throw 'revertCustomDocument not implemented!';
 	}
 }

@@ -8,5 +8,6 @@
 		"noEmit": true,
 		"strict": true
 	},
-	"include": ["build.mts"]
+	"include": ["./**/*"],
+	"exclude": ["./editors/client/"]
 }
