@@ -211,7 +211,7 @@ export class EditPropElement extends HTMLElement {
 		this._data = model;
 		if (!this._data) return;
 		this.validateModel();
-		
+
 		this.input_u.setModel(this._data.spritesize, 'x');
 		this.input_v.setModel(this._data.spritesize, 'y');
 		this.input_width.setModel(this._data.spritesize, 'w');

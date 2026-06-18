@@ -4,24 +4,30 @@ import { MountServerManager } from './mod-server.js';
 
 import { VpkFileSystemProvider } from './vpk-provider.js';
 import { ModFilesystemProvider } from './mod-mount.js';
-import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
-import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
+// import { VmtAutocompleteProvider, VmtCodeActionProvider, VmtLinkProvider, VmtChangeListener } from './vmt/vmt-provider.js';
+// import { ValveMaterialEditorProvider } from './vmt/vmt-editor.js';
 import { ValveTextureEditorProvider } from './vtf/vtf-editor.js';
 import { ValveDetailEditorProvider } from './detail/detail-editor.js';
 import { ValveModelEditorProvider } from './mdl/mdl-editor.js';
-// import { MaterialBrowserManager } from './vmt-browser';
+import { MaterialBrowserManager } from './vmt/vmt-browser.js';
+
+// Set up node-native compression methods
+import './vtf/vtf-setup.js';
+
+// Language defs
+import { KeyValuesCompletionProvider, KeyValuesHoverProvider, KeyValuesSymbolProvider, KeyValuesTokenProvider, KeyValuesFormattingProvider } from './kv/kv-document.js';
+import { KeyValuesSchemaHandler } from './kv/kv-schema.js';
+import { VmtSemanticTokensProvider, VmtHoverProvider, VmtSchemaHandler, VmtCompletionProvider, VmtLinkProvider, VmtCodeActionProvider } from './vmt/vmt-document.js';
 
 // Commands
 import { copyFiles } from './commands/copy-utils.js';
 import revealOriginal from './commands/reveal-original.js';
 import openVpk from './commands/open-vpk.js';
+import retargetVtf from './commands/retarget-vtf.js';
 import { revealGamePath } from './commands/reveal-file.js';
 import { renameModel, compileModel } from './commands/model-utils.js';
 import { createNewDetail } from './commands/detail-utils.js';
-// import { setupWatchConfig, startWatch } from './commands/watch.js';
-// import openVmtPreview from './commands/open-vmt-preview.js';
-// import openVmtBrowser from './commands/open-browser';
-
+import openVmtBrowser from './commands/open-browser.js';
 
 function formatDT() {
 	const d = new Date();
@@ -52,17 +58,34 @@ export function activate(context: vscode.ExtensionContext) {
 		// Common server for sharing mod:// resources with webviews
 		MountServerManager.register(context),
 
+		// generic KeyValues data
+		KeyValuesHoverProvider.register(),
+		KeyValuesTokenProvider.register(),
+		KeyValuesCompletionProvider.register(),
+		KeyValuesSymbolProvider.register(),
+		KeyValuesFormattingProvider.register(),
+		KeyValuesSchemaHandler.register(context),
+
+		// VMT extensions to KeyValues
+		VmtSchemaHandler.register(context),
+		VmtSemanticTokensProvider.register(),
+		VmtCodeActionProvider.register(),
+		VmtCompletionProvider.register(),
+		VmtHoverProvider.register(),
+		VmtLinkProvider.register(),
+
 		VpkFileSystemProvider.register(),
 		ModFilesystemProvider.register(),
-		VmtLinkProvider.register(),
 		ValveDetailEditorProvider.register(context),
 		ValveTextureEditorProvider.register(context),
-		ValveMaterialEditorProvider.register(context),
 		ValveModelEditorProvider.register(context),
-		VmtAutocompleteProvider.register(context),
-		VmtCodeActionProvider.register(context),
-		VmtChangeListener.register(context),
-		// MaterialBrowserManager.register(context),
+
+		// VmtLinkProvider.register(),
+		// ValveMaterialEditorProvider.register(context),
+		// VmtAutocompleteProvider.register(context),
+		// VmtCodeActionProvider.register(context),
+		// VmtChangeListener.register(context),
+		MaterialBrowserManager.register(context),
 	);
 
 	// Register auto-disposal subscriptions.
@@ -73,11 +96,12 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('sourcery.game.copy', copyFiles),
 		vscode.commands.registerCommand('sourcery.mdl.compile', compileModel),
 		vscode.commands.registerCommand('sourcery.detail.new', createNewDetail),
+		vscode.commands.registerCommand('sourcery.vtf.retarget', retargetVtf),
 		vscode.workspace.onDidRenameFiles(renameModel),
 		// vscode.commands.registerCommand('sourcery.vmt.preview', openVmtPreview),
 		// vscode.commands.registerCommand('sourcery.vtf.configWatch', setupWatchConfig),
 		// vscode.commands.registerCommand('sourcery.vtf.watch', startWatch),
-		// vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
+		vscode.commands.registerCommand('sourcery.vmt.browse', openVmtBrowser),
 	);
 
 	// Init message

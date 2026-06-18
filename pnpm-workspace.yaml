@@ -1,0 +1,4 @@
+allowBuilds:
+  '@vscode/windows-registry': true
+  esbuild: true
+  svelte-preprocess: false

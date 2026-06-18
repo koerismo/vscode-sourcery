@@ -3,11 +3,11 @@
 	"publisher": "koerismo",
 	"displayName": "Sourcery",
 	"description": "Provides Source Engine filesystem support.",
-	"version": "0.0.6",
+	"version": "0.0.7",
 	"license": "GPL-3.0-only",
 	"icon": "images/icon.png",
 	"engines": {
-		"vscode": "^1.91.0"
+		"vscode": "^1.97.0"
 	},
 	"keywords": [
 		"Source",
@@ -24,10 +24,72 @@
 		"Other"
 	],
 	"activationEvents": [
-		"*"
+		"workspaceContains:gameinfo.txt"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"languages": [
+			{
+				"id": "sourcery.keyvalues",
+				"aliases": [
+					"KeyValues",
+					"kv"
+				],
+				"extensions": [
+					".kv",
+					".vdf",
+					".vmf",
+					"vmx"
+				],
+				"filenames": [
+					"gameinfo.txt",
+					"config.cfg",
+					"panorama.cfg"
+				],
+				"configuration": "./langs/kv-language-configuration.json"
+			},
+			{
+				"id": "sourcery.vmt",
+				"aliases": [
+					"Valve Material",
+					"Source Material",
+					"vmt"
+				],
+				"extensions": [
+					".vmt"
+				],
+				"configuration": "./langs/kv-language-configuration.json"
+			},
+			{
+				"id": "sourcery.qc",
+				"aliases": [
+					"Valve QC",
+					"qc"
+				],
+				"extensions": [
+					".qc",
+					".qci"
+				],
+				"configuration": "./langs/kv-language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "sourcery.keyvalues",
+				"scopeName": "text.sourcery.keyvalues",
+				"path": "./langs/syntaxes/kv.tmLanguage.json"
+			},
+			{
+				"language": "sourcery.vmt",
+				"scopeName": "text.sourcery.keyvalues",
+				"path": "./langs/syntaxes/kv.tmLanguage.json"
+			},
+			{
+				"language": "sourcery.qc",
+				"scopeName": "text.sourcery.qc",
+				"path": "./langs/syntaxes/qc.tmLanguage.json"
+			}
+		],
 		"commands": [
 			{
 				"command": "sourcery.game.revealFile",
@@ -36,7 +98,8 @@
 			},
 			{
 				"command": "sourcery.game.revealRoot",
-				"title": "Reveal Game Folder"
+				"title": "Reveal Folder",
+				"category": "Game"
 			},
 			{
 				"command": "sourcery.game.copy",
@@ -56,6 +119,11 @@
 				"title": "Open Material Preview"
 			},
 			{
+				"command": "sourcery.vmt.browse",
+				"category": "Material",
+				"title": "Open Material Browser"
+			},
+			{
 				"command": "sourcery.mdl.compile",
 				"title": "Compile",
 				"category": "Model",
@@ -63,8 +131,13 @@
 			},
 			{
 				"command": "sourcery.detail.new",
-				"title": "Create New Detail",
+				"title": "New",
 				"category": "Detail"
+			},
+			{
+				"command": "sourcery.vtf.retarget",
+				"title": "Change Version",
+				"category": "Texture"
 			}
 		],
 		"menus": {
@@ -76,6 +149,10 @@
 				{
 					"command": "sourcery.mdl.compile",
 					"when": "resourceExtname == .qc"
+				},
+				{
+					"command": "sourcery.vtf.retarget",
+					"when": "resourceExtname == .vtf"
 				}
 			],
 			"editor/title": [
@@ -98,16 +175,6 @@
 				"selector": [
 					{
 						"filenamePattern": "**/*.vtf"
-					}
-				]
-			},
-			{
-				"viewType": "sourcery.vmt",
-				"displayName": "Valve Material",
-				"priority": "option",
-				"selector": [
-					{
-						"filenamePattern": "**/*.vmt"
 					}
 				]
 			},
@@ -147,6 +214,11 @@
 					"type": "boolean",
 					"default": true
 				},
+				"sourcery.game.autoMountOnFile": {
+					"description": "(TODO) Automatically mount gameinfo.txt when a file is opened which exists in a game structure?",
+					"type": "boolean",
+					"default": true
+				},
 				"sourcery.game.modPath": {
 					"description": "If specified, Sourcery will mount this path as the mod root instead of the workspace root.",
 					"type": "string",
@@ -164,80 +236,45 @@
 						"~/.steam/steamapps/common/Portal 2/bin/"
 					]
 				},
-				"sourcery.vmt.convertOnPaste": {
-					"description": "Automatically convert textures when pasted into Vmts? If multiple textures are pasted at the same time, they are contextually merged.",
-					"type": "boolean",
-					"default": true
-				},
-				"sourcery.vmt.convertOnPasteOverwrite": {
-					"description": "Allow Convert-On-Paste to overwrite existing textures?",
-					"type": "boolean",
-					"default": true
-				},
-				"sourcery.vmt.convertOnPasteResize": {
-					"description": "Resize generated textures if they exceed this size.",
-					"type": "integer",
-					"default": 2048,
-					"enum": [
-						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024,
-						2048,
-						4096
-					],
-					"enumItemLabels": [
-						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x",
-						"2048x",
-						"4096x"
-					]
-				},
-				"sourcery.vmt.convertOnPasteResizeTooltexture": {
-					"description": "Resize textures generated for %tooltexture if they exceed this size.",
-					"type": "integer",
-					"default": 256,
-					"enum": [
-						0,
-						32,
-						64,
-						128,
-						256,
-						512,
-						1024
-					],
-					"enumItemLabels": [
-						"None",
-						"32x",
-						"64x",
-						"128x",
-						"256x",
-						"512x",
-						"1024x"
-					]
-				},
-				"sourcery.vmt.modelPath": {
+				"sourcery.vmt.warnModelPath": {
 					"description": "Enable warnings for paths that begin with props_xyz instead of models/props_xyz?",
 					"type": "boolean",
 					"default": true
 				},
-				"sourcery.vmt.notFound": {
+				"sourcery.vmt.warnNotFound": {
 					"description": "Enable warnings for missing textures?",
+					"type": "boolean",
+					"default": true
+				},
+				"sourcery.keyvalues.escapes": {
+					"description": "Enables backslash escapes in KeyValues files.",
 					"type": "boolean",
 					"default": false
 				},
-				"sourcery.model.crowbarPath": {
-					"description": "The path to the Crowbar tool executable.",
+				"sourcery.keyvalues.multilines": {
+					"description": "Enables multi-line /* comments */ in KeyValues files.",
+					"type": "boolean",
+					"default": false
+				},
+				"sourcery.keyvalues.formatter.opinionatedQuotes": {
+					"description": "If enabled, prefers unquoted keys and quoted values where applicable.",
+					"type": "boolean",
+					"default": true
+				},
+				"sourcery.keyvalues.formatter.braceStyle": {
+					"description": "The brace style for formatting.",
 					"type": "string",
-					"default": ""
+					"enum": [
+						"Allman",
+						"Whitesmiths",
+						"K&R"
+					],
+					"markdownEnumDescriptions": [
+						"```\nkey\n{\n\tabc 123\n}\n```",
+						"```\nkey\n\t{\n\tabc 123\n\t}\n```",
+						"```\nkey {\n\tabc 123\n}\n```"
+					],
+					"default": "K&R"
 				}
 			}
 		}
@@ -245,54 +282,39 @@
 	"scripts": {
 		"vscode:prepublish": "pnpm run package",
 		"make-addon": "pnpm vsce package --no-dependencies",
-		"compile": "webpack && webpack -c ./public/webpack.config.js",
-		"package": "pnpm run package-webviews && pnpm run package-addon",
-		"package-addon": "webpack --mode production --devtool hidden-source-map",
-		"package-webviews": "webpack -c ./public/webpack.config.js --mode production --devtool hidden-source-map",
-		"watch-webviews": "webpack -c ./public/webpack.config.js --watch",
-		"watch": "webpack --watch",
-		"compile-tests": "tsc -p . --outDir out",
-		"watch-tests": "tsc -p . -w --outDir out",
-		"pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
-		"lint": "eslint src --ext ts",
-		"test": "node ./out/test/runTest.js"
+		"build": "node build.mts",
+		"watch": "node build.mts --watch",
+		"lint": "eslint src --ext ts"
 	},
 	"devDependencies": {
-		"@types/glob": "^8.1.0",
+		"@types/json-schema": "^7.0.15",
 		"@types/mocha": "^10.0.10",
-		"@types/node": "~16.18.126",
-		"@types/three": "^0.166.0",
-		"@types/vscode": "^1.97.0",
-		"@typescript-eslint/eslint-plugin": "^5.62.0",
-		"@typescript-eslint/parser": "^5.62.0",
-		"@vscode/codicons": "^0.0.36",
-		"@vscode/test-electron": "^2.4.1",
+		"@types/node": "~25.5.2",
+		"@types/three": "^0.183.1",
+		"@types/vscode": "^1.118.0",
+		"@types/vscode-webview": "^1.57.5",
+		"@typescript-eslint/eslint-plugin": "^8.59.1",
+		"@typescript-eslint/parser": "^8.59.1",
+		"@vscode/codicons": "^0.0.45",
+		"@vscode/test-electron": "^2.5.2",
 		"@vscode/webview-ui-toolkit": "^1.4.0",
-		"@vscode/windows-registry": "^1.1.0",
-		"@webgpu/types": "^0.1.54",
+		"@vscode/windows-registry": "^1.2.0",
+		"@webgpu/types": "^0.1.69",
 		"crc-32": "^1.2.2",
-		"css-loader": "^7.1.2",
-		"eslint": "^8.57.1",
-		"fast-png": "^6.2.0",
-		"fast-vdf": "^2.0.5",
-		"gl-matrix": "^3.4.3",
-		"glob": "^10.4.5",
+		"esbuild": "^0.28.0",
+		"esbuild-svelte": "github:koerismo/esbuild-svelte",
+		"eslint": "^10.2.1",
+		"fast-png": "^8.0.0",
+		"fast-vdf": "^3.0.0",
+		"gl-matrix": "^3.4.4",
 		"image-decode": "^1.2.2",
-		"mocha": "^10.8.2",
-		"node-loader": "^2.1.0",
-		"raw-loader": "^4.0.2",
+		"mocha": "^11.7.5",
 		"sfs-js": "link:../sfs-js",
 		"source-engine-model-loader": "github:gkjohnson/source-engine-model-loader",
-		"stupid-buffer": "^1.0.2",
-		"style-loader": "^4.0.0",
-		"three": "^0.166.1",
-		"ts-loader": "^9.5.2",
-		"typescript": "^5.7.3",
-		"vtf-js": "^0.9.1",
-		"webpack": "^5.98.0",
-		"webpack-cli": "^5.1.4"
-	},
-	"dependencies": {
-		"@types/vscode-webview": "^1.57.5"
+		"stupid-buffer": "^1.0.3",
+		"svelte-preprocess": "^6.0.3",
+		"three": "^0.183.2",
+		"typescript": "^5.9.3",
+		"vtf-js": "link:../vtf-js"
 	}
 }

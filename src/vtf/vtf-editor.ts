@@ -5,7 +5,7 @@ import EditorHTML from './editor.html';
 
 export class ValveTextureDocument implements vscode.CustomDocument {
 	uri: vscode.Uri;
-	cache: Vtf|null = null;
+	cache: Vtf | null = null;
 
 	constructor(uri: vscode.Uri) {
 		this.uri = uri;
@@ -17,7 +17,7 @@ export class ValveTextureDocument implements vscode.CustomDocument {
 	async getVtf(allow_cache=true) {
 		if (allow_cache && this.cache !== null) return this.cache;
 		const data = await vscode.workspace.fs.readFile(this.uri);
-		return (this.cache = Vtf.decode(data));
+		return (this.cache = await Vtf.decode(data.buffer as ArrayBuffer, { noClone: true }));
 	}
 }
 
@@ -55,27 +55,34 @@ export class ValveTextureEditorProvider implements vscode.CustomReadonlyEditorPr
 	
 	async resolveCustomEditor(document: ValveTextureDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken) {
 
-		webviewPanel.webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'public')] };
+		webviewPanel.webview.options = {
+			enableScripts: true,
+			localResourceRoots: [
+				vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'public'),
+				vscode.Uri.joinPath(this.context.extensionUri, 'public'),
+			]
+		};
+
 		webviewPanel.webview.html = this.getHtml(webviewPanel.webview);
 
-		try {
-			const vtf = await document.getVtf();
+		document.getVtf().then(vtf => {
 			const image = vtf.data.getImage(0, 0, 0, 0);
 			webviewPanel.webview.postMessage({
 				type: 'update',
 				width: image.width,
 				height: image.height,
-				data: image.data,
+				data: image.data.buffer,
+				dataType: image.data.constructor.name,
 				version: vtf.version,
 				format: VFormats[vtf.format],
-				mipmaps: vtf.data.mipmapCount(),
-				frames: vtf.data.frameCount(),
-				faces: vtf.data.faceCount(),
-				slices: vtf.data.sliceCount(),
+				mipmaps: vtf.data.getMipmapCount(),
+				frames: vtf.data.getFrameCount(),
+				faces: vtf.data.getFaceCount(),
+				slices: vtf.data.getSliceCount(),
 			});
-		}
-		catch(e) {
-			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });	
-		}
+		}).catch(e => {
+			webviewPanel.webview.postMessage({ type: 'error', message: 'Failed to load Vtf! '+e });
+			console.error(e);
+		});
 	}
 }

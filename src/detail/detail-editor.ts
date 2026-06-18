@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { Detail, DetailFile, DetailGroup, DetailProp, DetailMessage, DetailKind, DetailSpriteSize, DetailSpriteBound } from './detail-file.js';
-import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet } from 'fast-vdf';
+import { parse as parseVdf, KeyVRoot, KeyV, KeyVSet, DumpQuotationType } from 'fast-vdf';
 import { outConsole } from '../extension.js';
-import { HOST_PORT, MountServerManager } from '../mod-server.js';
+import { HOST_AUTH, HOST_PORT, MountServerManager } from '../mod-server.js';
+import type { EditorMeta } from '../editors/shared/meta.js';
 import EditorHTML from './editor.html';
 
 function filterNonNull<T>(dict: T, keys?: (keyof T)[]): T {
@@ -39,7 +40,8 @@ function detectDetailType(prop: DetailProp): DetailKind {
 }
 
 // Copy of "decodeBound" from frontend code
-export function decodeSprite(bstr: string): DetailSpriteBound {
+export function decodeSprite(bstr: string | null): DetailSpriteBound {
+	if (!bstr) return { x: 0, y: 0, w: 0, h: 0, imageWidth: 0 };
 	const values = bstr.split(' ', 5).map(x => +x);
 	if (values.length !== 5) throw Error('Failed to parse sprite! (Bad length)');
 	if (!Object.values(values).every(x => !isNaN(x))) throw Error('Failed to parse sprite! (NaN)');
@@ -48,7 +50,8 @@ export function decodeSprite(bstr: string): DetailSpriteBound {
 }
 
 // Copy of "decodeBound" from frontend code
-export function decodeSpriteSize(bstr: string): DetailSpriteSize {
+export function decodeSpriteSize(bstr: string | null): DetailSpriteSize {
+	if (!bstr) return { x: 0, y: 0, w: 0, h: 0 };
 	const values = bstr.split(' ', 4).map(x => +x);
 	if (values.length !== 4) throw Error('Failed to parse spritesize! (Bad length)');
 	if (!Object.values(values).every(x => !isNaN(x))) throw Error('Failed to parse spritesize! (NaN)');
@@ -70,9 +73,10 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 		const vdata = await vscode.workspace.fs.readFile(this.uri);
 		const vroot = parseVdf(new TextDecoder().decode(vdata));
 		const vfile = vroot.dir('detail', null) ?? new KeyVSet('detail');
-	
+
 		const dFile: DetailFile = { details: [] };
 
+		
 		for (const vDetail of vfile.dirs()) {
 			const dDetail: Detail = {
 				type: vDetail.key,
@@ -96,14 +100,15 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 						amount:            vProp.pair('amount').float(1.0),
 						minangle:          vProp.pair('minangle', null)?.float(),
 						maxangle:          vProp.pair('maxangle', null)?.float(),
-						sprite:            decodeSprite(vProp.value('sprite')),
-						spritesize:        decodeSpriteSize(vProp.value('spritesize')),
+						sprite:            decodeSprite(vProp.value('sprite', null)),
+						spritesize:        decodeSpriteSize(vProp.value('spritesize', null)),
 						spriterandomscale: vProp.pair('spriterandomscale', null)?.float(),
 						sway:              vProp.pair('sway', null)?.float(),
 						sprite_shape:      <'tri'|'cross'>vProp.value('sprite_shape', null),
 						shape_size:        vProp.pair('shape_size', null)?.float(),
 						shape_angle:       vProp.pair('shape_angle', null)?.float(),
 						detailOrientation: vProp.pair('detailOrientation', null)?.int(),
+						model:             vProp.pair('model', null)?.value,
 					};
 
 					// Set kind based on detected type
@@ -135,10 +140,12 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 					for (const key in filtered) {
 						if (key === 'sprite') {
 							const {x, y, w, h, imageWidth} = prop[key];
-							KV.pair(key, [x, y, w, h, imageWidth].join(' '));
+							if (imageWidth)
+								KV.pair(key, [x, y, w, h, imageWidth].join(' '));
 						} else if (key === 'spritesize') {
 							const {x, y, w, h} = prop[key];
-							KV.pair(key, [x, y, w, h].join(' '));
+							if (w && h)
+								KV.pair(key, [x, y, w, h].join(' '));
 						} else {
 							// @ts-expect-error Shit
 							KV.pair(key, filtered[key]);
@@ -152,7 +159,7 @@ export class ValveDetailDocument implements vscode.CustomDocument {
 		}
 		KV.back();
 		KV.exit();
-		const text = root.dump({ quote: 'auto' });
+		const text = root.dump({ quote: DumpQuotationType.Auto });
 		const buf = new TextEncoder().encode(text);
 		vscode.workspace.fs.writeFile(this.uri, buf);
 	}
@@ -230,8 +237,15 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 	}
 
 	getHtml(view: vscode.Webview) {
+		const editorMeta: EditorMeta = {
+			authorization: HOST_AUTH,
+			port: HOST_PORT.toString(),
+			root: view.asWebviewUri(this.context.extensionUri).toString(),
+		};
+
 		return EditorHTML
-			.replaceAll('$ROOT$', view.asWebviewUri(this.context.extensionUri).toString())
+			.replaceAll('$META$', JSON.stringify(editorMeta))
+			.replaceAll('$ROOT$', editorMeta.root)
 			.replaceAll('$CSP$', view.cspSource)
 			.replaceAll('$HOST_PORT$', HOST_PORT.toString());
 	}
@@ -242,6 +256,7 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 		
 		webviewPanel.webview.options = {
 			localResourceRoots: [
+				vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'public'),
 				vscode.Uri.joinPath(this.context.extensionUri, 'public'),
 				vscode.Uri.joinPath(this.context.extensionUri, 'node_modules')
 			],
@@ -288,10 +303,14 @@ export class ValveDetailEditorProvider implements vscode.CustomEditorProvider {
 					});
 				}
 
+				// fuck this
+				let pickedPath = files[0].path;
+				if (!pickedPath.startsWith('/')) pickedPath = '/'+pickedPath;
+
 				return webviewPanel.webview.postMessage(<DetailMessage>{
 					type: 'ask',
 					kind: msg.kind,
-					data: files[0].path
+					data: pickedPath
 				});
 
 			}

@@ -1,0 +1,13 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2022"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"types": ["node"],
+		"noEmit": true,
+		"strict": true
+	},
+	"include": ["./**/*"],
+	"exclude": ["./editors/client/"]
+}

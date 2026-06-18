@@ -5,9 +5,10 @@ import { existsSync } from 'fs';
 import { readFile } from 'fs/promises';
 import { extname, dirname, basename, join, relative, sep } from 'path';
 import * as decodeImage from 'image-decode';
-import { Vtf, VFilters, VFlags, VFormats, VImageData, VMipmapProvider, VDataCollection } from 'vtf-js';
+import { Vtf, VFilters, VFlags, VFormats, VImageData, VDataCollection, VFrameCollection } from 'vtf-js';
 import { platform } from 'os';
 import { findDetailSource, getDetailTypes } from '../mod-details.js';
+import { VDataCollectionOptions } from 'vtf-js/dist/core/providers.js';
 
 const IS_WIN32 = platform() === 'win32';
 
@@ -57,11 +58,12 @@ const RE_TEX_METAL = /(metal|metallic)\..+$/i;
 const RE_TEX_ROUGH = /(rough|roughness)\..+$/i;
 const RE_TEX_AO = /(ao|occlusion|occ)\..+$/i;
 
-const VTF_CONVERT_OPTIONS = {
-	filter: VFilters.Triangle,
+const VTF_CONVERT_OPTIONS: Partial<VDataCollectionOptions> = {
+	resizeFilter: VFilters.Lanczos3,
 };
+
 const VTF_RESIZE_OPTIONS = {
-	filter: VFilters.Triangle
+	filter: VFilters.Lanczos3,
 };
 
 const IMAGE_EXTS = new Set([
@@ -176,12 +178,12 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 	private registry!: vscode.Disposable;
 
 	constructor() {
-		this.diagnostics = vscode.languages.createDiagnosticCollection('sourcery.vmt');
+		this.diagnostics = vscode.languages.createDiagnosticCollection('vmt-links');
 	}
 
 	static register(): vscode.Disposable {
 		const editor = new this();
-		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'vmt' }, editor);
+		editor.registry = vscode.languages.registerDocumentLinkProvider({ language: 'sourcery.vmt' }, editor);
 		return editor;
 	}
 
@@ -194,7 +196,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 		const text = document.getText();
 		const lines = text.split('\n');
 		const links: VmtDocumentLink[] = [];
-		const config = vscode.workspace.getConfiguration('sourcery.vmt', document.uri);
+		const config = vscode.workspace.getConfiguration('sourcery.vmt');
 		
 		const diagnostics: vscode.Diagnostic[] = [];
 		this.diagnostics.clear();
@@ -248,7 +250,7 @@ export class VmtLinkProvider implements vscode.DocumentLinkProvider<VmtDocumentL
 
 export class VmtAutocompleteProvider implements vscode.CompletionItemProvider {
 	static register(context: vscode.ExtensionContext): vscode.Disposable {
-		return vscode.languages.registerCompletionItemProvider({ language: 'vmt' }, new this(), '/', '"');
+		return vscode.languages.registerCompletionItemProvider({ language: 'sourcery.vmt' }, new this(), '/', '"');
 	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext): Promise<vscode.CompletionItem[]> {
@@ -281,7 +283,7 @@ export class VmtAutocompleteProvider implements vscode.CompletionItemProvider {
 
 export class VmtCodeActionProvider implements vscode.CodeActionProvider {
 	static register(context: vscode.ExtensionContext) {
-		return vscode.languages.registerCodeActionsProvider({ language: 'vmt' }, new this());
+		return vscode.languages.registerCodeActionsProvider({ language: 'sourcery.vmt' }, new this());
 	}
 	
 	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext, token: vscode.CancellationToken): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
@@ -357,11 +359,11 @@ function resizeIfNeeded<T extends VImageData>(texture: T, max_size: number): T {
 	return texture.resize(new_width, new_height, VTF_RESIZE_OPTIONS) as T;
 }
 
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
-async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false, skipDGAsk: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean, requireEncode: true, skipDGAsk?: boolean): Promise<{ vtf: Vtf|null, out: ArrayBuffer }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: true, requireEncode: boolean, skipDGAsk?: boolean): Promise<{ vtf: Vtf, out: ArrayBuffer|null }>;
+async function convertToVtf(path: string, idealVersion: number, idealFormat: VFormats, idealFormatAlpha: VFormats, requireDecode: boolean=false, requireEncode: boolean=false, skipDGAsk: boolean=false): Promise<{ vtf: Vtf|null, out: ArrayBuffer|null }> {
 	const buffer = (await readFile(path)).buffer;
 	const ext = extname(path);
 	
@@ -369,11 +371,11 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 	let vtfout: ArrayBuffer|null = null;
 	
 	if (ext === '.vtf') {
-		vtf = Vtf.decode(buffer, false, true);
-		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer;
+		vtf = await Vtf.decode(buffer as ArrayBuffer);
+		if (vtf.version <= idealVersion || !(await askToDowngrade(skipDGAsk))) vtfout = buffer as ArrayBuffer;
 		else {
 			vtf.version = idealVersion;
-			if (requireEncode) vtfout = vtf.encode();
+			if (requireEncode) vtfout = await vtf.encode();
 		}
 	}
 
@@ -386,14 +388,14 @@ async function convertToVtf(path: string, idealVersion: 1|2|3|4|5|6, idealFormat
 			has_alpha = true;
 			break;
 		}
-		const vcollection = new VMipmapProvider([[[new VImageData(image.data, image.width, image.height)]]], VTF_CONVERT_OPTIONS);
+		const vcollection = new VFrameCollection([new VImageData(image.data, image.width, image.height)], VTF_CONVERT_OPTIONS);
 		vtf = new Vtf(vcollection, {
 			version: idealVersion,
-			compression: idealVersion === 6 ? 5 : 0,
+			compression_level: idealVersion === 6 ? 5 : 0,
 			format: has_alpha ? idealFormatAlpha : idealFormat,
 			flags: has_alpha ? VFlags.EightBitAlpha : 0
 		});
-		if (requireEncode) vtfout = vtf.encode();
+		if (requireEncode) vtfout = await vtf.encode();
 	}
 
 	return { vtf, out: vtfout };
@@ -509,19 +511,7 @@ export class VmtChangeListener {
 			}
 
 			// Match ideal vtf version
-			let ideal_version: 1|2|3|4|5|6;
-			switch (modFilesystem.gfs?.appid) {
-				case '440000':
-				case '669270':
-					ideal_version = 6;
-					break;
-				case '620':
-				case '730':
-					ideal_version = 5;
-					break;
-				default:
-					ideal_version = 3;
-			}
+			const ideal_version = modFilesystem.getVtfVersion();
 
 			// Analyze inputs
 			const ext = extname(path_color).toLowerCase();
@@ -549,14 +539,14 @@ export class VmtChangeListener {
 					vimage = resizeIfNeeded(vimage, max_size_tt);
 				}
 				
-				const vcollection = new VDataCollection([[[[vimage]]]]);
+				const vcollection = new VFrameCollection([vimage]);
 				vtf = new Vtf(vcollection, {
 					format: ideal_format,
 					version: ideal_version,
-					compression: ideal_version === 6 ? 6 : 0,
+					compression_level: ideal_version === 6 ? 6 : 0,
 				});
 
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else if (using_alpha) {
 				outConsole.log('Attempting to merge alpha textures...');
@@ -579,10 +569,10 @@ export class VmtChangeListener {
 					im_color = resizeIfNeeded(im_color, max_size);
 				}
 				
-				const vcollection = new VMipmapProvider([[[im_color]]], VTF_CONVERT_OPTIONS);
+				const vcollection = new VFrameCollection([im_color], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted_color.vtf);
 				vtf.format = ideal_format_alpha;
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else if (using_mrao) {
 				outConsole.log('Attempting to merge MRAO textures...');
@@ -612,10 +602,10 @@ export class VmtChangeListener {
 				}
 
 				// Encode
-				const vcollection = new VMipmapProvider([[[target]]], VTF_CONVERT_OPTIONS);
+				const vcollection = new VFrameCollection([target], VTF_CONVERT_OPTIONS);
 				vtf = new Vtf(vcollection, converted[0].vtf);
 				vtf.format = ideal_format;
-				vtf_out = vtf.encode();
+				vtf_out = await vtf.encode();
 			}
 			else {
 				const conv_color = await convertToVtf(path_color, ideal_version, ideal_format, ideal_format_alpha, true, true);
@@ -633,7 +623,7 @@ export class VmtChangeListener {
 			else vscode.window.showInformationMessage('Updated texture automagically!');
 			
 			// Write file
-			outConsole.log(`Vtf information: version=${vtf.version}, format=${VFormats[vtf.format]}, compression=${vtf.compression}`);
+			outConsole.log(`Vtf information: version=${vtf.version}, format=${VFormats[vtf.format]}, compression=${vtf.compression_level}`);
 			outConsole.log('Saving Vtf to', new_path);
 			vscode.workspace.fs.writeFile(vscode.Uri.file(new_path), new Uint8Array(vtf_out));
 			vscode.window.activeTextEditor?.edit(editor => {

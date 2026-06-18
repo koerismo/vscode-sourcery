@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<script>window.editorMeta=$META$</script>
 		<meta charset="UTF-8">
 		<meta http-equiv="Content-Security-Policy" content="default-src $CSP$ 'unsafe-eval' 'unsafe-inline'; img-src 'self' data:; connect-src http://localhost:$HOST_PORT$/ https://*.vscode-cdn.net">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -69,6 +70,6 @@
 			<canvas id="viewport" class="panel v fill"></canvas>
 		</div>
 		<bound-editor></bound-editor>
-		<script src="$ROOT$/public/dist/detail-editor.js"></script>
+		<script type="module" src="$ROOT$/dist/public/detail-editor.js"></script>
 	</body>
 </html>

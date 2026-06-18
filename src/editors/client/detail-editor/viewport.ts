@@ -25,7 +25,7 @@ scene.add(new Three.GridHelper(512, 8));
 scene.add(new Three.AmbientLight(0xffffff));
 
 // Load text label
-new OBJLoader().load(URL_ROOT+'/public/assets/128x.obj', data => {
+new OBJLoader().load(window.editorMeta.root + '/public/assets/128x.obj', data => {
 	data.scale.multiplyScalar(1.5);
 	const d1 = data;
 	const d2 = data.clone();

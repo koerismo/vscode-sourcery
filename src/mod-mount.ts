@@ -4,20 +4,22 @@ import { GameSystem, ReadableFileSystem, SteamCache } from 'sfs-js';
 import { NodeSystem } from 'sfs-js/dist/fs.node.js';
 
 import { GetStringRegKey } from '@vscode/windows-registry';
-import { platform as getPlatform } from 'os';
-import { join, normalize, resolve } from 'path';
+import { platform as getPlatform } from 'node:os';
+import { join, posix, resolve } from 'node:path';
 import { outConsole } from './extension.js';
 
-export async function getPathAutocomplete(path: string, prefix: string): Promise<vscode.CompletionItem[]> {
-	path = normalize(join('/'+prefix, path));
+export async function getPathAutocomplete(path: string, prefix: string, qualifier?: string): Promise<vscode.CompletionItem[]> {
 	if (!modFilesystem.isReady()) return [];
-	const dir = await modFilesystem.readDirectory(Uri.file(path));
+	path = posix.normalize(join('/'+prefix, path));
+	const dir = await modFilesystem.gfs.readDirectory(path, qualifier);
+	if (!dir) return [];
+
 	const out = new Array<vscode.CompletionItem>(dir.length);
 	for (let i=0; i<dir.length; i++) {
-		const d = dir[i];
+		const [fileName, fileType] = dir[i];
 		out[i] = {
-			label: d[0],
-			kind: d[1] === FileType.Directory ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.File
+			label: fileName,
+			kind: fileType === FileType.Directory ? vscode.CompletionItemKind.Folder : vscode.CompletionItemKind.File
 		};
 	}
 	return out;
@@ -32,14 +34,14 @@ function findSteamCache(fs: ReadableFileSystem): SteamCache {
 	let steam_path: string;
 	switch (getPlatform()) {
 		case 'win32':
-			steam_path = normalize(
+			steam_path = posix.normalize((
 				// https://github.com/itselectroz/steam-path/blob/master/src/win32.ts#L6-L11
 				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_LOCAL_MACHINE', 'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\WOW6432Node\\Valve\\Steam', 'InstallPath') ??
 				GetStringRegKey('HKEY_CURRENT_USER',  'SOFTWARE\\Valve\\Steam', 'InstallPath') ??
 				'C:/Program Files (x86)/Steam'
-			).replaceAll('\\', '/') + '/';
+			).replaceAll('\\', '/')) + '/';
 			break;
 
 		case 'darwin':
@@ -66,7 +68,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	isReady() {
-		return !!(this.gfs?.initialized);
+		return !!(this.gfs?.state);
 	}
 	
 	constructor() {
@@ -82,7 +84,7 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 				// Check if gameinfo exists. vscode's api throws if it doesn't find it, so we skip the whole init.
 				await vscode.workspace.fs.stat(vscode.Uri.joinPath(root, 'gameinfo.txt'));
 				outConsole.log(`Using gameinfo at '${root.fsPath}'`);
-	
+
 				this.vfs = new NodeSystem();
 				const steam_cache = findSteamCache(this.vfs);
 				this.gfs = new GameSystem(this.vfs, root.fsPath.replaceAll('\\', '/'), steam_cache);
@@ -108,23 +110,25 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async stat(uri: Uri): Promise<FileStat> {
+		console.log('stat', uri.path.toLowerCase());
 		const out = await this.gfs.stat(uri.path.toLowerCase());
 		if (out === undefined) throw new vscode.FileSystemError(`Failed to stat Mod file ${uri.path}!`);
 		return out;
 	}
 
 	async readDirectory(uri: Uri): Promise<[string, FileType][]> {
+		console.log('readdir', uri.path.toLowerCase());
 		return (await this.gfs.readDirectory(uri.path.toLowerCase()))!;
 	}
 
-	async findFile(uri: Uri|string, qualifier?: string): Promise<string|undefined> {
+	async findFile(uri: Uri|string, qualifier?: string): Promise<string | undefined> {
 		if (typeof uri !== 'string') uri = uri.path; 
-		return this.gfs.getPath(uri.toLowerCase(), qualifier);
+		return this.gfs.getRealPath(uri.toLowerCase(), qualifier);
 	}
 
 	async findFileUri(uri: Uri|string, qualifier?: string): Promise<Uri|undefined> {
 		if (typeof uri !== 'string') uri = uri.path; 
-		const path = await this.gfs.getPath(uri.toLowerCase(), qualifier);
+		const path = await this.gfs.getRealPath(uri.toLowerCase(), qualifier);
 		if (path === undefined) return undefined;
 		return Uri.from({ path, scheme: path.includes('.vpk') ? 'vpk' : 'file' });
 	}
@@ -134,9 +138,26 @@ export class ModFilesystemProvider implements vscode.FileSystemProvider {
 	}
 
 	async readFile(uri: Uri): Promise<Uint8Array> {
+		if (!uri.path.startsWith('/'))
+			uri = uri.with({ path: '/' + uri.path });
+		console.log('readfile', uri.path.toLowerCase());
 		const out = await this.gfs.readFile(uri.path.toLowerCase());
 		if (out === undefined) throw new vscode.FileSystemError(`Failed to read Mod file ${uri.path}!`);
 		return out;
+	}
+
+	getVtfVersion(): 3 | 5 | 6 {
+		switch (modFilesystem.gfs?.appid) {
+			case '440000':	// P2:CE
+			case '669270':	// Momentum
+			case '601360':	// Revolution
+				return 6;
+			case '620':		// Portal 2
+			case '730':		// CS:GO
+				return 5;
+			default:
+				return 3;
+		}
 	}
 
 	writeFile(uri: Uri, content: Uint8Array, options: { readonly create: boolean; readonly overwrite: boolean; }): void | Thenable<void> {

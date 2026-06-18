@@ -3,16 +3,22 @@ import { json as parseToJson } from 'fast-vdf';
 import { ImageDataLike } from './imagelike.js';
 import { VEncodedImageData, VFormats, Vtf } from 'vtf-js';
 import { assert } from './utils.js';
+import '../../shared/index.js';
 
-// @ts-expect-error No types
-import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
-declare const SourceModelLoader: typeof Three.Loader;
+// import { SourceModelLoader } from 'source-engine-model-loader/src/SourceModelLoader.js';
+// declare const SourceModelLoader: typeof Three.Loader;
 
-export const URL_ROOT = document.querySelector('head meta[name=root]')!.getAttribute('content')!;
-export const SERVER_PORT = document.querySelector('head meta[name=port]')!.getAttribute('content')!;
+export const URL_ROOT = window.editorMeta.root; // document.querySelector<HTMLMetaElement>('head meta[name=root]')!.content;
+export const SERVER_PORT = window.editorMeta.port; //document.querySelector<HTMLMetaElement>('head meta[name=port]')!.content;
 
-export function localFetch(path: string) {
-	return fetch(`http://localhost:${SERVER_PORT}` + normalizePath(path, '', null));
+export function localFetch(path: string): Promise<Response> {
+	console.log('fetching...', path, window.editorMeta);
+	return fetch(`http://localhost:${window.editorMeta.port}` + normalizePath(path, '', null), {
+		method: 'get',
+		headers: {
+			'Authorization': window.editorMeta.authorization
+		}
+	});
 }
 
 const RE_SLASH = /(\/|\\)+/g;
@@ -23,21 +29,24 @@ export function normalizePath(path: string, root: string='materials/', ext: stri
 }
 
 /** Load with GPU acceleration via three. */
-export function loadSourceModel(path: string): Promise<Three.Group> {
-	return new Promise(resolve => {
-		new SourceModelLoader().load(path, (out) => {
-			const { group, vvd, mdl, vtx, materials } = <any>out;
-			resolve(group);
-		});
-	});
-}
+// export function loadSourceModel(path: string): Promise<Three.Group> {
+// 	return new Promise(resolve => {
+// 		new SourceModelLoader().load(path, (out) => {
+// 			const { group, vvd, mdl, vtx, materials } = <any>out;
+// 			resolve(group);
+// 		});
+// 	});
+// }
 
 export async function loadVMT(path: string): Promise<{ shader: string, data: Record<string, string> }|null> {
 	const resp = await localFetch(path);
-	if (!resp.ok) return null;
+	// if (!resp.ok) return null;
+	if (!resp.ok) { console.warn('Fetch failed on url', path); return null; }
 	const body = await resp.text();
-	if (!body.length) return null;
-	const vmtData = parseToJson(body) as any;
+	// if (!body.length) return null;
+	if (!body.length) { console.warn('Empty file on url', path); return null; }
+	// case sensitivity my balls
+	const vmtData = parseToJson(body.toLowerCase()) as any;
 	const shaderName = Object.keys(vmtData)[0];
 	if (!shaderName) return null;
 	return { shader: shaderName, data: vmtData[shaderName] };
@@ -54,7 +63,7 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 	assert(resp.ok);
 
 	const body = await resp.arrayBuffer();
-	const vtf = Vtf.decode(body);
+	const vtf = await Vtf.decode(body);
 	let slice = vtf.data.getImage(0, 0, 0, 0, true);
 
 	let isCompressed = false;
@@ -69,12 +78,9 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 				pixelFormat = Three.RedFormat;
 				texType = Three.FloatType;
 				break;
-			case VFormats.I8:
-				pixelFormat = Three.LuminanceFormat;
-				break;
-			case VFormats.RGB888:
-				pixelFormat = Three.RGBFormat;
-				break;
+			// case VFormats.RGB888:
+			// 	pixelFormat = Three.RGBFormat;
+			// 	break;
 			case VFormats.RGBA8888:
 				pixelFormat = Three.RGBAFormat;
 				break;
@@ -112,9 +118,9 @@ export async function loadVtfAsTexture(path: string): Promise<Three.Texture> {
 	}
 
 	const tex = (isCompressed ? 
-		new Three.CompressedTexture([slice], slice.width, slice.height, <Three.CompressedPixelFormat>pixelFormat)
+		new Three.CompressedTexture([slice as VEncodedImageData], slice.width, slice.height, <Three.CompressedPixelFormat>pixelFormat)
 		:
-		new Three.DataTexture(slice.data, slice.width, slice.height, <Three.PixelFormat>pixelFormat, texType)
+		new Three.DataTexture(slice.data as Three.TypedArray, slice.width, slice.height, <Three.PixelFormat>pixelFormat, texType)
 	);
 
 	// TODO: Use actual mipmaps!
@@ -130,6 +136,6 @@ export async function loadVtfAsImage(path?: string): Promise<ImageDataLike|null>
 	if (!resp.ok) return null;
 
 	const body = await resp.arrayBuffer();
-	const vtf = Vtf.decode(body);
+	const vtf = await Vtf.decode(body);
 	return vtf.data.getImage(0, 0, 0, 0).convert(Uint8Array);
 }

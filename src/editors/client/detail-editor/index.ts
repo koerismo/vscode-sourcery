@@ -1,5 +1,7 @@
-import '../../../node_modules/@vscode/codicons/dist/codicon.css';
+import '../../../../node_modules/@vscode/codicons/dist/codicon.css';
+import '../shared/index.js';
 import './viewport.js';
+
 import * as Viewport from './viewport.js';
 
 import { provideVSCodeDesignSystem, vsCodeButton, vsCodeCheckbox, vsCodeDropdown, vsCodeOption } from '@vscode/webview-ui-toolkit';
@@ -11,9 +13,7 @@ import { EditNumberElement } from './edit-number.js';
 import { EditPropElement } from './edit-detailprop.js';
 import { Bound, BoundEditorElement } from './bound-editor.js';
 import * as Loaders from '../shared/three/loaders.js';
-import { assert } from '../shared/three/utils.js';
 import { ImageDataLike } from '../shared/three/imagelike.js';
-
 
 // declare function acquireVsCodeApi(): { postMessage(message: any): void };
 const vscode = acquireVsCodeApi();
@@ -59,7 +59,9 @@ export function makeThumb(imdata: ImageDataLike) {
     const ctx = canvas.getContext('2d')!;
     canvas.width = imdata.width;
     canvas.height = imdata.height;
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(imdata.data.buffer), imdata.width), 0, 0);
+	// TODO: This freaks out if the data isnt a unique copy even though
+	// we already ensure all data is unique coming out of the virtual filesystem
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(imdata.data), imdata.width), 0, 0);
     return canvas.toDataURL();
 }
 
@@ -231,8 +233,12 @@ class FileManager {
 		const current_prop = this.getCurrentProp();
 		if (!current_prop || !bound_editor.image) return;
 
+		// TEMPTEMP :3
+		console.log(current_prop.sprite, bound_editor.image.width);
+		
 		// If this is first-time setup, reset the bounds.
 		if (!current_prop.sprite.imageWidth) {
+			console.log('imageWidth is 0, resetting sprite bounds!', current_prop);
 			current_prop.sprite.x = 0;
 			current_prop.sprite.y = 0;
 			current_prop.sprite.w = bound_editor.image.width;
@@ -469,7 +475,7 @@ async function askForTexture(path?: string): Promise<DetailMessageAskData|null> 
 	if (!matPath) return null;
 
 	const vmt = await Loaders.loadVMT(matPath);
-	if (!vmt) return null;
+	if (!vmt) { console.warn('vmt at', matPath, 'could not be loaded!'); return null; }
 
 
 	// Normalize paths
@@ -484,9 +490,14 @@ async function askForTexture(path?: string): Promise<DetailMessageAskData|null> 
 	const basetexture = await Loaders.loadVtfAsImage(basetexturePath);
 	const basetexture2 = await Loaders.loadVtfAsImage(basetexture2Path);
 	const tooltexture = await Loaders.loadVtfAsImage(tooltexturePath);
+
+	console.log('askForTexture: PICKED!', basetexture);
 	
 	// Major whoopsie incoming
-	assert(basetexture);
+	if (!basetexture) {
+		console.error(`Could not use vmt "${path}"! No basetexture?`, vmt);
+		return null;
+	}
 
 	return {
 		path: matPath,
